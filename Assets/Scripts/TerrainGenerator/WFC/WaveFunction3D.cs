@@ -65,6 +65,7 @@ public class WaveFunction3D : MonoBehaviour
         meshRenderer.sharedMaterials = tile.gameObject.GetComponent<MeshRenderer>().sharedMaterials;
 
         Tile3D tileRotated = newTile.AddComponent<Tile3D>();
+        tileRotated.tileType = tile.tileType;
         tileRotated.probability = tile.probability;
         tileRotated.positionOffset = tile.positionOffset;
 
@@ -127,7 +128,12 @@ public class WaveFunction3D : MonoBehaviour
         tileRotated.belowSocket.rotationIndex = 90;
         
         //excluded neighbours
+        tileRotated.excludedNeighboursRight = originalTile.excludedNeighboursUp;
         tileRotated.excludedNeighboursLeft = originalTile.excludedNeighboursDown;
+        tileRotated.excludedNeighboursUp = originalTile.excludedNeighboursLeft;
+        tileRotated.excludedNeighboursDown = originalTile.excludedNeighboursRight;
+        
+       
 
     }
 
@@ -144,6 +150,9 @@ public class WaveFunction3D : MonoBehaviour
         
         //excluded neighbours
         tileRotated.excludedNeighboursLeft = originalTile.excludedNeighboursRight;
+        tileRotated.excludedNeighboursRight = originalTile.excludedNeighboursLeft;
+        tileRotated.excludedNeighboursUp = originalTile.excludedNeighboursDown;
+        tileRotated.excludedNeighboursDown = originalTile.excludedNeighboursUp;
 
     }
 
@@ -159,7 +168,10 @@ public class WaveFunction3D : MonoBehaviour
         tileRotated.belowSocket.rotationIndex = 270;
         
         //excluded neighbours
+        tileRotated.excludedNeighboursRight = originalTile.excludedNeighboursDown;
         tileRotated.excludedNeighboursLeft = originalTile.excludedNeighboursUp;
+        tileRotated.excludedNeighboursUp = originalTile.excludedNeighboursRight;
+        tileRotated.excludedNeighboursDown = originalTile.excludedNeighboursLeft;
     }
 
 
@@ -171,27 +183,28 @@ public class WaveFunction3D : MonoBehaviour
             foreach (Tile3D otherTile in otherTileArray)
             {
                 //HORIZONTAL FACES: Mismo socket y ser simetricos O uno flip y el otro no
+                //También se comprueba que la lista de excluidos de cada cara no incluya la otra tile, ni la otra tile a nosotros
 
-                    //Vecinos de arriba, los que coincidan en el borde de abajo
-                    if (otherTile.downSocket.socket_name == tile.upSocket.socket_name)
+                    //Vecinos de arriba
+                    if (otherTile.downSocket.socket_name == tile.upSocket.socket_name && !tile.excludedNeighboursUp.Contains(otherTile.tileType) && !otherTile.excludedNeighboursDown.Contains(tile.tileType))
                     {
                         if(tile.upSocket.isSymmetric || otherTile.downSocket.isSymmetric || (otherTile.downSocket.isFlipped && !tile.upSocket.isFlipped) || (!otherTile.downSocket.isFlipped && tile.upSocket.isFlipped))
                         tile.upNeighbours.Add(otherTile);
                     }
                     //Vecinos de abajo
-                    if (otherTile.upSocket.socket_name == tile.downSocket.socket_name)
+                    if (otherTile.upSocket.socket_name == tile.downSocket.socket_name && !tile.excludedNeighboursDown.Contains(otherTile.tileType) && !otherTile.excludedNeighboursUp.Contains(tile.tileType))
                     {
                         if (otherTile.upSocket.isSymmetric || tile.downSocket.isSymmetric || (otherTile.upSocket.isFlipped && !tile.downSocket.isFlipped) || (!otherTile.upSocket.isFlipped && tile.downSocket.isFlipped))
                         tile.downNeighbours.Add(otherTile);
                     }
                     //Vecinos a la derecha
-                    if (otherTile.leftSocket.socket_name == tile.rightSocket.socket_name)
+                    if (otherTile.leftSocket.socket_name == tile.rightSocket.socket_name  && !tile.excludedNeighboursRight.Contains(otherTile.tileType) && !otherTile.excludedNeighboursLeft.Contains(tile.tileType))
                     {
                         if (otherTile.leftSocket.isSymmetric || tile.rightSocket.isSymmetric || (otherTile.leftSocket.isFlipped && !tile.rightSocket.isFlipped) || (!otherTile.leftSocket.isFlipped && tile.rightSocket.isFlipped))
                         tile.rightNeighbours.Add(otherTile);
                     }
                     //Vecinos a la izquierda
-                    if (otherTile.rightSocket.socket_name == tile.leftSocket.socket_name && !tile.excludedNeighboursLeft.Contains(otherTile))
+                    if (otherTile.rightSocket.socket_name == tile.leftSocket.socket_name && !tile.excludedNeighboursLeft.Contains(otherTile.tileType) && !otherTile.excludedNeighboursRight.Contains(tile.tileType))
                     {
                         if (otherTile.rightSocket.isSymmetric || tile.leftSocket.isSymmetric || (otherTile.rightSocket.isFlipped && !tile.leftSocket.isFlipped) || (!otherTile.rightSocket.isFlipped && tile.leftSocket.isFlipped))
                         tile.leftNeighbours.Add(otherTile);

@@ -1,0 +1,11 @@
+Model Information:
+* title:	Animated Oak Trees
+* source:	https://sketchfab.com/3d-models/animated-oak-trees-fcb0374d91334eb7a119bfc316167f7e
+* author:	Jagobo (https://sketchfab.com/Jagobo)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Animated Oak Trees" (https://sketchfab.com/3d-models/animated-oak-trees-fcb0374d91334eb7a119bfc316167f7e) by Jagobo (https://sketchfab.com/Jagobo) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

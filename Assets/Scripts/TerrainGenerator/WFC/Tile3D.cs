@@ -36,6 +36,7 @@ public class Tile3D : MonoBehaviour
         public bool rotationallyInvariant;
     }
 
+    public string tileType;
     public int probability;
     public bool isHorizontalSymetric;
     public bool isVerticalSymetric;
@@ -54,29 +55,17 @@ public class Tile3D : MonoBehaviour
     public List<Tile3D> rightNeighbours = new List<Tile3D>();
     public List<Tile3D> downNeighbours = new List<Tile3D>();
     public List<Tile3D> leftNeighbours = new List<Tile3D>();
-
     public List<Tile3D> aboveNeighbours = new List<Tile3D>();    // Y+
     public List<Tile3D> belowNeighbours = new List<Tile3D>();    // Y-
 
-    public List<Tile3D> excludedNeighboursUp = new List<Tile3D>();
-    public List<Tile3D> excludedNeighboursRight = new List<Tile3D>();
-    public List<Tile3D> excludedNeighboursDown = new List<Tile3D>();
-    public List<Tile3D> excludedNeighboursLeft = new List<Tile3D>();
-    public List<Tile3D> excludedNeighboursAbove = new List<Tile3D>();
-    public List<Tile3D> excludedNeighboursBelow  = new List<Tile3D>();
+    [Header("Excluded neighbours")]
+    public List<string> excludedNeighboursUp = new();
+    public List<string> excludedNeighboursRight = new();
+    public List<string> excludedNeighboursDown = new();
+    public List<string> excludedNeighboursLeft = new();
 
-    [Tooltip("Para definir la direccion la derecha siempre será el eje X (rojo) y arriba será el eje Z (azul)")]
-    [Header("Borders")]
-    
-   /* public Border upBorder; //Z
-    public Border rightBorder; //X
-    public Border leftBorder; //-X
-    public Border downBorder; //-Z
-
-    public Border aboveBorder;   // Y+
-    public Border belowBorder;   // Y-*/
-
-
+    [Tooltip("Para definir la direccion la derecha siempre serï¿½ el eje X (rojo) y arriba serï¿½ el eje Z (azul)")]
+    [Header("Sockets")]
     public Socket upSocket;
     public Socket rightSocket;
     public Socket leftSocket;

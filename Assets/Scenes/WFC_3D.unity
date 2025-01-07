@@ -558,9 +558,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   iterations: 0
-  dimensionsX: 6
-  dimensionsZ: 6
-  dimensionsY: 6
+  dimensionsX: 10
+  dimensionsZ: 10
+  dimensionsY: 4
   floorTile: {fileID: 1523664878442172427, guid: 22e98c0e0cc76aa4c9bd5660cd6318bd, type: 3}
   tileObjects:
   - {fileID: 3110566506449276630, guid: 85a8b3df246529841a56d407a88fff4d, type: 3}
