@@ -5,6 +5,8 @@ using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEditor;
+using System.Diagnostics;
+using Debug = UnityEngine.Debug;
 
 public class WaveFunction3D : MonoBehaviour
 {
@@ -13,6 +15,7 @@ public class WaveFunction3D : MonoBehaviour
     [Header("Map generation")]
     [SerializeField] public int dimensionsX, dimensionsZ, dimensionsY;
     [SerializeField] Tile3D floorTile;
+    [SerializeField] Tile3D emptyTile;
     [SerializeField] public Tile3D[] tileObjects;                  //All the map tiles that you can use
     [SerializeField] int cellSize;
 
@@ -24,15 +27,28 @@ public class WaveFunction3D : MonoBehaviour
     public delegate void OnRegenerate();
     public static event OnRegenerate onRegenerate;
 
+
+    public int checkDistance = 2;
+    public bool useOptimization;
+    Stopwatch stopwatch;
+
+    public bool inOrderGeneration;
+
     void Awake()
     {
+
+
         ClearNeighbours(ref tileObjects);
         CreateRemainingCells(ref tileObjects);
         DefineNeighbourTiles(ref tileObjects, ref tileObjects);
 
         gridComponents = new List<Cell3D>();
+
+        stopwatch = new Stopwatch();
+        stopwatch.Start();
         InitializeGrid();
         CreateSolidFloor();
+        CreateSolidCeiling();
         UpdateGeneration();
     }
 
@@ -282,6 +298,38 @@ public class WaveFunction3D : MonoBehaviour
         }
     }
 
+    void CreateSolidCeiling()
+    {
+        int y = dimensionsY-1;
+        for (int z = 0; z < dimensionsZ; z++)
+        {
+            for (int x = 0; x < dimensionsX; x++)
+            {
+                var index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
+                Cell3D cellToCollapse = gridComponents[index];
+                cellToCollapse.tileOptions = new Tile3D[] { emptyTile };
+                cellToCollapse.collapsed = true;
+                if (cellToCollapse.transform.childCount != 0)
+                {
+                    foreach (Transform child in cellToCollapse.transform)
+                    {
+                        Destroy(child.gameObject);
+                    }
+                }
+
+                Tile3D instantiatedTile = Instantiate(emptyTile, cellToCollapse.transform.position, Quaternion.identity, cellToCollapse.transform);
+                if (instantiatedTile.rotation != Vector3.zero)
+                {
+                    instantiatedTile.gameObject.transform.Rotate(floorTile.rotation, Space.Self);
+                }
+
+                instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
+                instantiatedTile.gameObject.SetActive(true);
+                iterations++;
+            }
+        }
+    }
+
 
     //--------GENERATE THE REST OF THE MAP-----------
     IEnumerator CheckEntropy()
@@ -290,43 +338,64 @@ public class WaveFunction3D : MonoBehaviour
 
         tempGrid.RemoveAll(c => c.collapsed);
 
+
+        //------------Para que elija el que tiene menos entropia-----------------
         //The result of this calculation determines the order of the elements in the sorted list.
         //If the result is negative, it means a should come before b; if positive, it means a should come after b;
         //and if zero, their order remains unchanged.
-
-       // tempGrid.Sort((a, b) => { return a.tileOptions.Length - b.tileOptions.Length; }); //Para que elija el que tiene menos entropia
-
-
-        //Para que vaya en orden
-        int arrLength = tempGrid[0].tileOptions.Length;
-        int stopIndex = default;
-
-        for (int i = 1; i < tempGrid.Count; i++)
+        if (!inOrderGeneration)
         {
-            if (tempGrid[i].tileOptions.Length > arrLength)
+            tempGrid.Sort((a, b) => { return a.tileOptions.Length - b.tileOptions.Length; });
+
+
+            //Dejar solo las celdas que tengan el menor número de posibilidades
+            int arrLength = tempGrid[0].tileOptions.Length;
+            int stopIndex = default;
+
+            for (int i = 1; i < tempGrid.Count; i++)
             {
-                stopIndex = i;
-                break;
+                if (tempGrid[i].tileOptions.Length > arrLength)
+                {
+                    stopIndex = i;
+                    break;
+                }
+            }
+
+            if (stopIndex > 0)
+            {
+                tempGrid.RemoveRange(stopIndex, tempGrid.Count - stopIndex);
             }
         }
 
-        if (stopIndex > 0)
-        {
-            tempGrid.RemoveRange(stopIndex, tempGrid.Count - stopIndex);
-        }
-
+      
         yield return new WaitForSeconds(0f);
 
+        //Para que vaya en orden, dejar solo esto
         CollapseCell(tempGrid);
     }
 
     void CollapseCell(List<Cell3D> tempGrid)
     {
-        //Cell3D cellToCollapse = tempGrid[UnityEngine.Random.Range(0, tempGrid.Count)]; //Para que escoja una random
+        Cell3D cellToCollapse;
 
-        //Para que vaya en orden
-        Cell3D cellToCollapse = tempGrid[0];
+        if (!inOrderGeneration)  cellToCollapse = tempGrid[UnityEngine.Random.Range(0, tempGrid.Count)]; //Para que escoja una random
+        else
+        {
+            //Para que vaya en orden
+            cellToCollapse = tempGrid[0];        
+        }
+
         cellToCollapse.collapsed = true;
+
+
+        //Hacer "visitables" los alrededores
+        if (useOptimization) GetNeighboursCloseToCollapsedCell(cellToCollapse);
+
+        //Si es la capa superior, comprobar exclusiones y eliminarlas
+       /* if ((cellToCollapse.index / (dimensionsX * dimensionsZ)) == dimensionsY - 1)
+        {
+            cellToCollapse.tileOptions = cellToCollapse.tileOptions.Where(tile => !tile.excludeInTopLayer).ToArray();
+        }*/
 
         //Elegir una tile para esa celda
         List<(Tile3D tile, int weight)> weightedTiles = cellToCollapse.tileOptions.Select(tile => (tile, tile.probability)).ToList();
@@ -372,70 +441,184 @@ public class WaveFunction3D : MonoBehaviour
         UpdateGeneration();
     }
 
-    //-----NO FUNCIONA AHORA MISMO------
-   /* void BackTrackingHandler(Cell3D errorCell)
+    //This method choose what cells should be checked given a distance. This is for OPTIMIZATION (not always looking at every cell)
+    private void GetNeighboursCloseToCollapsedCell(Cell3D cell)
     {
-        Debug.Log("BACKTRACKING!");
-        //Vamos a descolapsar un cuadrado alrededor del error
+        int up, down, left, right, above, below;
+        up = cell.index + dimensionsX;
+        down = cell.index - dimensionsX;
+        left = cell.index - 1;
+        right = cell.index + 1;
+        above = cell.index + (dimensionsX * dimensionsZ);
+        below = cell.index - (dimensionsX * dimensionsZ);
 
-        int centerIndex = errorCell.index;
-        gridComponents[centerIndex].collapsed = false;
+        cell.visitable = true;
 
-        //verificar vecino derecha
-        if ((centerIndex % dimensionsX) < (dimensionsX - 1))
+        //UP. no esta al final de una columna (en el eje z).
+        if (((cell.index / dimensionsX) % dimensionsZ) != dimensionsZ - 1)
         {
-            Cell3D rightCell = gridComponents[centerIndex + 1];
-            if (rightCell.collapsed)
-            {
-                rightCell.collapsed = false;
-                rightCell.tileOptions = tileObjects;
-                Destroy(rightCell.transform.GetChild(0).gameObject);
-                iterations--;
-            }
-        }
-        //vecino izquierda
-        if ((centerIndex % dimensionsX) > 0)
-        {
-            Cell3D leftCell = gridComponents[centerIndex - 1];
-            if (leftCell.collapsed)
-            {
-                leftCell.collapsed = false;
-                leftCell.tileOptions = tileObjects;
-                Destroy(leftCell.transform.GetChild(0).gameObject);
-                iterations--;
-            }
-
-        }
-        //vecino arriba
-        if ((centerIndex / dimensionsX) % dimensionsZ < (dimensionsZ - 1))
-        {
-            Cell3D upCell = gridComponents[centerIndex + dimensionsX];
-
-            if (upCell.collapsed)
-            {
-                upCell.collapsed = false;
-                upCell.tileOptions = tileObjects;
-                Destroy(upCell.transform.GetChild(0).gameObject);
-                iterations--;
-            }
-
-        }
-        //vecino abajo
-        if ((centerIndex / dimensionsX) % dimensionsZ > 0)
-        {
-            Cell3D downCell = gridComponents[centerIndex - dimensionsX];
-            if (downCell.collapsed)
-            {
-                downCell.collapsed = false;
-                downCell.tileOptions = tileObjects;
-                Destroy(downCell.transform.GetChild(0).gameObject);
-                iterations--;
-            }
-
+            gridComponents[up].MakeVisitable();
         }
 
-    }*/
-   
+        //DOWN. no esta al comienzo de una columna (en el eje z).
+        if (((cell.index / dimensionsX) % dimensionsZ) != 0)
+        {
+            gridComponents[down].MakeVisitable();
+        }
+
+        //LEFT. no esta al comienzo de una fila.
+        if (cell.index % dimensionsX != 0)
+        {
+            gridComponents[left].MakeVisitable();
+        }
+
+        //RIGHT. no esta al final de una fila
+        if ((cell.index + 1) % dimensionsX != 0)
+        {
+            gridComponents[right].MakeVisitable();
+        }
+
+        //ABOVE. No esta en la capa superior en y
+        if ((cell.index / (dimensionsX * dimensionsZ)) != dimensionsY - 1)
+        {
+            gridComponents[right].MakeVisitable();
+        }
+
+        //BELOW. No esta en la capa inferior en y
+        if ((cell.index / (dimensionsX * dimensionsZ)) != 0)
+        {
+            gridComponents[left].MakeVisitable();
+        }
+
+        //Además, también hay que comprobar las DIAGONALES para completar el contorno
+
+        // Diagonales en 2D
+        int upLeft = up - 1;    // Arriba e izquierda
+        int upRight = up + 1;   // Arriba y derecha
+        int downLeft = down - 1; // Abajo e izquierda
+        int downRight = down + 1; // Abajo y derecha
+
+        // Diagonales en 3D
+        int aboveUp = above + dimensionsX;    // Arriba en Z y en Y
+        int aboveDown = above - dimensionsX;  // Abajo en Z y en Y
+        int belowUp = below + dimensionsX;    // Arriba en Z y por debajo en Y
+        int belowDown = below - dimensionsX;  // Abajo en Z y por debajo en Y
+
+        // Esquinas (diagonales)
+        if (((cell.index / dimensionsX) % dimensionsZ) != dimensionsZ - 1 && cell.index % dimensionsX != 0)
+        {
+            gridComponents[upLeft].MakeVisitable(); // Up-Left
+        }
+
+        if (((cell.index / dimensionsX) % dimensionsZ) != dimensionsZ - 1 && (cell.index + 1) % dimensionsX != 0)
+        {
+            gridComponents[upRight].MakeVisitable(); // Up-Right
+        }
+
+        if (((cell.index / dimensionsX) % dimensionsZ) != 0 && cell.index % dimensionsX != 0)
+        {
+            gridComponents[downLeft].MakeVisitable(); // Down-Left
+        }
+
+        if (((cell.index / dimensionsX) % dimensionsZ) != 0 && (cell.index + 1) % dimensionsX != 0)
+        {
+            gridComponents[downRight].MakeVisitable(); // Down-Right
+        }
+
+        // Esquinas en 3D
+        if ((cell.index / (dimensionsX * dimensionsZ)) != dimensionsY - 1)
+        {
+            if (((cell.index / dimensionsX) % dimensionsZ) != dimensionsZ - 1)
+            {
+                gridComponents[aboveUp].MakeVisitable(); // Above-Up
+            }
+
+            if (((cell.index / dimensionsX) % dimensionsZ) != 0)
+            {
+                gridComponents[aboveDown].MakeVisitable(); // Above-Down
+            }
+        }
+
+        if ((cell.index / (dimensionsX * dimensionsZ)) != 0)
+        {
+            if (((cell.index / dimensionsX) % dimensionsZ) != dimensionsZ - 1)
+            {
+                gridComponents[belowUp].MakeVisitable(); // Below-Up
+            }
+
+            if (((cell.index / dimensionsX) % dimensionsZ) != 0)
+            {
+                gridComponents[belowDown].MakeVisitable(); // Below-Down
+            }
+        }
+
+    }
+
+
+    //-----NO FUNCIONA AHORA MISMO------
+    /* void BackTrackingHandler(Cell3D errorCell)
+     {
+         Debug.Log("BACKTRACKING!");
+         //Vamos a descolapsar un cuadrado alrededor del error
+
+         int centerIndex = errorCell.index;
+         gridComponents[centerIndex].collapsed = false;
+
+         //verificar vecino derecha
+         if ((centerIndex % dimensionsX) < (dimensionsX - 1))
+         {
+             Cell3D rightCell = gridComponents[centerIndex + 1];
+             if (rightCell.collapsed)
+             {
+                 rightCell.collapsed = false;
+                 rightCell.tileOptions = tileObjects;
+                 Destroy(rightCell.transform.GetChild(0).gameObject);
+                 iterations--;
+             }
+         }
+         //vecino izquierda
+         if ((centerIndex % dimensionsX) > 0)
+         {
+             Cell3D leftCell = gridComponents[centerIndex - 1];
+             if (leftCell.collapsed)
+             {
+                 leftCell.collapsed = false;
+                 leftCell.tileOptions = tileObjects;
+                 Destroy(leftCell.transform.GetChild(0).gameObject);
+                 iterations--;
+             }
+
+         }
+         //vecino arriba
+         if ((centerIndex / dimensionsX) % dimensionsZ < (dimensionsZ - 1))
+         {
+             Cell3D upCell = gridComponents[centerIndex + dimensionsX];
+
+             if (upCell.collapsed)
+             {
+                 upCell.collapsed = false;
+                 upCell.tileOptions = tileObjects;
+                 Destroy(upCell.transform.GetChild(0).gameObject);
+                 iterations--;
+             }
+
+         }
+         //vecino abajo
+         if ((centerIndex / dimensionsX) % dimensionsZ > 0)
+         {
+             Cell3D downCell = gridComponents[centerIndex - dimensionsX];
+             if (downCell.collapsed)
+             {
+                 downCell.collapsed = false;
+                 downCell.tileOptions = tileObjects;
+                 Destroy(downCell.transform.GetChild(0).gameObject);
+                 iterations--;
+             }
+
+         }
+
+     }*/
+
     /*   void CheckExtras(Tile3D foundTile, Transform transform)
        {
            if(foundTile.gameObject.CompareTag("Hierba"))
@@ -481,7 +664,6 @@ public class WaveFunction3D : MonoBehaviour
 
         for (int y = 0; y < dimensionsY; y++)
         {
-
             for (int z = 0; z < dimensionsZ; z++)
             {
                 for (int x = 0; x < dimensionsX; x++)
@@ -499,8 +681,18 @@ public class WaveFunction3D : MonoBehaviour
         {
             StartCoroutine(CheckEntropy());
         }
+        else
+        {
+            //FIN
+            stopwatch.Stop();
+            print($"Ha tardado {stopwatch.ElapsedMilliseconds} ms en acabar ({stopwatch.ElapsedMilliseconds/1000} s)");
+        }
+
     }
-    
+
+   
+    //This method looks and update the options in every cell of the given list looking at the neighbours
+
     void CheckNeighbours(int x, int y, int z, ref List<Cell3D> newGenerationCell)
     {
         int up, down, left, right, above, below;
@@ -512,12 +704,11 @@ public class WaveFunction3D : MonoBehaviour
         above = x + (z * dimensionsX) + ((y + 1) * dimensionsX * dimensionsZ);
         below = x + (z * dimensionsX) + ((y - 1) * dimensionsX * dimensionsZ);
 
-        print($"Celda actual {gridComponents[index].index}");
-
-        if (gridComponents[index].collapsed)
+        if (gridComponents[index].collapsed || (!gridComponents[index].visitable && useOptimization))
         {
             newGenerationCell[index] = gridComponents[index];
         }
+
         else
         {
             gridComponents[index].haSidoVisitado = true;
@@ -531,7 +722,6 @@ public class WaveFunction3D : MonoBehaviour
             //Mira la celda de abajo
             if (z > 0)
             {
-                print("MIRAR ABAJO");
                 List<Tile3D> validOptions = new List<Tile3D>();
                 foreach (Tile3D possibleOptions in gridComponents[down].tileOptions)
                 {
@@ -546,7 +736,6 @@ public class WaveFunction3D : MonoBehaviour
             //Mirar la celda derecha
             if (x < dimensionsX - 1)
             {
-                print("MIRAR DERECHA");
                 List<Tile3D> validOptions = new List<Tile3D>();
                 foreach (Tile3D possibleOptions in gridComponents[right].tileOptions)
                 {
@@ -562,7 +751,6 @@ public class WaveFunction3D : MonoBehaviour
             //Mira la celda de arriba
             if (z < dimensionsZ - 1)
             {
-                print("MIRAR ARRIBA");
                 List<Tile3D> validOptions = new List<Tile3D>();
 
                 foreach (Tile3D possibleOptions in gridComponents[up].tileOptions)
@@ -581,7 +769,6 @@ public class WaveFunction3D : MonoBehaviour
             //Mirar la celda izquierda
             if (x > 0)
             {
-                print("MIRAR IZQUIERDA");
                 List<Tile3D> validOptions = new List<Tile3D>();
 
                 foreach (Tile3D possibleOptions in gridComponents[left].tileOptions)
@@ -599,9 +786,7 @@ public class WaveFunction3D : MonoBehaviour
             //Mirar la celda de debajo
             if (y > 0)
             {
-                print("MIRAR DEBAJO");
                 List<Tile3D> validOptions = new List<Tile3D>();
-                print($"Celda debajo de {gridComponents[index].index}: celda {gridComponents[below].index}");
                 foreach (Tile3D possibleOptions in gridComponents[below].tileOptions)
                 {
 
@@ -616,7 +801,6 @@ public class WaveFunction3D : MonoBehaviour
             //Mirar la celda de encima
             if (y < dimensionsY - 1)
             {
-                print("MIRAR ENCIMA");
                 List<Tile3D> validOptions = new List<Tile3D>();
 
                 foreach (Tile3D possibleOptions in gridComponents[above].tileOptions)
@@ -671,8 +855,12 @@ public class WaveFunction3D : MonoBehaviour
         iterations = 0;
         gridComponents.Clear();
 
+        stopwatch.Reset();
+        stopwatch.Start();
+
         InitializeGrid();
         CreateSolidFloor();
+        CreateSolidCeiling();
         UpdateGeneration();
     }
 }

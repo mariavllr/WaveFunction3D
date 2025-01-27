@@ -102,8 +102,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   tileType: cornerInterior
   probability: 10
-  isHorizontalSymetric: 0
-  isVerticalSymetric: 0
   rotateRight: 1
   rotate180: 1
   rotateLeft: 1
@@ -115,10 +113,8 @@ MonoBehaviour:
   - {fileID: 0}
   rightNeighbours:
   - {fileID: 1523664878442172427, guid: 22e98c0e0cc76aa4c9bd5660cd6318bd, type: 3}
-  - {fileID: 0}
   downNeighbours:
   - {fileID: 1523664878442172427, guid: 22e98c0e0cc76aa4c9bd5660cd6318bd, type: 3}
-  - {fileID: 0}
   leftNeighbours:
   - {fileID: 0}
   - {fileID: 0}
@@ -136,6 +132,7 @@ MonoBehaviour:
   - wall
   excludedNeighboursLeft:
   - cornerInterior
+  excludeInTopLayer: 0
   upSocket:
     socket_name: 4
     horizontalFace: 1

@@ -101,6 +101,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   tileType: 
   probability: 100
+  isHorizontalSymetric: 0
+  isVerticalSymetric: 0
   rotateRight: 0
   rotate180: 0
   rotateLeft: 0
@@ -147,7 +149,6 @@ MonoBehaviour:
   excludedNeighboursRight: []
   excludedNeighboursDown: []
   excludedNeighboursLeft: []
-  excludeInTopLayer: 0
   upSocket:
     socket_name: 0
     horizontalFace: 1

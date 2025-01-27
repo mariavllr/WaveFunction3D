@@ -38,17 +38,14 @@ public class Tile3D : MonoBehaviour
 
     public string tileType;
     public int probability;
-    public bool isHorizontalSymetric;
-    public bool isVerticalSymetric;
+
     [Header("Create rotated tiles")]
     public bool rotateRight;
     public bool rotate180;
     public bool rotateLeft;
 
-
     public Vector3 rotation;
     public Vector3 scale;
-
     public Vector3 positionOffset;
 
     public List<Tile3D> upNeighbours = new List<Tile3D>();
@@ -63,6 +60,8 @@ public class Tile3D : MonoBehaviour
     public List<string> excludedNeighboursRight = new();
     public List<string> excludedNeighboursDown = new();
     public List<string> excludedNeighboursLeft = new();
+
+    public bool excludeInTopLayer;
 
     [Tooltip("Para definir la direccion la derecha siempre ser� el eje X (rojo) y arriba ser� el eje Z (azul)")]
     [Header("Sockets")]

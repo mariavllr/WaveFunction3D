@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &3115480214811884043
+--- !u!1 &2720622842038209659
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,47 +8,47 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2339540923960975537}
-  - component: {fileID: 1718232686765666068}
-  - component: {fileID: 3475816631386577886}
-  - component: {fileID: 6803068500599448286}
+  - component: {fileID: 8264577328322090711}
+  - component: {fileID: 5209093655768860146}
+  - component: {fileID: 5115020995574220376}
+  - component: {fileID: 2005606087145236132}
   m_Layer: 0
-  m_Name: grass
+  m_Name: cornerExterior
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &2339540923960975537
+--- !u!4 &8264577328322090711
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3115480214811884043}
+  m_GameObject: {fileID: 2720622842038209659}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 6.708474, y: 0, z: 4.402609}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &1718232686765666068
+--- !u!33 &5209093655768860146
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3115480214811884043}
-  m_Mesh: {fileID: 3906130615805142554, guid: 4782606565da79f46be1655427a18412, type: 3}
---- !u!23 &3475816631386577886
+  m_GameObject: {fileID: 2720622842038209659}
+  m_Mesh: {fileID: 6123237919837940275, guid: 1a4951679bb1d324c85c7aca882cc30b, type: 3}
+--- !u!23 &5115020995574220376
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3115480214811884043}
+  m_GameObject: {fileID: 2720622842038209659}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -65,7 +65,8 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: -3035101939719975992, guid: 4782606565da79f46be1655427a18412, type: 3}
+  - {fileID: -1255982633427224767, guid: 1a4951679bb1d324c85c7aca882cc30b, type: 3}
+  - {fileID: 2408938254544824348, guid: 1a4951679bb1d324c85c7aca882cc30b, type: 3}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -87,44 +88,39 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &6803068500599448286
+--- !u!114 &2005606087145236132
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3115480214811884043}
+  m_GameObject: {fileID: 2720622842038209659}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b1fc3cae30279dc408154690437e5628, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tileType: 
-  probability: 100
-  rotateRight: 0
-  rotate180: 0
-  rotateLeft: 0
+  tileType: corner
+  probability: 10
+  rotateRight: 1
+  rotate180: 1
+  rotateLeft: 1
   rotation: {x: 0, y: 0, z: 0}
   scale: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
   upNeighbours:
-  - {fileID: 7597978747542067399, guid: 713acdb06f08a604f8dd98c8b8f0ca90, type: 3}
-  - {fileID: 5879200595051830065, guid: 37dddf1fe29a6d94cb5de369f0660295, type: 3}
-  - {fileID: 6803068500599448286}
-  - {fileID: 0}
-  - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   rightNeighbours:
-  - {fileID: 6803068500599448286}
-  - {fileID: 1948357013093823869, guid: 259c245c2ea3a71478273f2294639259, type: 3}
+  - {fileID: -265474770744947562, guid: b2bd8fc612b3e394eb9d7691cb8bd27b, type: 3}
+  - {fileID: 1477516197913392094, guid: 7ef91487c616c434894c486dc43fd955, type: 3}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   downNeighbours:
-  - {fileID: 6803068500599448286}
+  - {fileID: -265474770744947562, guid: b2bd8fc612b3e394eb9d7691cb8bd27b, type: 3}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
@@ -132,27 +128,24 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   leftNeighbours:
-  - {fileID: 3110566506449276630, guid: 85a8b3df246529841a56d407a88fff4d, type: 3}
-  - {fileID: 7597978747542067399, guid: 713acdb06f08a604f8dd98c8b8f0ca90, type: 3}
-  - {fileID: 5879200595051830065, guid: 37dddf1fe29a6d94cb5de369f0660295, type: 3}
-  - {fileID: 6803068500599448286}
-  - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   aboveNeighbours:
-  - {fileID: 1948357013093823869, guid: d8ebdb494d7ccb94fb4cf65abab95235, type: 3}
+  - {fileID: -9001271374159152946, guid: 0523673492698ec4d8cd1633e0a7e8af, type: 3}
   belowNeighbours:
   - {fileID: 1523664878442172427, guid: 22e98c0e0cc76aa4c9bd5660cd6318bd, type: 3}
-  excludedNeighboursUp: []
+  excludedNeighboursUp:
+  - corner
   excludedNeighboursRight: []
   excludedNeighboursDown: []
-  excludedNeighboursLeft: []
-  excludeInTopLayer: 0
+  excludedNeighboursLeft:
+  - corner
+  excludeInTopLayer: 1
   upSocket:
-    socket_name: 0
+    socket_name: 4
     horizontalFace: 1
-    isSymmetric: 1
-    isFlipped: 0
+    isSymmetric: 0
+    isFlipped: 1
     verticalFace: 0
     rotationIndex: 0
     rotationallyInvariant: 0
@@ -165,9 +158,9 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   leftSocket:
-    socket_name: 0
+    socket_name: 4
     horizontalFace: 1
-    isSymmetric: 1
+    isSymmetric: 0
     isFlipped: 0
     verticalFace: 0
     rotationIndex: 0
@@ -181,13 +174,13 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   aboveSocket:
-    socket_name: 3
+    socket_name: 6
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0
     verticalFace: 1
     rotationIndex: 0
-    rotationallyInvariant: 1
+    rotationallyInvariant: 0
   belowSocket:
     socket_name: 10
     horizontalFace: 0
