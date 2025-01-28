@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 1625705178561120999}
   - component: {fileID: 6608610671905215267}
   - component: {fileID: 1076804473427149309}
-  - component: {fileID: 8165634797195891756}
   - component: {fileID: -4010797267157076088}
   m_Layer: 0
   m_Name: pathEnd
@@ -90,7 +89,7 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &8165634797195891756
+--- !u!114 &-4010797267157076088
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -99,7 +98,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 768321031863270629}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b1fc3cae30279dc408154690437e5628, type: 3}
+  m_Script: {fileID: 11500000, guid: 277a89576ce83074ea0775dfc62e2206, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   tileType: path_end
@@ -110,48 +109,12 @@ MonoBehaviour:
   rotation: {x: 0, y: 0, z: 0}
   scale: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
-  upNeighbours:
-  - {fileID: 7460393361235670901, guid: 225141d0abfc84044afd37c950b08247, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  rightNeighbours:
-  - {fileID: -265474770744947562, guid: b2bd8fc612b3e394eb9d7691cb8bd27b, type: 3}
-  - {fileID: 1477516197913392094, guid: 7ef91487c616c434894c486dc43fd955, type: 3}
-  - {fileID: 8165634797195891756}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  downNeighbours:
-  - {fileID: -265474770744947562, guid: b2bd8fc612b3e394eb9d7691cb8bd27b, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  leftNeighbours:
-  - {fileID: -265474770744947562, guid: b2bd8fc612b3e394eb9d7691cb8bd27b, type: 3}
-  - {fileID: -8109604136941196672, guid: 092215a8d1bcad2418b84274a69b3e59, type: 3}
-  - {fileID: 2005606087145236132, guid: 16408525eb48f6b40961da77ada8ad0f, type: 3}
-  - {fileID: 4377493283416569277, guid: 283dc9732ec616c4c9cc161fa8f86952, type: 3}
-  - {fileID: 8165634797195891756}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  aboveNeighbours:
-  - {fileID: 1948357013093823869, guid: d8ebdb494d7ccb94fb4cf65abab95235, type: 3}
-  belowNeighbours:
-  - {fileID: 1523664878442172427, guid: 22e98c0e0cc76aa4c9bd5660cd6318bd, type: 3}
+  upNeighbours: []
+  rightNeighbours: []
+  downNeighbours: []
+  leftNeighbours: []
+  aboveNeighbours: []
+  belowNeighbours: []
   excludedNeighboursUp: []
   excludedNeighboursRight: []
   excludedNeighboursDown: []
@@ -205,82 +168,3 @@ MonoBehaviour:
     verticalFace: 1
     rotationIndex: 0
     rotationallyInvariant: 1
---- !u!114 &-4010797267157076088
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 768321031863270629}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 277a89576ce83074ea0775dfc62e2206, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  tileType: 
-  probability: 0
-  rotateRight: 0
-  rotate180: 0
-  rotateLeft: 0
-  rotation: {x: 0, y: 0, z: 0}
-  scale: {x: 0, y: 0, z: 0}
-  positionOffset: {x: 0, y: 0, z: 0}
-  upNeighbours: []
-  rightNeighbours: []
-  downNeighbours: []
-  leftNeighbours: []
-  aboveNeighbours: []
-  belowNeighbours: []
-  excludedNeighboursUp: []
-  excludedNeighboursRight: []
-  excludedNeighboursDown: []
-  excludedNeighboursLeft: []
-  excludeInTopLayer: 0
-  upSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  rightSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  leftSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  downSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  aboveSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  belowSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0

@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 7656991494024093108}
   - component: {fileID: 688073798105389710}
   - component: {fileID: 4155503453533845795}
-  - component: {fileID: 4377493283416569277}
   - component: {fileID: 1474986422897661062}
   m_Layer: 0
   m_Name: cornerInt_border
@@ -89,7 +88,7 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &4377493283416569277
+--- !u!114 &1474986422897661062
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -98,7 +97,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 5618434334426229015}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b1fc3cae30279dc408154690437e5628, type: 3}
+  m_Script: {fileID: 11500000, guid: 277a89576ce83074ea0775dfc62e2206, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   tileType: 
@@ -109,34 +108,12 @@ MonoBehaviour:
   rotation: {x: 0, y: 0, z: 0}
   scale: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
-  upNeighbours:
-  - {fileID: 3110566506449276630, guid: 85a8b3df246529841a56d407a88fff4d, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
-  rightNeighbours:
-  - {fileID: 6803068500599448286, guid: 325a8e27e5f6377419032e6153520d6a, type: 3}
-  - {fileID: 1948357013093823869, guid: 259c245c2ea3a71478273f2294639259, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  downNeighbours:
-  - {fileID: 6803068500599448286, guid: 325a8e27e5f6377419032e6153520d6a, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  leftNeighbours:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  aboveNeighbours:
-  - {fileID: 1948357013093823869, guid: d8ebdb494d7ccb94fb4cf65abab95235, type: 3}
-  belowNeighbours:
-  - {fileID: 979377045661852059, guid: def7ed7f83bcd514bb754c9328832eb0, type: 3}
+  upNeighbours: []
+  rightNeighbours: []
+  downNeighbours: []
+  leftNeighbours: []
+  aboveNeighbours: []
+  belowNeighbours: []
   excludedNeighboursUp: []
   excludedNeighboursRight: []
   excludedNeighboursDown: []
@@ -188,84 +165,5 @@ MonoBehaviour:
     isSymmetric: 0
     isFlipped: 0
     verticalFace: 1
-    rotationIndex: 0
-    rotationallyInvariant: 0
---- !u!114 &1474986422897661062
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5618434334426229015}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 277a89576ce83074ea0775dfc62e2206, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  tileType: 
-  probability: 0
-  rotateRight: 0
-  rotate180: 0
-  rotateLeft: 0
-  rotation: {x: 0, y: 0, z: 0}
-  scale: {x: 0, y: 0, z: 0}
-  positionOffset: {x: 0, y: 0, z: 0}
-  upNeighbours: []
-  rightNeighbours: []
-  downNeighbours: []
-  leftNeighbours: []
-  aboveNeighbours: []
-  belowNeighbours: []
-  excludedNeighboursUp: []
-  excludedNeighboursRight: []
-  excludedNeighboursDown: []
-  excludedNeighboursLeft: []
-  excludeInTopLayer: 0
-  upSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  rightSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  leftSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  downSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  aboveSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  belowSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 0
     rotationIndex: 0
     rotationallyInvariant: 0

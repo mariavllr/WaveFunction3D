@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 532618963597792969}
-  - component: {fileID: 1948357013093823869}
   - component: {fileID: -2802727304245771921}
   - component: {fileID: 4187426750720118590}
   m_Layer: 0
@@ -34,136 +33,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1948357013093823869
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 878182739693685875}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b1fc3cae30279dc408154690437e5628, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  tileType: 
-  probability: 10
-  rotateRight: 0
-  rotate180: 0
-  rotateLeft: 0
-  rotation: {x: 0, y: 0, z: 0}
-  scale: {x: 0, y: 0, z: 0}
-  positionOffset: {x: 0, y: 0, z: 0}
-  upNeighbours:
-  - {fileID: 1948357013093823869}
-  - {fileID: 1564731534999811375, guid: 8f04bc4583c5d064aacb9bb6f9942c52, type: 3}
-  - {fileID: 2871301949372888773, guid: 25c91e6a289944440bd0882e72c20c20, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  rightNeighbours:
-  - {fileID: 3110566506449276630, guid: 85a8b3df246529841a56d407a88fff4d, type: 3}
-  - {fileID: 4335194294627194797, guid: 666ad33b8a2af4a46b29b46b9f82e703, type: 3}
-  - {fileID: 1948357013093823869}
-  - {fileID: 2871301949372888773, guid: 25c91e6a289944440bd0882e72c20c20, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  downNeighbours:
-  - {fileID: 4335194294627194797, guid: 666ad33b8a2af4a46b29b46b9f82e703, type: 3}
-  - {fileID: 1948357013093823869}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  leftNeighbours:
-  - {fileID: 1948357013093823869}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  aboveNeighbours:
-  - {fileID: 1948357013093823869}
-  belowNeighbours:
-  - {fileID: 3110566506449276630, guid: 85a8b3df246529841a56d407a88fff4d, type: 3}
-  - {fileID: 4335194294627194797, guid: 666ad33b8a2af4a46b29b46b9f82e703, type: 3}
-  - {fileID: 7597978747542067399, guid: 713acdb06f08a604f8dd98c8b8f0ca90, type: 3}
-  - {fileID: 1948357013093823869}
-  - {fileID: 6803068500599448286, guid: 325a8e27e5f6377419032e6153520d6a, type: 3}
-  - {fileID: 1564731534999811375, guid: 8f04bc4583c5d064aacb9bb6f9942c52, type: 3}
-  - {fileID: 2871301949372888773, guid: 25c91e6a289944440bd0882e72c20c20, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  excludedNeighboursUp: []
-  excludedNeighboursRight: []
-  excludedNeighboursDown: []
-  excludedNeighboursLeft: []
-  excludeInTopLayer: 0
-  upSocket:
-    socket_name: 3
-    horizontalFace: 1
-    isSymmetric: 1
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  rightSocket:
-    socket_name: 3
-    horizontalFace: 1
-    isSymmetric: 1
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  leftSocket:
-    socket_name: 3
-    horizontalFace: 1
-    isSymmetric: 1
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  downSocket:
-    socket_name: 3
-    horizontalFace: 1
-    isSymmetric: 1
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  aboveSocket:
-    socket_name: 3
-    horizontalFace: 0
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 1
-    rotationIndex: 0
-    rotationallyInvariant: 1
-  belowSocket:
-    socket_name: 3
-    horizontalFace: 0
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 1
-    rotationIndex: 0
-    rotationallyInvariant: 1
 --- !u!212 &-2802727304245771921
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -232,7 +101,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tileType: 
-  probability: 0
+  probability: 10
   rotateRight: 0
   rotate180: 0
   rotateLeft: 0
@@ -251,50 +120,50 @@ MonoBehaviour:
   excludedNeighboursLeft: []
   excludeInTopLayer: 0
   upSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
+    socket_name: 3
+    horizontalFace: 1
+    isSymmetric: 1
     isFlipped: 0
     verticalFace: 0
     rotationIndex: 0
     rotationallyInvariant: 0
   rightSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
+    socket_name: 3
+    horizontalFace: 1
+    isSymmetric: 1
     isFlipped: 0
     verticalFace: 0
     rotationIndex: 0
     rotationallyInvariant: 0
   leftSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
+    socket_name: 3
+    horizontalFace: 1
+    isSymmetric: 1
     isFlipped: 0
     verticalFace: 0
     rotationIndex: 0
     rotationallyInvariant: 0
   downSocket:
-    socket_name: 0
-    horizontalFace: 0
-    isSymmetric: 0
+    socket_name: 3
+    horizontalFace: 1
+    isSymmetric: 1
     isFlipped: 0
     verticalFace: 0
     rotationIndex: 0
     rotationallyInvariant: 0
   aboveSocket:
-    socket_name: 0
+    socket_name: 3
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0
-    verticalFace: 0
+    verticalFace: 1
     rotationIndex: 0
-    rotationallyInvariant: 0
+    rotationallyInvariant: 1
   belowSocket:
-    socket_name: 0
+    socket_name: 3
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0
-    verticalFace: 0
+    verticalFace: 1
     rotationIndex: 0
-    rotationallyInvariant: 0
+    rotationallyInvariant: 1

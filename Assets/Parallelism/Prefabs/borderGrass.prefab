@@ -153,26 +153,26 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   downSocket:
-    socket_name: 0
-    horizontalFace: 0
+    socket_name: 8
+    horizontalFace: 1
     isSymmetric: 0
     isFlipped: 0
     verticalFace: 0
     rotationIndex: 0
     rotationallyInvariant: 0
   aboveSocket:
-    socket_name: 0
+    socket_name: 3
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0
-    verticalFace: 0
+    verticalFace: 1
     rotationIndex: 0
-    rotationallyInvariant: 0
+    rotationallyInvariant: 1
   belowSocket:
-    socket_name: 0
+    socket_name: 5
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0
-    verticalFace: 0
+    verticalFace: 1
     rotationIndex: 0
     rotationallyInvariant: 0
