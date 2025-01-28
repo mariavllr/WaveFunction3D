@@ -18,7 +18,6 @@ public class Tile3D2 : MonoBehaviour
         BORDER,
         GRASS_BORDER,
         SOLID
-
     }
     [Serializable]
     public struct Socket
