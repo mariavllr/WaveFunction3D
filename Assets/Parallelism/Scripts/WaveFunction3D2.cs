@@ -99,7 +99,7 @@ public class WaveFunction3D2 : MonoBehaviour
         List<Tile3D2> newTiles = new List<Tile3D2>();
         foreach (Tile3D2 tile in tileArray)
         {
-            //Clockwise by default
+            // Clockwise by default
             if (tile.rotateRight)
             {
                 Tile3D2 tileRotated = CreateNewTileVariation(tile, "_RotateRight");
@@ -184,7 +184,7 @@ public class WaveFunction3D2 : MonoBehaviour
     /// </summary>
     /// <param name="originalTile"></param> Non-rotated tile
     /// <param name="tileRotated"></param> Rotated tile
-    private void RotateBorders270(Tile3D2 originalTile, Tile3D2 tileRotated) //O rotar a la izquierda
+    private void RotateBorders270(Tile3D2 originalTile, Tile3D2 tileRotated)
     {
         tileRotated.rightSocket = originalTile.downSocket;
         tileRotated.leftSocket = originalTile.upSocket;
@@ -214,56 +214,76 @@ public class WaveFunction3D2 : MonoBehaviour
         {
             foreach (Tile3D2 otherTile in otherTileArray)
             {
-                //HORIZONTAL FACES: Same socket and be symmetric OR one flip and the other not
-                //It also checks f the excluded list of each face does not include the other tile, and vice versa
+                // HORIZONTAL FACES: Same socket and be symmetric OR one flip and the other not
+                // It also checks f the excluded list of each face does not include the other tile, and vice versa
 
-                //Vecinos de arriba
-                if (otherTile.downSocket.socket_name == tile.upSocket.socket_name && !tile.excludedNeighboursUp.Contains(otherTile.tileType) && !otherTile.excludedNeighboursDown.Contains(tile.tileType))
+                // Up neighbours
+                if (otherTile.downSocket.socket_name == tile.upSocket.socket_name
+                    && !tile.excludedNeighboursUp.Contains(otherTile.tileType)
+                    && !otherTile.excludedNeighboursDown.Contains(tile.tileType))
                 {
-                    if(tile.upSocket.isSymmetric || otherTile.downSocket.isSymmetric || (otherTile.downSocket.isFlipped && !tile.upSocket.isFlipped) || (!otherTile.downSocket.isFlipped && tile.upSocket.isFlipped))
+                    if (tile.upSocket.isSymmetric || otherTile.downSocket.isSymmetric
+                    || (otherTile.downSocket.isFlipped && !tile.upSocket.isFlipped)
+                    || (!otherTile.downSocket.isFlipped && tile.upSocket.isFlipped))
                     tile.upNeighbours.Add(otherTile);
                 }
-                //Vecinos de abajo
-                if (otherTile.upSocket.socket_name == tile.downSocket.socket_name && !tile.excludedNeighboursDown.Contains(otherTile.tileType) && !otherTile.excludedNeighboursUp.Contains(tile.tileType))
+                // Down neighbours
+                if (otherTile.upSocket.socket_name == tile.downSocket.socket_name
+                    && !tile.excludedNeighboursDown.Contains(otherTile.tileType)
+                    && !otherTile.excludedNeighboursUp.Contains(tile.tileType))
                 {
-                    if (otherTile.upSocket.isSymmetric || tile.downSocket.isSymmetric || (otherTile.upSocket.isFlipped && !tile.downSocket.isFlipped) || (!otherTile.upSocket.isFlipped && tile.downSocket.isFlipped))
+                    if (otherTile.upSocket.isSymmetric || tile.downSocket.isSymmetric
+                    || (otherTile.upSocket.isFlipped && !tile.downSocket.isFlipped)
+                    || (!otherTile.upSocket.isFlipped && tile.downSocket.isFlipped))
                     tile.downNeighbours.Add(otherTile);
                 }
-                //Vecinos a la derecha
-                if (otherTile.leftSocket.socket_name == tile.rightSocket.socket_name  && !tile.excludedNeighboursRight.Contains(otherTile.tileType) && !otherTile.excludedNeighboursLeft.Contains(tile.tileType))
+                // Right neighbours
+                if (otherTile.leftSocket.socket_name == tile.rightSocket.socket_name
+                    && !tile.excludedNeighboursRight.Contains(otherTile.tileType)
+                    && !otherTile.excludedNeighboursLeft.Contains(tile.tileType))
                 {
-                    if (otherTile.leftSocket.isSymmetric || tile.rightSocket.isSymmetric || (otherTile.leftSocket.isFlipped && !tile.rightSocket.isFlipped) || (!otherTile.leftSocket.isFlipped && tile.rightSocket.isFlipped))
+                    if (otherTile.leftSocket.isSymmetric || tile.rightSocket.isSymmetric
+                    || (otherTile.leftSocket.isFlipped && !tile.rightSocket.isFlipped)
+                    || (!otherTile.leftSocket.isFlipped && tile.rightSocket.isFlipped))
                     tile.rightNeighbours.Add(otherTile);
                 }
-                //Vecinos a la izquierda
-                if (otherTile.rightSocket.socket_name == tile.leftSocket.socket_name && !tile.excludedNeighboursLeft.Contains(otherTile.tileType) && !otherTile.excludedNeighboursRight.Contains(tile.tileType))
+                // Left neighbours
+                if (otherTile.rightSocket.socket_name == tile.leftSocket.socket_name
+                    && !tile.excludedNeighboursLeft.Contains(otherTile.tileType)
+                    && !otherTile.excludedNeighboursRight.Contains(tile.tileType))
                 {
-                    if (otherTile.rightSocket.isSymmetric || tile.leftSocket.isSymmetric || (otherTile.rightSocket.isFlipped && !tile.leftSocket.isFlipped) || (!otherTile.rightSocket.isFlipped && tile.leftSocket.isFlipped))
+                    if (otherTile.rightSocket.isSymmetric || tile.leftSocket.isSymmetric
+                        || (otherTile.rightSocket.isFlipped && !tile.leftSocket.isFlipped)
+                        || (!otherTile.rightSocket.isFlipped && tile.leftSocket.isFlipped))
                     tile.leftNeighbours.Add(otherTile);
                 }
 
-                //VERTICAL FACES: Ambos deben ser rotacionalmente invariables O ambos deben tener el mismo indice de rotacion
+                // VERTICAL FACES: both faces must have invariable rotation or the same rotation index
 
-                //Vecinos debajo
+                // Below neighbours
                 if (otherTile.belowSocket.socket_name == tile.aboveSocket.socket_name)
                 {
-                    if((otherTile.belowSocket.rotationallyInvariant && tile.aboveSocket.rotationallyInvariant) || (otherTile.belowSocket.rotationIndex == tile.aboveSocket.rotationIndex))
+                    if((otherTile.belowSocket.rotationallyInvariant
+                        && tile.aboveSocket.rotationallyInvariant)
+                        || (otherTile.belowSocket.rotationIndex == tile.aboveSocket.rotationIndex))
                     tile.aboveNeighbours.Add(otherTile);
                 }
 
-                //Vecinos encima
+                // Above neighbours
                 if (otherTile.aboveSocket.socket_name == tile.belowSocket.socket_name)
                 {
-                    if ((otherTile.aboveSocket.rotationallyInvariant && tile.belowSocket.rotationallyInvariant) || (otherTile.aboveSocket.rotationIndex == tile.belowSocket.rotationIndex))
+                    if ((otherTile.aboveSocket.rotationallyInvariant
+                        && tile.belowSocket.rotationallyInvariant)
+                        || (otherTile.aboveSocket.rotationIndex == tile.belowSocket.rotationIndex))
                     tile.belowNeighbours.Add(otherTile);
                 }
             }
         }
     }
 
-
-    //---------CREATE THE GRID WITH CELLS-------------
-
+    /// <summary>
+    /// Creates the grid full of cells
+    /// </summary>
     void InitializeGrid()
     {
         for (int y = 0; y < dimensionsY; y++)
@@ -280,8 +300,9 @@ public class WaveFunction3D2 : MonoBehaviour
         }
     }
 
-    //--------CREATE A SOLID FLOOR ON THE FIRST PLANT-----------
-
+    /// <summary>
+    /// Fills the first layer of the map with a solid tile to avoid empty spaces
+    /// </summary>
     void CreateSolidFloor()
     {
         int y = 0;
@@ -314,6 +335,9 @@ public class WaveFunction3D2 : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Fills the last layer of the map with a solid tile to avoid empty spaces
+    /// </summary>
     void CreateSolidCeiling()
     {
         int y = dimensionsY-1;
@@ -347,7 +371,9 @@ public class WaveFunction3D2 : MonoBehaviour
     }
 
 
-    //--------GENERATE THE REST OF THE MAP-----------
+    /// <summary>
+    /// Reorders the grid based on the entropy of the cells, collapsing the one with less entropy
+    /// </summary>
     IEnumerator CheckEntropy()
     {
         List<Cell3D2> tempGrid = new List<Cell3D2>(gridComponents);
@@ -355,18 +381,18 @@ public class WaveFunction3D2 : MonoBehaviour
         tempGrid.RemoveAll(c => c.collapsed);
 
 
-        //------------Para que elija el que tiene menos entropia-----------------
-        //The result of this calculation determines the order of the elements in the sorted list.
-        //If the result is negative, it means a should come before b; if positive, it means a should come after b;
-        //and if zero, their order remains unchanged.
+        //------------This is done to ensure that the cell with less entropy is selected-----------------
+        // The result of this calculation determines the order of the elements in the sorted list.
+        // If the result is negative, it means a should come before b; if positive, it means a should come after b;
+        // and if zero, their order remains unchanged.
+        int stopIndex = default;
         if (!inOrderGeneration)
         {
             tempGrid.Sort((a, b) => { return a.tileOptions.Length - b.tileOptions.Length; });
 
-
-            //Dejar solo las celdas que tengan el menor número de posibilidades
+            // Removes all the cells with more options than the first one
+            // This is done to ensure that only the cells with less entropy are selected
             int arrLength = tempGrid[0].tileOptions.Length;
-            int stopIndex = default;
 
             for (int i = 1; i < tempGrid.Count; i++)
             {
@@ -376,57 +402,39 @@ public class WaveFunction3D2 : MonoBehaviour
                     break;
                 }
             }
-
-            if (stopIndex > 0)
-            {
-                tempGrid.RemoveRange(stopIndex, tempGrid.Count - stopIndex);
-            }
         }
 
-        yield return new WaitForSeconds(0f);
+        yield return new WaitForSeconds(0f); // Debugging purposes
 
-        //Para que vaya en orden, dejar solo esto
-        CollapseCell(tempGrid);
+        CollapseCell(ref tempGrid, stopIndex);
     }
 
-    void CollapseCell(List<Cell3D2> tempGrid)
+    /// <summary>
+    /// Collapses a cell and updates the grid
+    /// </summary>
+    /// <param name="tempGrid"></param>
+    /// <param name="stopIndex"></param>
+    void CollapseCell(ref List<Cell3D2> tempGrid, int stopIndex)
     {
         Cell3D2 cellToCollapse;
 
-        if (!inOrderGeneration)  cellToCollapse = tempGrid[Random.Range(0, tempGrid.Count)]; //Para que escoja una random
-        else
-        {
-            //Para que vaya en orden
-            cellToCollapse = tempGrid[0];
-        }
+        // If non-ordered generation, select a random cell, if not, select the first one
+        if (!inOrderGeneration)  cellToCollapse = tempGrid[Random.Range(0, stopIndex)];
+        else cellToCollapse = tempGrid[0];
 
         cellToCollapse.collapsed = true;
 
-        //Hacer "visitables" los alrededores
+        // Make the neighbours of the collapsed cell visitable for optimization purposes
         if (useOptimization) GetNeighboursCloseToCollapsedCell(cellToCollapse);
 
-        //Si es la capa superior, comprobar exclusiones y eliminarlas
-        /*if ((cellToCollapse.index / (dimensionsX * dimensionsZ)) == dimensionsY - 1)
-        {
-            cellToCollapse.tileOptions = cellToCollapse.tileOptions.Where(tile => !tile.excludeInTopLayer).ToArray();
-        }*/
-
-        //Elegir una tile para esa celda
+        // Choose a tile for that cell
         List<(Tile3D2 tile, int weight)> weightedTiles = cellToCollapse.tileOptions.Select(tile => (tile, tile.probability)).ToList();
         Tile3D2 selectedTile = ChooseTile(weightedTiles);
 
         if (selectedTile is null)
         {
             Debug.LogError("INCOMPATIBILITY!");
-           // if (iterations > 20)
-           // {
-           //     BackTrackingHandler(cellToCollapse); //esto no va mucho
-           //     UpdateGeneration();
-           // }
-           // else
-           // {
-                Regenerate();
-           // }
+            Regenerate();
             return;
         }
 
@@ -450,12 +458,14 @@ public class WaveFunction3D2 : MonoBehaviour
         instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
         instantiatedTile.gameObject.SetActive(true);
 
-        // CheckExtras(foundTile, cellToCollapse.transform);
-
         UpdateGeneration();
     }
 
-    //This method choose what cells should be checked given a distance. This is for OPTIMIZATION (not always looking at every cell)
+    /// <summary>
+    /// Makes the neighbours wiithin a given distance og the collapsed cell visitable for optimization purposes
+    /// (not always looking at every cell)
+    /// </summary>
+    /// <param name="cell"></param> Collapsed cell
     private void GetNeighboursCloseToCollapsedCell(Cell3D2 cell)
     {
         int up, down, left, right, above, below;
@@ -468,57 +478,57 @@ public class WaveFunction3D2 : MonoBehaviour
 
         cell.visitable = true;
 
-        //UP. no esta al final de una columna (en el eje z).
+        // UP. not at the end of a column (on z axis).
         if (((cell.index / dimensionsX) % dimensionsZ) != dimensionsZ - 1)
         {
             gridComponents[up].MakeVisitable();
         }
 
-        //DOWN. no esta al comienzo de una columna (en el eje z).
+        // DOWN. not at the start of a column (on z axis).
         if (((cell.index / dimensionsX) % dimensionsZ) != 0)
         {
             gridComponents[down].MakeVisitable();
         }
 
-        //LEFT. no esta al comienzo de una fila.
+        // LEFT. not at the start of a row
         if (cell.index % dimensionsX != 0)
         {
             gridComponents[left].MakeVisitable();
         }
 
-        //RIGHT. no esta al final de una fila
+        // RIGHT. not at the end of a row
         if ((cell.index + 1) % dimensionsX != 0)
         {
             gridComponents[right].MakeVisitable();
         }
 
-        //ABOVE. No esta en la capa superior en y
+        // ABOVE. Not at the top layer in y
         if ((cell.index / (dimensionsX * dimensionsZ)) != dimensionsY - 1)
         {
             gridComponents[right].MakeVisitable();
         }
 
-        //BELOW. No esta en la capa inferior en y
+        // BELOW. Not at the bottom layer in y
         if ((cell.index / (dimensionsX * dimensionsZ)) != 0)
         {
             gridComponents[left].MakeVisitable();
         }
 
-        //Además, también hay que comprobar las DIAGONALES para completar el contorno
+        // Diagonal neighbours must be checked to complete the contour
 
-        // Diagonales en 2D
-        int upLeft = up - 1;    // Arriba e izquierda
-        int upRight = up + 1;   // Arriba y derecha
-        int downLeft = down - 1; // Abajo e izquierda
-        int downRight = down + 1; // Abajo y derecha
+        // Diagonals in 2D
+        int upLeft = up - 1;    // Up and left
+        int upRight = up + 1;   // Up and right
+        int downLeft = down - 1; // Down and left
+        int downRight = down + 1; // Down and right
 
         // Diagonales en 3D
-        int aboveUp = above + dimensionsX;    // Arriba en Z y en Y
-        int aboveDown = above - dimensionsX;  // Abajo en Z y en Y
-        int belowUp = below + dimensionsX;    // Arriba en Z y por debajo en Y
-        int belowDown = below - dimensionsX;  // Abajo en Z y por debajo en Y
+        int aboveUp = above + dimensionsX;    // Above in Z and Y
+        int aboveDown = above - dimensionsX;  // Below in Z and Y
+        int belowUp = below + dimensionsX;    // Above in Z and below in Y
+        int belowDown = below - dimensionsX;  // Abajo in Z and below in Y
 
-        // Esquinas (diagonales)
+        // Corners (diagonals)
         if (((cell.index / dimensionsX) % dimensionsZ) != dimensionsZ - 1 && cell.index % dimensionsX != 0)
         {
             gridComponents[upLeft].MakeVisitable(); // Up-Left
@@ -539,7 +549,7 @@ public class WaveFunction3D2 : MonoBehaviour
             gridComponents[downRight].MakeVisitable(); // Down-Right
         }
 
-        // Esquinas en 3D
+        // Corners in 3D
         if ((cell.index / (dimensionsX * dimensionsZ)) != dimensionsY - 1)
         {
             if (((cell.index / dimensionsX) % dimensionsZ) != dimensionsZ - 1)
@@ -568,90 +578,11 @@ public class WaveFunction3D2 : MonoBehaviour
 
     }
 
-
-    //-----NO FUNCIONA AHORA MISMO------
-    /* void BackTrackingHandler(Cell3D errorCell)
-     {
-         Debug.Log("BACKTRACKING!");
-         //Vamos a descolapsar un cuadrado alrededor del error
-
-         int centerIndex = errorCell.index;
-         gridComponents[centerIndex].collapsed = false;
-
-         //verificar vecino derecha
-         if ((centerIndex % dimensionsX) < (dimensionsX - 1))
-         {
-             Cell3D rightCell = gridComponents[centerIndex + 1];
-             if (rightCell.collapsed)
-             {
-                 rightCell.collapsed = false;
-                 rightCell.tileOptions = tileObjects;
-                 Destroy(rightCell.transform.GetChild(0).gameObject);
-                 iterations--;
-             }
-         }
-         //vecino izquierda
-         if ((centerIndex % dimensionsX) > 0)
-         {
-             Cell3D leftCell = gridComponents[centerIndex - 1];
-             if (leftCell.collapsed)
-             {
-                 leftCell.collapsed = false;
-                 leftCell.tileOptions = tileObjects;
-                 Destroy(leftCell.transform.GetChild(0).gameObject);
-                 iterations--;
-             }
-
-         }
-         //vecino arriba
-         if ((centerIndex / dimensionsX) % dimensionsZ < (dimensionsZ - 1))
-         {
-             Cell3D upCell = gridComponents[centerIndex + dimensionsX];
-
-             if (upCell.collapsed)
-             {
-                 upCell.collapsed = false;
-                 upCell.tileOptions = tileObjects;
-                 Destroy(upCell.transform.GetChild(0).gameObject);
-                 iterations--;
-             }
-
-         }
-         //vecino abajo
-         if ((centerIndex / dimensionsX) % dimensionsZ > 0)
-         {
-             Cell3D downCell = gridComponents[centerIndex - dimensionsX];
-             if (downCell.collapsed)
-             {
-                 downCell.collapsed = false;
-                 downCell.tileOptions = tileObjects;
-                 Destroy(downCell.transform.GetChild(0).gameObject);
-                 iterations--;
-             }
-
-         }
-
-     }*/
-
-    /*   void CheckExtras(Tile3D foundTile, Transform transform)
-       {
-           if(foundTile.gameObject.CompareTag("Hierba"))
-           {
-               float rand = UnityEngine.Random.Range(0, 100);
-
-               if (rand > extrasDensity)
-               {
-                   return;
-               }
-               else
-               {
-                   int randomExtra = UnityEngine.Random.Range(0, extraObjects.Length);
-                   Instantiate(extraObjects[randomExtra], transform.position, Quaternion.identity, transform);
-               }
-
-           }
-       }*/
-
+    /// <summary>
+    /// Chooses a tile based on the weights of the tiles
+    /// </summary>
+    /// <param name="weightedTiles"></param> List of tiles with their corresponding weights
+    /// <returns></returns> The chosen tile
     Tile3D2 ChooseTile(List<(Tile3D2 tile, int weight)> weightedTiles)
     {
         // Calculate the total weight
@@ -664,17 +595,18 @@ public class WaveFunction3D2 : MonoBehaviour
         // Iterate through the tiles and find the one corresponding to the random number
         foreach (var (tile, weight) in weightedTiles)
         {
-            if (randomNumber < weight)
-                return tile;
+            if (randomNumber < weight) return tile;
             randomNumber -= weight;
         }
         return null; // This should not happen if the list is not empty
     }
 
+    /// <summary>
+    /// Updates all the cells in the grid
+    /// </summary>
     void UpdateGeneration()
     {
         List<Cell3D2> newGenerationCell = new List<Cell3D2>(gridComponents);
-
 
         for (int y = 0; y < dimensionsY; y++)
         {
@@ -697,14 +629,20 @@ public class WaveFunction3D2 : MonoBehaviour
         }
         else
         {
-            //FIN
+            //END
             stopwatch.Stop();
             print($"Ha tardado {stopwatch.ElapsedMilliseconds} ms en acabar ({stopwatch.ElapsedMilliseconds/1000} s)");
         }
 
     }
 
-    //This method looks and update the options in every cell of the given list looking at the neighbours
+    /// <summary>
+    /// looks and update the options in every cell of the given list looking at the neighbours
+    /// </summary>
+    /// <param name="x"></param> x coordinate of the cell
+    /// <param name="y"></param> y coordinate of the cell
+    /// <param name="z"></param> z coordinate of the cell
+    /// <param name="newGenerationCell"></param> List of cells to be updated
     void CheckNeighbours(int x, int y, int z, ref List<Cell3D2> newGenerationCell)
     {
         int up, down, left, right, above, below;
@@ -730,7 +668,7 @@ public class WaveFunction3D2 : MonoBehaviour
                 options.Add(t);
             }
 
-            //Mira la celda de abajo
+            // Checks the down cell
             if (z > 0)
             {
                 List<Tile3D2> validOptions = new List<Tile3D2>();
@@ -740,10 +678,9 @@ public class WaveFunction3D2 : MonoBehaviour
                     validOptions = validOptions.Concat(valid).ToList();
                 }
                 CheckValidity(options, validOptions);
-
             }
 
-            //Mirar la celda derecha
+            // Checks the right cell
             if (x < dimensionsX - 1)
             {
                 List<Tile3D2> validOptions = new List<Tile3D2>();
@@ -756,17 +693,13 @@ public class WaveFunction3D2 : MonoBehaviour
                 CheckValidity(options, validOptions);
             }
 
-
-
-            //Mira la celda de arriba
+            // Checks the up cell
             if (z < dimensionsZ - 1)
             {
                 List<Tile3D2> validOptions = new List<Tile3D2>();
 
                 foreach (Tile3D2 possibleOptions in gridComponents[up].tileOptions)
                 {
-
-
                     var valid = possibleOptions.downNeighbours;
                     validOptions = validOptions.Concat(valid).ToList();
                 }
@@ -776,7 +709,7 @@ public class WaveFunction3D2 : MonoBehaviour
             }
 
 
-            //Mirar la celda izquierda
+            // Checks the left cell
             if (x > 0)
             {
                 List<Tile3D2> validOptions = new List<Tile3D2>();
@@ -793,7 +726,7 @@ public class WaveFunction3D2 : MonoBehaviour
             }
 
 
-            //Mirar la celda de debajo
+            // Cheecks the cell below
             if (y > 0)
             {
                 List<Tile3D2> validOptions = new List<Tile3D2>();
@@ -808,7 +741,7 @@ public class WaveFunction3D2 : MonoBehaviour
 
             }
 
-            //Mirar la celda de encima
+            // Checks the cell above
             if (y < dimensionsY - 1)
             {
                 List<Tile3D2> validOptions = new List<Tile3D2>();
@@ -835,6 +768,11 @@ public class WaveFunction3D2 : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Removes all the options from the optionList that are not in the validOption list
+    /// </summary>
+    /// <param name="optionList"></param> List of options to be checked
+    /// <param name="validOption"></param> List of valid options
     void CheckValidity(List<Tile3D2> optionList, List<Tile3D2> validOption)
     {
         for (int x = optionList.Count - 1; x >= 0; x--)
@@ -847,14 +785,19 @@ public class WaveFunction3D2 : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Regenerates the map
+    /// </summary>
     public void Regenerate()
     {
         if (onRegenerate != null)
         {
             onRegenerate();
         }
+
         StopAllCoroutines();
-        //Borrar todas las celdas
+
+        // Clear the grid
         for (int i = gameObject.transform.childCount - 1; i >= 0; i--)
         {
             Destroy(gameObject.transform.GetChild(i).gameObject);
