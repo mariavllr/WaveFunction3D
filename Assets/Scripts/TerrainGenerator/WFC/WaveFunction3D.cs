@@ -16,6 +16,8 @@ public class WaveFunction3D : MonoBehaviour
     [SerializeField] public int dimensionsX, dimensionsZ, dimensionsY;
     [SerializeField] Tile3D floorTile;
     [SerializeField] Tile3D emptyTile;
+    [SerializeField] Tile3D grassTile;
+    [SerializeField] bool firstFloorBorder, borderVisible;
     [SerializeField] public Tile3D[] tileObjects;                  //All the map tiles that you can use
     [SerializeField] int cellSize;
 
@@ -49,6 +51,7 @@ public class WaveFunction3D : MonoBehaviour
         InitializeGrid();
         CreateSolidFloor();
         CreateSolidCeiling();
+        if (firstFloorBorder) CreateBorderContour();
         UpdateGeneration();
     }
 
@@ -66,7 +69,7 @@ public class WaveFunction3D : MonoBehaviour
 
         }
     }
-    
+
     Tile3D CreateNewTileVariation(Tile3D tile, string nameVariation)
     {
         string name = tile.gameObject.name + nameVariation;
@@ -93,11 +96,11 @@ public class WaveFunction3D : MonoBehaviour
         List<Tile3D> newTiles = new List<Tile3D>();
         foreach (Tile3D tile in tileArray)
         {
-           
+
             if (tile.rotateRight) //Por defecto, sentido horario
             {
                 Tile3D tileRotated = CreateNewTileVariation(tile, "_RotateRight");
-               // tile.excludedNeighbours.Add(tileRotated);
+                // tile.excludedNeighbours.Add(tileRotated);
                 RotateBorders90(tile, tileRotated);
 
                 tileRotated.rotation = new Vector3(0f, 90f, 0f);
@@ -107,7 +110,7 @@ public class WaveFunction3D : MonoBehaviour
             if (tile.rotate180)
             {
                 Tile3D tileRotated = CreateNewTileVariation(tile, "_Rotate180");
-              //  tile.excludedNeighbours.Add(tileRotated);
+                //  tile.excludedNeighbours.Add(tileRotated);
                 RotateBorders180(tile, tileRotated);
                 tileRotated.rotation = new Vector3(0f, 180f, 0f);
                 newTiles.Add(tileRotated);
@@ -116,7 +119,7 @@ public class WaveFunction3D : MonoBehaviour
             if (tile.rotateLeft)
             {
                 Tile3D tileRotated = CreateNewTileVariation(tile, "_RotateLeft");
-             //   tile.excludedNeighbours.Add(tileRotated);
+                //   tile.excludedNeighbours.Add(tileRotated);
                 RotateBorders270(tile, tileRotated);
                 tileRotated.rotation = new Vector3(0f, 270f, 0f);
                 newTiles.Add(tileRotated);
@@ -130,7 +133,7 @@ public class WaveFunction3D : MonoBehaviour
         }
     }
 
-    
+
     void RotateBorders90(Tile3D originalTile, Tile3D tileRotated)
     {
         tileRotated.rightSocket = originalTile.upSocket;
@@ -142,14 +145,14 @@ public class WaveFunction3D : MonoBehaviour
         tileRotated.aboveSocket.rotationIndex = 90;
         tileRotated.belowSocket = originalTile.belowSocket;
         tileRotated.belowSocket.rotationIndex = 90;
-        
+
         //excluded neighbours
         tileRotated.excludedNeighboursRight = originalTile.excludedNeighboursUp;
         tileRotated.excludedNeighboursLeft = originalTile.excludedNeighboursDown;
         tileRotated.excludedNeighboursUp = originalTile.excludedNeighboursLeft;
         tileRotated.excludedNeighboursDown = originalTile.excludedNeighboursRight;
-        
-       
+
+
 
     }
 
@@ -163,7 +166,7 @@ public class WaveFunction3D : MonoBehaviour
         tileRotated.aboveSocket.rotationIndex = 180;
         tileRotated.belowSocket = originalTile.belowSocket;
         tileRotated.belowSocket.rotationIndex = 180;
-        
+
         //excluded neighbours
         tileRotated.excludedNeighboursLeft = originalTile.excludedNeighboursRight;
         tileRotated.excludedNeighboursRight = originalTile.excludedNeighboursLeft;
@@ -182,7 +185,7 @@ public class WaveFunction3D : MonoBehaviour
         tileRotated.aboveSocket.rotationIndex = 270;
         tileRotated.belowSocket = originalTile.belowSocket;
         tileRotated.belowSocket.rotationIndex = 270;
-        
+
         //excluded neighbours
         tileRotated.excludedNeighboursRight = originalTile.excludedNeighboursDown;
         tileRotated.excludedNeighboursLeft = originalTile.excludedNeighboursUp;
@@ -201,46 +204,46 @@ public class WaveFunction3D : MonoBehaviour
                 //HORIZONTAL FACES: Mismo socket y ser simetricos O uno flip y el otro no
                 //También se comprueba que la lista de excluidos de cada cara no incluya la otra tile, ni la otra tile a nosotros
 
-                    //Vecinos de arriba
-                    if (otherTile.downSocket.socket_name == tile.upSocket.socket_name && !tile.excludedNeighboursUp.Contains(otherTile.tileType) && !otherTile.excludedNeighboursDown.Contains(tile.tileType))
-                    {
-                        if(tile.upSocket.isSymmetric || otherTile.downSocket.isSymmetric || (otherTile.downSocket.isFlipped && !tile.upSocket.isFlipped) || (!otherTile.downSocket.isFlipped && tile.upSocket.isFlipped))
+                //Vecinos de arriba
+                if (otherTile.downSocket.socket_name == tile.upSocket.socket_name && !tile.excludedNeighboursUp.Contains(otherTile.tileType) && !otherTile.excludedNeighboursDown.Contains(tile.tileType))
+                {
+                    if (tile.upSocket.isSymmetric || otherTile.downSocket.isSymmetric || (otherTile.downSocket.isFlipped && !tile.upSocket.isFlipped) || (!otherTile.downSocket.isFlipped && tile.upSocket.isFlipped))
                         tile.upNeighbours.Add(otherTile);
-                    }
-                    //Vecinos de abajo
-                    if (otherTile.upSocket.socket_name == tile.downSocket.socket_name && !tile.excludedNeighboursDown.Contains(otherTile.tileType) && !otherTile.excludedNeighboursUp.Contains(tile.tileType))
-                    {
-                        if (otherTile.upSocket.isSymmetric || tile.downSocket.isSymmetric || (otherTile.upSocket.isFlipped && !tile.downSocket.isFlipped) || (!otherTile.upSocket.isFlipped && tile.downSocket.isFlipped))
+                }
+                //Vecinos de abajo
+                if (otherTile.upSocket.socket_name == tile.downSocket.socket_name && !tile.excludedNeighboursDown.Contains(otherTile.tileType) && !otherTile.excludedNeighboursUp.Contains(tile.tileType))
+                {
+                    if (otherTile.upSocket.isSymmetric || tile.downSocket.isSymmetric || (otherTile.upSocket.isFlipped && !tile.downSocket.isFlipped) || (!otherTile.upSocket.isFlipped && tile.downSocket.isFlipped))
                         tile.downNeighbours.Add(otherTile);
-                    }
-                    //Vecinos a la derecha
-                    if (otherTile.leftSocket.socket_name == tile.rightSocket.socket_name  && !tile.excludedNeighboursRight.Contains(otherTile.tileType) && !otherTile.excludedNeighboursLeft.Contains(tile.tileType))
-                    {
-                        if (otherTile.leftSocket.isSymmetric || tile.rightSocket.isSymmetric || (otherTile.leftSocket.isFlipped && !tile.rightSocket.isFlipped) || (!otherTile.leftSocket.isFlipped && tile.rightSocket.isFlipped))
+                }
+                //Vecinos a la derecha
+                if (otherTile.leftSocket.socket_name == tile.rightSocket.socket_name && !tile.excludedNeighboursRight.Contains(otherTile.tileType) && !otherTile.excludedNeighboursLeft.Contains(tile.tileType))
+                {
+                    if (otherTile.leftSocket.isSymmetric || tile.rightSocket.isSymmetric || (otherTile.leftSocket.isFlipped && !tile.rightSocket.isFlipped) || (!otherTile.leftSocket.isFlipped && tile.rightSocket.isFlipped))
                         tile.rightNeighbours.Add(otherTile);
-                    }
-                    //Vecinos a la izquierda
-                    if (otherTile.rightSocket.socket_name == tile.leftSocket.socket_name && !tile.excludedNeighboursLeft.Contains(otherTile.tileType) && !otherTile.excludedNeighboursRight.Contains(tile.tileType))
-                    {
-                        if (otherTile.rightSocket.isSymmetric || tile.leftSocket.isSymmetric || (otherTile.rightSocket.isFlipped && !tile.leftSocket.isFlipped) || (!otherTile.rightSocket.isFlipped && tile.leftSocket.isFlipped))
+                }
+                //Vecinos a la izquierda
+                if (otherTile.rightSocket.socket_name == tile.leftSocket.socket_name && !tile.excludedNeighboursLeft.Contains(otherTile.tileType) && !otherTile.excludedNeighboursRight.Contains(tile.tileType))
+                {
+                    if (otherTile.rightSocket.isSymmetric || tile.leftSocket.isSymmetric || (otherTile.rightSocket.isFlipped && !tile.leftSocket.isFlipped) || (!otherTile.rightSocket.isFlipped && tile.leftSocket.isFlipped))
                         tile.leftNeighbours.Add(otherTile);
-                    }
+                }
 
-                    //VERTICAL FACES: Ambos deben ser rotacionalmente invariables O ambos deben tener el mismo indice de rotacion
+                //VERTICAL FACES: Ambos deben ser rotacionalmente invariables O ambos deben tener el mismo indice de rotacion
 
-                    //Vecinos debajo
-                    if (otherTile.belowSocket.socket_name == tile.aboveSocket.socket_name)
-                    {
-                        if((otherTile.belowSocket.rotationallyInvariant && tile.aboveSocket.rotationallyInvariant) || (otherTile.belowSocket.rotationIndex == tile.aboveSocket.rotationIndex))
+                //Vecinos debajo
+                if (otherTile.belowSocket.socket_name == tile.aboveSocket.socket_name)
+                {
+                    if ((otherTile.belowSocket.rotationallyInvariant && tile.aboveSocket.rotationallyInvariant) || (otherTile.belowSocket.rotationIndex == tile.aboveSocket.rotationIndex))
                         tile.aboveNeighbours.Add(otherTile);
-                    }
+                }
 
-                    //Vecinos encima
-                    if (otherTile.aboveSocket.socket_name == tile.belowSocket.socket_name)
-                    {
-                        if ((otherTile.aboveSocket.rotationallyInvariant && tile.belowSocket.rotationallyInvariant) || (otherTile.aboveSocket.rotationIndex == tile.belowSocket.rotationIndex))
+                //Vecinos encima
+                if (otherTile.aboveSocket.socket_name == tile.belowSocket.socket_name)
+                {
+                    if ((otherTile.aboveSocket.rotationallyInvariant && tile.belowSocket.rotationallyInvariant) || (otherTile.aboveSocket.rotationIndex == tile.belowSocket.rotationIndex))
                         tile.belowNeighbours.Add(otherTile);
-                    }
+                }
             }
         }
     }
@@ -256,7 +259,7 @@ public class WaveFunction3D : MonoBehaviour
             {
                 for (int x = 0; x < dimensionsX; x++)
                 {
-                    Cell3D newCell = Instantiate(cellObj, new Vector3(x*cellSize, y * cellSize, z*cellSize), Quaternion.identity, gameObject.transform);
+                    Cell3D newCell = Instantiate(cellObj, new Vector3(x * cellSize, y * cellSize, z * cellSize), Quaternion.identity, gameObject.transform);
                     newCell.CreateCell(false, tileObjects, x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ));
                     gridComponents.Add(newCell);
                 }
@@ -264,7 +267,7 @@ public class WaveFunction3D : MonoBehaviour
         }
     }
 
-    //--------CREATE A SOLID FLOOR ON THE FIRST PLANT-----------
+    //--------CREATE A SOLID FLOOR ON THE FIRST FLOOR & EMPTY CEILLING ON THE LAST FLOOR-----------
 
     void CreateSolidFloor()
     {
@@ -300,7 +303,7 @@ public class WaveFunction3D : MonoBehaviour
 
     void CreateSolidCeiling()
     {
-        int y = dimensionsY-1;
+        int y = dimensionsY - 1;
         for (int z = 0; z < dimensionsZ; z++)
         {
             for (int x = 0; x < dimensionsX; x++)
@@ -329,6 +332,84 @@ public class WaveFunction3D : MonoBehaviour
             }
         }
     }
+
+    //--------GRASS BORDER CONTOUR--------------
+    void CreateBorderContour()
+    {
+        if (dimensionsY < 1)
+        {
+            Debug.LogError("Can't create border. Only one floor (solid) or no floors");
+            return;
+        }
+
+        int y = 1;
+        for (int z = 0; z < dimensionsZ; z++)
+        {
+            for (int x = 0; x < dimensionsX; x++)
+            {
+                var index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
+                bool border = false;
+
+                //Down border
+                if (z == 0)
+                {
+                    border = true;
+                }
+
+                //Right border
+                else if (x == dimensionsX - 1)
+                {
+                    border = true;
+                }
+
+                //Left border
+                else if (x == 0)
+                {
+                    border = true;
+                }
+
+                //Up border
+                else if (z == dimensionsZ - 1)
+                {
+                    border = true;
+                }
+
+
+                if (border)
+                {
+                    Cell3D cellToCollapse = gridComponents[index];
+                    if (cellToCollapse.collapsed == true) continue;
+
+                    cellToCollapse.tileOptions = new Tile3D[] { grassTile };
+                    cellToCollapse.collapsed = true;
+                    if (cellToCollapse.transform.childCount != 0)
+                    {
+                        foreach (Transform child in cellToCollapse.transform)
+                        {
+                            Destroy(child.gameObject);
+                        }
+                    }
+
+                    if (borderVisible)
+                    {
+                        Tile3D instantiatedTile = Instantiate(grassTile, cellToCollapse.transform.position, Quaternion.identity, cellToCollapse.transform);
+                        if (instantiatedTile.rotation != Vector3.zero)
+                        {
+                            instantiatedTile.gameObject.transform.Rotate(grassTile.rotation, Space.Self);
+                        }
+
+                        instantiatedTile.gameObject.SetActive(true);
+                    }
+                    
+                    iterations++;
+                    border = false;
+                }
+
+            }
+        }
+    }
+
+
 
 
     //--------GENERATE THE REST OF THE MAP-----------
@@ -367,7 +448,7 @@ public class WaveFunction3D : MonoBehaviour
             }
         }
 
-      
+
         yield return new WaitForSeconds(0f);
 
         //Para que vaya en orden, dejar solo esto
@@ -378,11 +459,11 @@ public class WaveFunction3D : MonoBehaviour
     {
         Cell3D cellToCollapse;
 
-        if (!inOrderGeneration)  cellToCollapse = tempGrid[UnityEngine.Random.Range(0, tempGrid.Count)]; //Para que escoja una random
+        if (!inOrderGeneration) cellToCollapse = tempGrid[UnityEngine.Random.Range(0, tempGrid.Count)]; //Para que escoja una random
         else
         {
             //Para que vaya en orden
-            cellToCollapse = tempGrid[0];        
+            cellToCollapse = tempGrid[0];
         }
 
         cellToCollapse.collapsed = true;
@@ -392,10 +473,10 @@ public class WaveFunction3D : MonoBehaviour
         if (useOptimization) GetNeighboursCloseToCollapsedCell(cellToCollapse);
 
         //Si es la capa superior, comprobar exclusiones y eliminarlas
-       /* if ((cellToCollapse.index / (dimensionsX * dimensionsZ)) == dimensionsY - 1)
-        {
-            cellToCollapse.tileOptions = cellToCollapse.tileOptions.Where(tile => !tile.excludeInTopLayer).ToArray();
-        }*/
+        /* if ((cellToCollapse.index / (dimensionsX * dimensionsZ)) == dimensionsY - 1)
+         {
+             cellToCollapse.tileOptions = cellToCollapse.tileOptions.Where(tile => !tile.excludeInTopLayer).ToArray();
+         }*/
 
         //Elegir una tile para esa celda
         List<(Tile3D tile, int weight)> weightedTiles = cellToCollapse.tileOptions.Select(tile => (tile, tile.probability)).ToList();
@@ -404,18 +485,18 @@ public class WaveFunction3D : MonoBehaviour
         if (selectedTile is null)
         {
             Debug.LogError("INCOMPATIBILITY!");
-           // if (iterations > 20)
-           // {
-               // BackTrackingHandler(cellToCollapse); //esto no va mucho
-               // UpdateGeneration();
-           // }
-          //  else
-           // {
-                Regenerate();
-           // }
+            // if (iterations > 20)
+            // {
+            // BackTrackingHandler(cellToCollapse); //esto no va mucho
+            // UpdateGeneration();
+            // }
+            //  else
+            // {
+            Regenerate();
+            // }
             return;
         }
-        
+
         cellToCollapse.tileOptions = new Tile3D[] { selectedTile };
         Tile3D foundTile = cellToCollapse.tileOptions[0];
 
@@ -432,7 +513,7 @@ public class WaveFunction3D : MonoBehaviour
         {
             instantiatedTile.gameObject.transform.Rotate(foundTile.rotation, Space.Self);
         }
-        
+
         instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
         instantiatedTile.gameObject.SetActive(true);
 
@@ -685,12 +766,12 @@ public class WaveFunction3D : MonoBehaviour
         {
             //FIN
             stopwatch.Stop();
-            print($"Ha tardado {stopwatch.ElapsedMilliseconds} ms en acabar ({stopwatch.ElapsedMilliseconds/1000} s)");
+            print($"Ha tardado {stopwatch.ElapsedMilliseconds} ms en acabar ({stopwatch.ElapsedMilliseconds / 1000} s)");
         }
 
     }
 
-   
+
     //This method looks and update the options in every cell of the given list looking at the neighbours
 
     void CheckNeighbours(int x, int y, int z, ref List<Cell3D> newGenerationCell)
@@ -825,7 +906,7 @@ public class WaveFunction3D : MonoBehaviour
         }
     }
 
-  
+
 
     void CheckValidity(List<Tile3D> optionList, List<Tile3D> validOption)
     {
@@ -833,7 +914,7 @@ public class WaveFunction3D : MonoBehaviour
         {
             var element = optionList[x];
             if (!validOption.Contains(element))
-            {              
+            {
                 optionList.RemoveAt(x);
             }
         }
@@ -861,6 +942,8 @@ public class WaveFunction3D : MonoBehaviour
         InitializeGrid();
         CreateSolidFloor();
         CreateSolidCeiling();
+        if (firstFloorBorder) CreateBorderContour();
+
         UpdateGeneration();
     }
 }
