@@ -1,0 +1,28 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+
+struct Tile3DStruct
+{
+    string tyleType;
+    int probability;
+    /*  We shouldn't need this, but it's here for now
+        bool rotateRight;
+        bool rotate180;
+        bool rotateLeft;
+    */
+};
+
+struct Cell3D
+{
+    bool colapsed;
+};
+
+StructuredBuffer<float> input;
+RWStructuredBuffer<float> output;
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+   
+}
