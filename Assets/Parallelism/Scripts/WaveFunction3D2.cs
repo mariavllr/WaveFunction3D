@@ -380,7 +380,6 @@ public class WaveFunction3D2 : MonoBehaviour
 
         tempGrid.RemoveAll(c => c.collapsed);
 
-
         //------------This is done to ensure that the cell with less entropy is selected-----------------
         // The result of this calculation determines the order of the elements in the sorted list.
         // If the result is negative, it means a should come before b; if positive, it means a should come after b;

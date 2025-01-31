@@ -60,8 +60,6 @@ public class Tile3D2 : MonoBehaviour
     public List<string> excludedNeighboursDown = new();
     public List<string> excludedNeighboursLeft = new();
 
-    public bool excludeInTopLayer;
-
     [Tooltip("Para definir la direccion la derecha siempre ser� el eje X (rojo) y arriba ser� el eje Z (azul)")]
     [Header("Sockets")]
     public Socket upSocket;

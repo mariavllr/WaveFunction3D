@@ -1,28 +1,125 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
+/*
+|-------------------------------------------------------------------------------|
+| Arrays in HLSL must have an explicit lenght given at their declaration        |
+| so the maximum number of neighbours is defined as a constant.                 |
+|-------------------------------------------------------------------------------|
+*/
+#define MAX_NEIGHBOURS 44
+
+struct Cell3DStruct
+{
+    bool colapsed;
+    /* Possible tiles
+    |-------------------------------------------------------------------------------|
+    | The possible tiles are stored in a uint array, each uint containing the index |
+    | of a tile in the tileObjects array.                                           |
+    |-------------------------------------------------------------------------------|
+    */
+    uint tileOptions[MAX_NEIGHBOURS];
+};
 
 struct Tile3DStruct
 {
     string tyleType;
     int probability;
-    /*  We shouldn't need this, but it's here for now
-        bool rotateRight;
-        bool rotate180;
-        bool rotateLeft;
+    float3 rotation;
+
+    // Neighbours (these are the indexes of the tiles in the tileObjects array)
+    uint upNeighbours[MAX_NEIGHBOURS];
+    uint rightNeighbours[MAX_NEIGHBOURS];
+    uint downNeighbours[MAX_NEIGHBOURS];
+    uint leftNeighbours[MAX_NEIGHBOURS];
+    uint abovetNeighbours[MAX_NEIGHBOURS];
+    uint belowNeighbours[MAX_NEIGHBOURS];
+
+    // Excluded neighbours
+    string excludedNeighboursUp[MAX_NEIGHBOURS];
+    string excludedNeighboursRight[MAX_NEIGHBOURS];
+    string excludedNeighboursDown[MAX_NEIGHBOURS];
+    string excludedNeighboursLeft[MAX_NEIGHBOURS];
+
+    /* Sockets
+    |-------------------------------------------------------------------------------|
+    | HLSL doesn't support nested structs so the sockets are represented as arrays. |
+    | [0] = Up, [1] = Right, [2] = Left, [3] = Down, [4] = Above, [5] = Below       |
+    |-------------------------------------------------------------------------------|
+    | socketNames contains the names of the sockets in the form of ints that        |
+    | represent the enums in the C# code with the following correspondence:         |
+    | GRASS = 0, PATH = 1, WATER = 3, EMPTY = 4, WALL_LATERAL = 5, WALL_TOP = 6,    |
+    | WALL_CORNER_EXT = 7, WALL_CORNER_INT = 8, BORDER = 9, GRASS_BORDER = 10       |
+    | SOLID = 11                                                                    |
+    |-------------------------------------------------------------------------------|
+    | To avoid memory alignment issues, all the bools are stored in a uint array,   |
+    | each uint contaiining the bools for a socket.                                 |
+    | they can be accessed as follows:                                              |
+    | horizontalFace = ((socketFlags[x] & 0x01) != 0)                               |
+    | isSymmetric = ((socketFlags[x] & 0x02) != 0)                                  |
+    | isFlipped = ((socketFlags[x] & 0x04) != 0)                                    |
+    | isVerticalFace = ((socketFlags[x] & 0x08) != 0)                               |
+    | rotationallyInvariant = ((socketFlags[x] & 0x10) != 0)                        |
+    |-------------------------------------------------------------------------------|
+    | rotationIndexes contains the indexes of the rotations of the sockets.         |
+    |-------------------------------------------------------------------------------|
     */
+    uint socketsNames[6];
+    uint socketFlags[6];
+    uint rotatioIndexes[6];
 };
 
-struct Cell3D
+// Values from de C# code
+uint dimensionsX, dimensionsY, dimensionsZ;
+uint iterations;
+uint floorTile;
+uint ceilingTile;
+
+// Buffers
+StructuredBuffer<Cell3DStruct> gridComponents;
+StructuredBuffer<Tile3DStruct> tileObjects;
+RWStructuredBuffer<Cell3DStruct> output;
+
+void clearArray(uint array[MAX_NEIGHBOURS])
 {
-    bool colapsed;
-};
+    for (uint i = 0; i < MAX_NEIGHBOURS; i++)
+    {
+        array[i] = 0;
+    }
+}
 
-StructuredBuffer<float> input;
-RWStructuredBuffer<float> output;
+void CreateSolidFloor(uint2 initialIndex) //
+{
+    uint y = 0;
+    for (uint z = initialIndex.y; z < dimensionsZ; z++)
+    {
+        for (uint x = initialIndex.x; z < dimensionsX; x++)
+        {
+            uint index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
+            output[index] = gridComponents[index];
+            output[index].colapsed = true;
+            clearArray(output[index].tileOptions);
+            output[index].tileOptions[0] = floorTile;
+        }
+    }
+}
 
-[numthreads(8,8,1)]
+void CreateSolidCeling(uint2 initialIndex)
+{
+
+}
+
+void UpdateGeneration(uint2 initialIndex)
+{
+
+}
+
+[numthreads(1,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-   
+    uint2 initialIndex = id.xy;
+    CreateSolidFloor(initialIndex);
+    //CreateSolidCeling(initialIndex);
+    //UpdateGeneration(initialIndex);
 }
+
