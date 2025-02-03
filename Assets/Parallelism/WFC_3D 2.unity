@@ -509,7 +509,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   iterations: 0
-  MAX_NEIGHBOURS: 44
   shader: {fileID: 7200000, guid: a7729b81eb8ef4d42b8bab97128c3dc0, type: 3}
   cellSize: 2
   dimensionsX: 15

@@ -18,7 +18,7 @@ struct Cell3DStruct
     | of a tile in the tileObjects array.                                           |
     |-------------------------------------------------------------------------------|
     */
-    uint tileOptions[MAX_NEIGHBOURS];
+    int tileOptions[MAX_NEIGHBOURS];
 };
 
 struct Tile3DStruct
@@ -28,12 +28,12 @@ struct Tile3DStruct
     float3 rotation;
 
     // Neighbours (these are the indexes of the tiles in the tileObjects array)
-    uint upNeighbours[MAX_NEIGHBOURS];
-    uint rightNeighbours[MAX_NEIGHBOURS];
-    uint downNeighbours[MAX_NEIGHBOURS];
-    uint leftNeighbours[MAX_NEIGHBOURS];
-    uint abovetNeighbours[MAX_NEIGHBOURS];
-    uint belowNeighbours[MAX_NEIGHBOURS];
+    int upNeighbours[MAX_NEIGHBOURS];
+    int rightNeighbours[MAX_NEIGHBOURS];
+    int downNeighbours[MAX_NEIGHBOURS];
+    int leftNeighbours[MAX_NEIGHBOURS];
+    int abovetNeighbours[MAX_NEIGHBOURS];
+    int belowNeighbours[MAX_NEIGHBOURS];
 
     // Excluded neighbours
     int excludedNeighboursUp[MAX_NEIGHBOURS];       // Hashcodes of the tiles
@@ -73,22 +73,23 @@ struct Tile3DStruct
 uint dimensionsX, dimensionsY, dimensionsZ;
 uint iterations;
 uint floorTile;
-uint ceilingTile;
+uint emptyTile;
 
 // Buffers
 StructuredBuffer<Cell3DStruct> gridComponents;
 StructuredBuffer<Tile3DStruct> tileObjects;
 RWStructuredBuffer<Cell3DStruct> output;
 
-void clearArray(uint array[MAX_NEIGHBOURS])
+// We need arrays of fixed lenght in HLSL, so -1 will be our null value
+void ClearArray(int array[MAX_NEIGHBOURS])
 {
     for (uint i = 0; i < MAX_NEIGHBOURS; i++)
     {
-        array[i] = 0;
+        array[i] = -1;
     }
 }
 
-void CreateSolidFloor(uint2 initialIndex) //
+void CreateSolidFloor(uint2 initialIndex)
 {
     uint y = 0;
     for (uint z = initialIndex.y; z < dimensionsZ; z++)
@@ -98,20 +99,71 @@ void CreateSolidFloor(uint2 initialIndex) //
             uint index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
             output[index] = gridComponents[index];
             output[index].colapsed = (uint) 1;
-            clearArray(output[index].tileOptions);
+            ClearArray(output[index].tileOptions);
             output[index].tileOptions[0] = floorTile;
+            iterations++;
         }
     }
 }
 
 void CreateSolidCeling(uint2 initialIndex)
 {
+    int y = dimensionsY-1;
+    for (uint z = 0; z < dimensionsZ; z++)
+    {
+        for (uint x = 0; x < dimensionsX; x++)
+        {
+            uint index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
+            output[index] = gridComponents[index];
+            output[index].colapsed = (uint) 1;
+            ClearArray(output[index].tileOptions);
+            output[index].tileOptions[0] = emptyTile;
+            iterations++;
+        }
+    }
+}
 
+void CheckNeighbours(uint x, uint y, uint z)
+{
+    uint up, down, left, right, above, below;
+    uint index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
+    right = (x + 1) + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
+    left = (x - 1) + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
+    up = x + ((z + 1) * dimensionsX) + (y * dimensionsX * dimensionsZ);
+    down = x + ((z - 1) * dimensionsX) + (y * dimensionsX * dimensionsZ);
+    above = x + (z * dimensionsX) + ((y + 1) * dimensionsX * dimensionsZ);
+    below = x + (z * dimensionsX) + ((y - 1) * dimensionsX * dimensionsZ);
+
+    if(gridComponents[index].colapsed == 1) return;
+
+    // We add all the options at the start
+    int options[MAX_NEIGHBOURS];
+    for (uint i = 0; i < MAX_NEIGHBOURS; i++) options[i] = i;
+
+    // Check the down cell
+    if(z > 0)
+    {
+        int validOptions[MAX_NEIGHBOURS];
+        for (int i = 0; i < MAX_NEIGHBOURS; i++)
+        {
+            if(gridComponents[down].tileOptions[i] == -1) break;
+            validOptions[i] = gridComponents[down].tileOptions[i];
+        }
+    }
 }
 
 void UpdateGeneration(uint2 initialIndex)
 {
-
+    for (uint y = 0; y < dimensionsY; y++)
+    {
+        for (uint z = initialIndex.y; z < dimensionsZ; z++)
+        {
+            for (uint x = initialIndex.x; x < dimensionsX; x++)
+            {
+                CheckNeighbours(x, y, z);
+            }
+        }
+    }
 }
 
 [numthreads(1,1,1)]
@@ -119,6 +171,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 {
     uint2 initialIndex = id.xy;
     CreateSolidFloor(initialIndex);
-    //CreateSolidCeling(initialIndex);
-    //UpdateGeneration(initialIndex);
+    CreateSolidCeling(initialIndex);
+    UpdateGeneration(initialIndex);
 }

@@ -4,15 +4,12 @@ using UnityEngine;
 using UnityEditor;
 using System.Diagnostics;
 using Debug = UnityEngine.Debug;
-using System.Net.Sockets;
-using Unity.VisualScripting.FullSerializer;
 using System;
-using UnityEngine.Tilemaps;
 
 public class WaveFunction3DGPU : MonoBehaviour
 {
     [SerializeField] private int iterations = 0;
-    [SerializeField] public int MAX_NEIGHBOURS = 44;
+    [SerializeField] public const int MAX_NEIGHBOURS = 44;
 
     [Header("Shader")]
     [SerializeField] private ComputeShader shader;
@@ -43,7 +40,7 @@ public class WaveFunction3DGPU : MonoBehaviour
         | of a tile in the tileObjects array.                                           |
         |-------------------------------------------------------------------------------|
         */
-        public fixed uint tileOptions[44];
+        public fixed int tileOptions[MAX_NEIGHBOURS];
     };
 
     unsafe struct Tile3DStruct
@@ -64,18 +61,18 @@ public class WaveFunction3DGPU : MonoBehaviour
         public Vector3 rotation;
 
         // Neighbours (these are the indexes of the tiles in the tileObjects array)
-        public fixed uint upNeighbours[44];
-        public fixed uint rightNeighbours[44];
-        public fixed uint downNeighbours[44];
-        public fixed uint leftNeighbours[44];
-        public fixed uint abovetNeighbours[44];
-        public fixed uint belowNeighbours[44];
+        public fixed int upNeighbours[MAX_NEIGHBOURS];
+        public fixed int rightNeighbours[MAX_NEIGHBOURS];
+        public fixed int downNeighbours[MAX_NEIGHBOURS];
+        public fixed int leftNeighbours[MAX_NEIGHBOURS];
+        public fixed int abovetNeighbours[MAX_NEIGHBOURS];
+        public fixed int belowNeighbours[MAX_NEIGHBOURS];
 
         // Excluded neighbours
-        public fixed int excludedNeighboursUp[44];
-        public fixed int excludedNeighboursRight[44];
-        public fixed int excludedNeighboursDown[44];
-        public fixed int excludedNeighboursLeft[44];
+        public fixed int excludedNeighboursUp[MAX_NEIGHBOURS];
+        public fixed int excludedNeighboursRight[MAX_NEIGHBOURS];
+        public fixed int excludedNeighboursDown[MAX_NEIGHBOURS];
+        public fixed int excludedNeighboursLeft[MAX_NEIGHBOURS];
 
         /* Sockets
         |-------------------------------------------------------------------------------|
@@ -140,7 +137,7 @@ public class WaveFunction3DGPU : MonoBehaviour
         shader.SetInt("dimensionsZ", dimensionsZ);
         shader.SetInt("iterations", 0);
         shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
-        shader.SetInt("ceilingTile", Array.IndexOf(tileObjects, emptyTile));
+        shader.SetInt("emptyTile", Array.IndexOf(tileObjects, emptyTile));
 
         //Bind output buffer
         shader.SetBuffer(0, "output", outputBuffer);
@@ -148,13 +145,13 @@ public class WaveFunction3DGPU : MonoBehaviour
         // Dispatch
         shader.Dispatch(0, 1, 1, 1);
 
-        // Get data TODO
+        // Get data
         Cell3DStruct[] output = new Cell3DStruct[gridComponentsStructs.Length];
         outputBuffer.GetData(output);
-        Debug.Log(output.Length);
+
+        // Recreate the grid based on the data received by the shader
         for (int i = 0; i < output.Length; i++)
         {
-            //if(tileObjects[output[i].tileOptions[0]] != floorTile) continue;
             Cell3D2 cell = gridComponents[i];
             cell.RecreateCell(tileObjects[output[i].tileOptions[0]]);
             cell.collapsed = output[i].colapsed == 1;
@@ -174,8 +171,12 @@ public class WaveFunction3DGPU : MonoBehaviour
 
             instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
             instantiatedTile.gameObject.SetActive(true);
-            iterations++;
         }
+
+        // Release memory buffers to avoid leaks
+        gridComponentsBuffer.Release();
+        tileObjectsBuffer.Release();
+        outputBuffer.Release();
     }
 
     /// <summary>
@@ -450,32 +451,32 @@ public class WaveFunction3DGPU : MonoBehaviour
             // Copy neighbours (transforming them to indexes)
             for (int j = 0; j < tileObjects[i].upNeighbours.Count; j++)
             {
-                tileStruct.upNeighbours[j] = (uint) j;
+                tileStruct.upNeighbours[j] = j;
             }
 
             for (int j = 0; j < tileObjects[i].rightNeighbours.Count; j++)
             {
-                tileStruct.rightNeighbours[j] = (uint) j;
+                tileStruct.rightNeighbours[j] = j;
             }
 
             for (int j = 0; j < tileObjects[i].downNeighbours.Count; j++)
             {
-                tileStruct.downNeighbours[j] = (uint) j;
+                tileStruct.downNeighbours[j] = j;
             }
 
             for (int j = 0; j < tileObjects[i].leftNeighbours.Count; j++)
             {
-                tileStruct.leftNeighbours[j] = (uint) j;
+                tileStruct.leftNeighbours[j] = j;
             }
 
             for (int j = 0; j < tileObjects[i].aboveNeighbours.Count; j++)
             {
-                tileStruct.abovetNeighbours[j] = (uint) j;
+                tileStruct.abovetNeighbours[j] = j;
             }
 
             for (int j = 0; j < tileObjects[i].belowNeighbours.Count; j++)
             {
-                tileStruct.belowNeighbours[j] = (uint) j;
+                tileStruct.belowNeighbours[j] = j;
             }
 
             // Copy excluded neighbours
@@ -534,13 +535,13 @@ public class WaveFunction3DGPU : MonoBehaviour
     /// <returns></returns>
     unsafe Cell3DStruct[] CreateCell3DStructs()
     {
-        uint[] tileObjectIndexes = new uint[tileObjects.Length];
+        int[] tileObjectIndexes = new int[tileObjects.Length];
 
         for (int i = 0; i < tileObjects.Length; i++)
         {
             // Initially all the tiles are possible,
             // so the indexes are the same as the array indexes
-            tileObjectIndexes[i] = (uint)i;
+            tileObjectIndexes[i] = i;
         }
 
         Cell3DStruct[] cell3DStructs = new Cell3DStruct[gridComponents.Count];

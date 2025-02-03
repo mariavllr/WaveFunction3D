@@ -605,21 +605,17 @@ public class WaveFunction3D2 : MonoBehaviour
     /// </summary>
     void UpdateGeneration()
     {
-        List<Cell3D2> newGenerationCell = new List<Cell3D2>(gridComponents);
-
         for (int y = 0; y < dimensionsY; y++)
         {
             for (int z = 0; z < dimensionsZ; z++)
             {
                 for (int x = 0; x < dimensionsX; x++)
                 {
-                    CheckNeighbours(x, y, z, ref newGenerationCell);
+                    CheckNeighbours(x, y, z, ref gridComponents);
                 }
             }
 
         }
-
-        gridComponents = newGenerationCell;
 
         iterations++;
         if (iterations <= dimensionsX * dimensionsZ * dimensionsY)
