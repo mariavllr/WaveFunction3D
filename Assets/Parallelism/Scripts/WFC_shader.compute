@@ -11,7 +11,7 @@
 
 struct Cell3DStruct
 {
-    bool colapsed;
+    uint colapsed;
     /* Possible tiles
     |-------------------------------------------------------------------------------|
     | The possible tiles are stored in a uint array, each uint containing the index |
@@ -23,7 +23,7 @@ struct Cell3DStruct
 
 struct Tile3DStruct
 {
-    string tyleType;
+    int tyleType; // Hascode of the tile
     int probability;
     float3 rotation;
 
@@ -36,10 +36,10 @@ struct Tile3DStruct
     uint belowNeighbours[MAX_NEIGHBOURS];
 
     // Excluded neighbours
-    string excludedNeighboursUp[MAX_NEIGHBOURS];
-    string excludedNeighboursRight[MAX_NEIGHBOURS];
-    string excludedNeighboursDown[MAX_NEIGHBOURS];
-    string excludedNeighboursLeft[MAX_NEIGHBOURS];
+    int excludedNeighboursUp[MAX_NEIGHBOURS];       // Hashcodes of the tiles
+    int excludedNeighboursRight[MAX_NEIGHBOURS];    // Hashcodes of the tiles
+    int excludedNeighboursDown[MAX_NEIGHBOURS];     // Hashcodes of the tiles
+    int excludedNeighboursLeft[MAX_NEIGHBOURS];     // Hashcodes of the tiles
 
     /* Sockets
     |-------------------------------------------------------------------------------|
@@ -93,11 +93,11 @@ void CreateSolidFloor(uint2 initialIndex) //
     uint y = 0;
     for (uint z = initialIndex.y; z < dimensionsZ; z++)
     {
-        for (uint x = initialIndex.x; z < dimensionsX; x++)
+        for (uint x = initialIndex.x; x < dimensionsX; x++)
         {
             uint index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
             output[index] = gridComponents[index];
-            output[index].colapsed = true;
+            output[index].colapsed = (uint) 1;
             clearArray(output[index].tileOptions);
             output[index].tileOptions[0] = floorTile;
         }
@@ -122,4 +122,3 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     //CreateSolidCeling(initialIndex);
     //UpdateGeneration(initialIndex);
 }
-

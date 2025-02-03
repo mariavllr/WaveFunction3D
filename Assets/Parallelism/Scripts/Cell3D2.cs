@@ -29,6 +29,11 @@ public class Cell3D2 : MonoBehaviour
         tileOptions = tiles;
     }
 
+    public void RecreateCell(Tile3D2 selectedTile)
+    {
+        tileOptions = new Tile3D2[] { selectedTile };
+    }
+
     public void MakeVisitable()
     {
         visitable = true;

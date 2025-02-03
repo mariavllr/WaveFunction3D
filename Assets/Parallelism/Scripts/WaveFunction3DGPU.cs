@@ -12,17 +12,17 @@ using UnityEngine.Tilemaps;
 public class WaveFunction3DGPU : MonoBehaviour
 {
     [SerializeField] private int iterations = 0;
-    [SerializeField] private int MAX_NEIGHBOURS = 44;
+    [SerializeField] public int MAX_NEIGHBOURS = 44;
 
     [Header("Shader")]
     [SerializeField] private ComputeShader shader;
 
     [Header("Map generation")]
+    [SerializeField] int cellSize;
     [SerializeField] private int dimensionsX, dimensionsZ, dimensionsY;
     [SerializeField] Tile3D2 floorTile;                     // Tile for the floor
     [SerializeField] Tile3D2 emptyTile;                     // Tile for the ceiling
     [SerializeField] private Tile3D2[] tileObjects;         // All the tiles that can be used to generate the map
-    [SerializeField] int cellSize;
 
     [Header("Grid")]
     [SerializeField] private List<Cell3D2> gridComponents;   // A list with all the cells inside the grid
@@ -34,37 +34,48 @@ public class WaveFunction3DGPU : MonoBehaviour
     Stopwatch stopwatch;
 
     // Structs for the shader
-    struct Cell3DStruct
+    unsafe struct Cell3DStruct
     {
-        public bool colapsed;
+        public uint colapsed;
         /* Possible tiles
         |-------------------------------------------------------------------------------|
         | The possible tiles are stored in a uint array, each uint containing the index |
         | of a tile in the tileObjects array.                                           |
         |-------------------------------------------------------------------------------|
         */
-        public uint[] tileOptions;
+        public fixed uint tileOptions[44];
     };
 
-    struct Tile3DStruct
+    unsafe struct Tile3DStruct
     {
-        public string tyleType;
+        /*
+        |-------------------------------------------------------------------------------|
+        | In order to be able to send data to the buffer, all the data within the struct|
+        | must be blitable, that means that the size in memory for c# is exactly the    |
+        | the same as in HLSL, for uint arrays we only need to ensure that they have    |
+        | the a fixed size. On the other hand, strings are not blitable, but we don't   |
+        | really care about the content of the array, we only need to be able to        |
+        | identify the tileType, so we can translate them into hashes.                  |
+        |-------------------------------------------------------------------------------|
+        */
+
+        public int tyleType;
         public int probability;
         public Vector3 rotation;
 
         // Neighbours (these are the indexes of the tiles in the tileObjects array)
-        public uint[] upNeighbours;
-        public uint[] rightNeighbours;
-        public uint[] downNeighbours;
-        public uint[] leftNeighbours;
-        public uint[] abovetNeighbours;
-        public uint[] belowNeighbours;
+        public fixed uint upNeighbours[44];
+        public fixed uint rightNeighbours[44];
+        public fixed uint downNeighbours[44];
+        public fixed uint leftNeighbours[44];
+        public fixed uint abovetNeighbours[44];
+        public fixed uint belowNeighbours[44];
 
         // Excluded neighbours
-        public string[] excludedNeighboursUp;
-        public string[] excludedNeighboursRight;
-        public string[] excludedNeighboursDown;
-        public string[] excludedNeighboursLeft;
+        public fixed int excludedNeighboursUp[44];
+        public fixed int excludedNeighboursRight[44];
+        public fixed int excludedNeighboursDown[44];
+        public fixed int excludedNeighboursLeft[44];
 
         /* Sockets
         |-------------------------------------------------------------------------------|
@@ -89,12 +100,12 @@ public class WaveFunction3DGPU : MonoBehaviour
         | rotationIndexes contains the indexes of the rotations of the sockets.         |
         |-------------------------------------------------------------------------------|
         */
-        public uint[] socketsNames;
-        public uint[] socketFlags;
-        public uint[] rotatioIndexes;
+        public fixed uint socketsNames[6];
+        public fixed uint socketFlags[6];
+        public fixed uint rotatioIndexes[6];
     };
 
-    void Awake()
+    unsafe void Awake()
     {
         ClearNeighbours(ref tileObjects);
         CreateRemainingCells(ref tileObjects);
@@ -131,10 +142,40 @@ public class WaveFunction3DGPU : MonoBehaviour
         shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
         shader.SetInt("ceilingTile", Array.IndexOf(tileObjects, emptyTile));
 
-        // Dispatch
-        shader.Dispatch(0, 1, 0, 0);
+        //Bind output buffer
+        shader.SetBuffer(0, "output", outputBuffer);
 
-        // Get data
+        // Dispatch
+        shader.Dispatch(0, 1, 1, 1);
+
+        // Get data TODO
+        Cell3DStruct[] output = new Cell3DStruct[gridComponentsStructs.Length];
+        outputBuffer.GetData(output);
+        Debug.Log(output.Length);
+        for (int i = 0; i < output.Length; i++)
+        {
+            //if(tileObjects[output[i].tileOptions[0]] != floorTile) continue;
+            Cell3D2 cell = gridComponents[i];
+            cell.RecreateCell(tileObjects[output[i].tileOptions[0]]);
+            cell.collapsed = output[i].colapsed == 1;
+            if (cell.transform.childCount != 0)
+            {
+                foreach (Transform child in cell.transform)
+                {
+                    Destroy(child.gameObject);
+                }
+            }
+
+            Tile3D2 instantiatedTile = Instantiate(cell.tileOptions[0], cell.transform.position, Quaternion.identity, cell.transform);
+            if (instantiatedTile.rotation != Vector3.zero)
+            {
+                instantiatedTile.gameObject.transform.Rotate(cell.tileOptions[0].rotation, Space.Self);
+            }
+
+            instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
+            instantiatedTile.gameObject.SetActive(true);
+            iterations++;
+        }
     }
 
     /// <summary>
@@ -154,7 +195,7 @@ public class WaveFunction3DGPU : MonoBehaviour
         }
     }
 
-        /// <summary>
+    /// <summary>
     /// Generates a new tile variation based on a given tile
     /// </summary>
     /// <param name="tile"></param> Tile to be used as base
@@ -395,49 +436,69 @@ public class WaveFunction3DGPU : MonoBehaviour
     /// Creates the Tile3DStructs needed for the shader
     /// </summary>
     /// <returns></returns> Array of Tile3DStructs
-    private Tile3DStruct[] CreateTile3DStructs()
+    unsafe private Tile3DStruct[] CreateTile3DStructs()
     {
         Tile3DStruct[] tileStructs = new Tile3DStruct[tileObjects.Length];
 
         for(int i = 0; i < tileObjects.Length; i++)
         {
             Tile3DStruct tileStruct = new Tile3DStruct();
-
-            tileStruct.tyleType = tileObjects[i].tileType;
+            tileStruct.tyleType = tileObjects[i].tileType.GetHashCode();
             tileStruct.probability = tileObjects[i].probability;
             tileStruct.rotation = tileObjects[i].rotation;
 
             // Copy neighbours (transforming them to indexes)
-            foreach(Tile3D2 neighbour in tileObjects[i].upNeighbours)
+            for (int j = 0; j < tileObjects[i].upNeighbours.Count; j++)
             {
-                tileStruct.upNeighbours.Append((uint) Array.IndexOf(tileObjects, neighbour));
+                tileStruct.upNeighbours[j] = (uint) j;
             }
-            foreach (Tile3D2 neighbour in tileObjects[i].rightNeighbours)
+
+            for (int j = 0; j < tileObjects[i].rightNeighbours.Count; j++)
             {
-                tileStruct.rightNeighbours.Append((uint) Array.IndexOf(tileObjects, neighbour));
+                tileStruct.rightNeighbours[j] = (uint) j;
             }
-            foreach (Tile3D2 neighbour in tileObjects[i].downNeighbours)
+
+            for (int j = 0; j < tileObjects[i].downNeighbours.Count; j++)
             {
-                tileStruct.downNeighbours.Append((uint) Array.IndexOf(tileObjects, neighbour));
+                tileStruct.downNeighbours[j] = (uint) j;
             }
-            foreach (Tile3D2 neighbour in tileObjects[i].leftNeighbours)
+
+            for (int j = 0; j < tileObjects[i].leftNeighbours.Count; j++)
             {
-                tileStruct.leftNeighbours.Append((uint) Array.IndexOf(tileObjects, neighbour));
+                tileStruct.leftNeighbours[j] = (uint) j;
             }
-            foreach (Tile3D2 neighbour in tileObjects[i].aboveNeighbours)
+
+            for (int j = 0; j < tileObjects[i].aboveNeighbours.Count; j++)
             {
-                tileStruct.abovetNeighbours.Append((uint) Array.IndexOf(tileObjects, neighbour));
+                tileStruct.abovetNeighbours[j] = (uint) j;
             }
-            foreach (Tile3D2 neighbour in tileObjects[i].belowNeighbours)
+
+            for (int j = 0; j < tileObjects[i].belowNeighbours.Count; j++)
             {
-                tileStruct.belowNeighbours.Append((uint) Array.IndexOf(tileObjects, neighbour));
+                tileStruct.belowNeighbours[j] = (uint) j;
             }
 
             // Copy excluded neighbours
-            tileStruct.excludedNeighboursUp = tileObjects[i].excludedNeighboursUp.ToArray();
-            tileStruct.excludedNeighboursRight = tileObjects[i].excludedNeighboursRight.ToArray();
-            tileStruct.excludedNeighboursDown = tileObjects[i].excludedNeighboursDown.ToArray();
-            tileStruct.excludedNeighboursLeft = tileObjects[i].excludedNeighboursLeft.ToArray();
+            int[] temp = tileObjects[i].excludedNeighboursUp.Select(s => tileObjects[i].excludedNeighboursUp.GetHashCode()).ToArray();
+            for (int j = 0; j < temp.Length; j++)
+            {
+                tileStruct.excludedNeighboursUp[j] = temp[j];
+            }
+            temp = tileObjects[i].excludedNeighboursRight.Select(s => tileObjects[i].excludedNeighboursRight.GetHashCode()).ToArray();
+            for (int j = 0; j < temp.Length; j++)
+            {
+                tileStruct.excludedNeighboursRight[j] = temp[j];
+            }
+            temp = tileObjects[i].excludedNeighboursDown.Select(s => tileObjects[i].excludedNeighboursDown.GetHashCode()).ToArray();
+            for (int j = 0; j < temp.Length; j++)
+            {
+                tileStruct.excludedNeighboursDown[j] = temp[j];
+            }
+            temp = tileObjects[i].excludedNeighboursLeft.Select(s => tileObjects[i].excludedNeighboursLeft.GetHashCode()).ToArray();
+            for (int j = 0; j < temp.Length; j++)
+            {
+                tileStruct.excludedNeighboursLeft[j] = temp[j];
+            }
             CopySocketDataToStruct(ref tileStruct, ref tileObjects[i]);
         }
 
@@ -449,12 +510,8 @@ public class WaveFunction3DGPU : MonoBehaviour
     /// </summary>
     /// <param name="tileStruct"></param> Tile3DStruct object to be filled
     /// <param name="tileObject"></param> Tile3D2 object to be copied from
-    private void CopySocketDataToStruct(ref Tile3DStruct tileStruct, ref Tile3D2 tileObject)
+    unsafe private void CopySocketDataToStruct(ref Tile3DStruct tileStruct, ref Tile3D2 tileObject)
     {
-        tileStruct.socketsNames = new uint[6];
-        tileStruct.socketFlags = new uint[6];
-        tileStruct.rotatioIndexes = new uint[6];
-
         // Copy sockets to an array to avoid code repetition
         Tile3D2.Socket[] sockets = new Tile3D2.Socket[] { tileObject.upSocket, tileObject.rightSocket, tileObject.leftSocket,
                                                            tileObject.downSocket, tileObject.aboveSocket, tileObject.belowSocket };
@@ -475,23 +532,27 @@ public class WaveFunction3DGPU : MonoBehaviour
     /// Creates the Cell3DStructs needed for the shader
     /// </summary>
     /// <returns></returns>
-    Cell3DStruct[] CreateCell3DStructs()
+    unsafe Cell3DStruct[] CreateCell3DStructs()
     {
-        uint[] gridComponentsIndexes = new uint[gridComponents.Count];
+        uint[] tileObjectIndexes = new uint[tileObjects.Length];
 
-        foreach (Tile3D2 tile in tileObjects)
+        for (int i = 0; i < tileObjects.Length; i++)
         {
-            // Copy tile options (transforming them to indexes)
-            gridComponentsIndexes.Append((uint) Array.IndexOf(tileObjects, tile));
+            // Initially all the tiles are possible,
+            // so the indexes are the same as the array indexes
+            tileObjectIndexes[i] = (uint)i;
         }
 
-        Cell3DStruct[] cell3DStructs = new Cell3DStruct[0];
+        Cell3DStruct[] cell3DStructs = new Cell3DStruct[gridComponents.Count];
 
-        foreach(Cell3D2 cell in gridComponents)
+        for(int i = 0; i < gridComponents.Count; i++)
         {
             Cell3DStruct cellStruct = new Cell3DStruct();
-            cellStruct.colapsed = cell.collapsed;
-            cell3DStructs.Append(cellStruct);
+            cellStruct.colapsed = gridComponents[i].collapsed? (uint) 1 : (uint) 0;
+            for (int j = 0; j < tileObjectIndexes.Length; j++)
+            {
+                cellStruct.tileOptions[j] = tileObjectIndexes[j];
+            }
         }
 
         return cell3DStructs;
