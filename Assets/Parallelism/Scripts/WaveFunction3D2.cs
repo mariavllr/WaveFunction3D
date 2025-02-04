@@ -658,7 +658,7 @@ public class WaveFunction3D2 : MonoBehaviour
         {
             gridComponents[index].haSidoVisitado = true;
             List<Tile3D2> options = new List<Tile3D2>();
-            foreach (Tile3D2 t in tileObjects)
+            foreach (Tile3D2 t in newGenerationCell[index].tileOptions)
             {
                 options.Add(t);
             }

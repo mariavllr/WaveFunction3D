@@ -3,7 +3,6 @@ using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using System.Diagnostics;
-using Debug = UnityEngine.Debug;
 using System;
 
 public class WaveFunction3DGPU : MonoBehaviour
@@ -34,6 +33,9 @@ public class WaveFunction3DGPU : MonoBehaviour
     unsafe struct Cell3DStruct
     {
         public uint colapsed;
+        // Number of tiles that can be placed in the cell
+        // (array lenghts are fixed we can't use .lenght)
+        public uint entropy;
         /* Possible tiles
         |-------------------------------------------------------------------------------|
         | The possible tiles are stored in a uint array, each uint containing the index |
@@ -120,17 +122,20 @@ public class WaveFunction3DGPU : MonoBehaviour
 
         // Initialize buffers
         ComputeBuffer gridComponentsBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
+        ComputeBuffer modifiableGridBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
         ComputeBuffer tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)));
         ComputeBuffer outputBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
 
         // Set data
         gridComponentsBuffer.SetData(gridComponentsStructs);
+        modifiableGridBuffer.SetData(gridComponentsStructs);
         tileObjectsBuffer.SetData(tileObjectsStructs);
 
         // Data to buffers
         shader.SetBuffer(0, "gridComponents", gridComponentsBuffer);
+        shader.SetBuffer(0, "modifiableGrid", modifiableGridBuffer);
         shader.SetBuffer(0, "tileObjects", tileObjectsBuffer);
-        shader.SetBuffer(0, "outputBuffer", outputBuffer);
+        shader.SetBuffer(0, "output", outputBuffer);
         shader.SetInt("MAX_NEIGHBOURS", MAX_NEIGHBOURS);
         shader.SetInt("dimensionsX", dimensionsX);
         shader.SetInt("dimensionsY", dimensionsY);
@@ -138,9 +143,6 @@ public class WaveFunction3DGPU : MonoBehaviour
         shader.SetInt("iterations", 0);
         shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
         shader.SetInt("emptyTile", Array.IndexOf(tileObjects, emptyTile));
-
-        //Bind output buffer
-        shader.SetBuffer(0, "output", outputBuffer);
 
         // Dispatch
         shader.Dispatch(0, 1, 1, 1);
@@ -451,32 +453,32 @@ public class WaveFunction3DGPU : MonoBehaviour
             // Copy neighbours (transforming them to indexes)
             for (int j = 0; j < tileObjects[i].upNeighbours.Count; j++)
             {
-                tileStruct.upNeighbours[j] = j;
+                tileStruct.upNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].upNeighbours[j]);
             }
 
             for (int j = 0; j < tileObjects[i].rightNeighbours.Count; j++)
             {
-                tileStruct.rightNeighbours[j] = j;
+                tileStruct.rightNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].rightNeighbours[j]);
             }
 
             for (int j = 0; j < tileObjects[i].downNeighbours.Count; j++)
             {
-                tileStruct.downNeighbours[j] = j;
+                tileStruct.downNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].downNeighbours[j]);
             }
 
             for (int j = 0; j < tileObjects[i].leftNeighbours.Count; j++)
             {
-                tileStruct.leftNeighbours[j] = j;
+                tileStruct.leftNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].leftNeighbours[j]);
             }
 
             for (int j = 0; j < tileObjects[i].aboveNeighbours.Count; j++)
             {
-                tileStruct.abovetNeighbours[j] = j;
+                tileStruct.abovetNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].aboveNeighbours[j]);
             }
 
             for (int j = 0; j < tileObjects[i].belowNeighbours.Count; j++)
             {
-                tileStruct.belowNeighbours[j] = j;
+                tileStruct.belowNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].belowNeighbours[j]);
             }
 
             // Copy excluded neighbours
@@ -554,6 +556,7 @@ public class WaveFunction3DGPU : MonoBehaviour
             {
                 cellStruct.tileOptions[j] = tileObjectIndexes[j];
             }
+            cellStruct.entropy = MAX_NEIGHBOURS;
         }
 
         return cell3DStructs;
