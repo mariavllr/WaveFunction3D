@@ -67,7 +67,7 @@ public class WaveFunction3DGPU : MonoBehaviour
         public fixed int rightNeighbours[MAX_NEIGHBOURS];
         public fixed int downNeighbours[MAX_NEIGHBOURS];
         public fixed int leftNeighbours[MAX_NEIGHBOURS];
-        public fixed int abovetNeighbours[MAX_NEIGHBOURS];
+        public fixed int aboveNeighbors[MAX_NEIGHBOURS];
         public fixed int belowNeighbours[MAX_NEIGHBOURS];
 
         // Excluded neighbours
@@ -75,33 +75,6 @@ public class WaveFunction3DGPU : MonoBehaviour
         public fixed int excludedNeighboursRight[MAX_NEIGHBOURS];
         public fixed int excludedNeighboursDown[MAX_NEIGHBOURS];
         public fixed int excludedNeighboursLeft[MAX_NEIGHBOURS];
-
-        /* Sockets
-        |-------------------------------------------------------------------------------|
-        | HLSL doesn't support nested structs so the sockets are represented as arrays. |
-        | [0] = Up, [1] = Right, [2] = Left, [3] = Down, [4] = Above, [5] = Below       |
-        |-------------------------------------------------------------------------------|
-        | socketNames contains the names of the sockets in the form of ints that        |
-        | represent the enums in the C# code with the following correspondence:         |
-        | GRASS = 0, PATH = 1, WATER = 3, EMPTY = 4, WALL_LATERAL = 5, WALL_TOP = 6,    |
-        | WALL_CORNER_EXT = 7, WALL_CORNER_INT = 8, BORDER = 9, GRASS_BORDER = 10       |
-        | SOLID = 11                                                                    |
-        |-------------------------------------------------------------------------------|
-        | To avoid memory alignment issues, all the bools are stored in a uint array,   |
-        | each uint contaiining the bools for a socket.                                 |
-        | they can be accessed as follows:                                              |
-        | horizontalFace = ((socketFlags[x] & 0x01) != 0)                               |
-        | isSymmetric = ((socketFlags[x] & 0x02) != 0)                                  |
-        | isFlipped = ((socketFlags[x] & 0x04) != 0)                                    |
-        | isVerticalFace = ((socketFlags[x] & 0x08) != 0)                               |
-        | rotationallyInvariant = ((socketFlags[x] & 0x10) != 0)                        |
-        |-------------------------------------------------------------------------------|
-        | rotationIndexes contains the indexes of the rotations of the sockets.         |
-        |-------------------------------------------------------------------------------|
-        */
-        public fixed uint socketsNames[6];
-        public fixed uint socketFlags[6];
-        public fixed uint rotatioIndexes[6];
     };
 
     unsafe void Awake()
@@ -122,18 +95,15 @@ public class WaveFunction3DGPU : MonoBehaviour
 
         // Initialize buffers
         ComputeBuffer gridComponentsBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
-        ComputeBuffer modifiableGridBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
         ComputeBuffer tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)));
         ComputeBuffer outputBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
 
         // Set data
         gridComponentsBuffer.SetData(gridComponentsStructs);
-        modifiableGridBuffer.SetData(gridComponentsStructs);
         tileObjectsBuffer.SetData(tileObjectsStructs);
 
         // Data to buffers
         shader.SetBuffer(0, "gridComponents", gridComponentsBuffer);
-        shader.SetBuffer(0, "modifiableGrid", modifiableGridBuffer);
         shader.SetBuffer(0, "tileObjects", tileObjectsBuffer);
         shader.SetBuffer(0, "output", outputBuffer);
         shader.SetInt("MAX_NEIGHBOURS", MAX_NEIGHBOURS);
@@ -143,6 +113,7 @@ public class WaveFunction3DGPU : MonoBehaviour
         shader.SetInt("iterations", 0);
         shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
         shader.SetInt("emptyTile", Array.IndexOf(tileObjects, emptyTile));
+        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());
 
         // Dispatch
         shader.Dispatch(0, 1, 1, 1);
@@ -155,8 +126,17 @@ public class WaveFunction3DGPU : MonoBehaviour
         for (int i = 0; i < output.Length; i++)
         {
             Cell3D2 cell = gridComponents[i];
-            cell.RecreateCell(tileObjects[output[i].tileOptions[0]]);
+            cell.name = "Cell " + i;
             cell.collapsed = output[i].colapsed == 1;
+            //cell.RecreateCell(tileObjects[output[i].tileOptions[0]]);
+
+            List<Tile3D2> newOptions = new List<Tile3D2>();
+            for (int j = 0; j < MAX_NEIGHBOURS; j++)
+            {
+                if (output[i].tileOptions[j] != -1) newOptions.Add(tileObjects[output[i].tileOptions[j]]);
+            }
+            cell.RecreateCell(newOptions.ToArray());
+
             if (cell.transform.childCount != 0)
             {
                 foreach (Transform child in cell.transform)
@@ -450,6 +430,21 @@ public class WaveFunction3DGPU : MonoBehaviour
             tileStruct.probability = tileObjects[i].probability;
             tileStruct.rotation = tileObjects[i].rotation;
 
+            // Initialize neighbours
+            for (int j = 0; j < MAX_NEIGHBOURS; j++)
+            {
+                tileStruct.upNeighbours[j] = -1;
+                tileStruct.rightNeighbours[j] = -1;
+                tileStruct.downNeighbours[j] = -1;
+                tileStruct.leftNeighbours[j] = -1;
+                tileStruct.aboveNeighbors[j] = -1;
+                tileStruct.belowNeighbours[j] = -1;
+                tileStruct.excludedNeighboursUp[j] = -1;
+                tileStruct.excludedNeighboursRight[j] = -1;
+                tileStruct.excludedNeighboursDown[j] = -1;
+                tileStruct.excludedNeighboursLeft[j] = -1;
+            }
+
             // Copy neighbours (transforming them to indexes)
             for (int j = 0; j < tileObjects[i].upNeighbours.Count; j++)
             {
@@ -473,7 +468,7 @@ public class WaveFunction3DGPU : MonoBehaviour
 
             for (int j = 0; j < tileObjects[i].aboveNeighbours.Count; j++)
             {
-                tileStruct.abovetNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].aboveNeighbours[j]);
+                tileStruct.aboveNeighbors[j] = Array.IndexOf(tileObjects, tileObjects[i].aboveNeighbours[j]);
             }
 
             for (int j = 0; j < tileObjects[i].belowNeighbours.Count; j++)
@@ -502,33 +497,9 @@ public class WaveFunction3DGPU : MonoBehaviour
             {
                 tileStruct.excludedNeighboursLeft[j] = temp[j];
             }
-            CopySocketDataToStruct(ref tileStruct, ref tileObjects[i]);
+            tileStructs[i] = tileStruct;
         }
-
         return tileStructs;
-    }
-
-    /// <summary>
-    /// Copies and adapts the socket data from a Tile3D2 object to a Tile3DStruct object
-    /// </summary>
-    /// <param name="tileStruct"></param> Tile3DStruct object to be filled
-    /// <param name="tileObject"></param> Tile3D2 object to be copied from
-    unsafe private void CopySocketDataToStruct(ref Tile3DStruct tileStruct, ref Tile3D2 tileObject)
-    {
-        // Copy sockets to an array to avoid code repetition
-        Tile3D2.Socket[] sockets = new Tile3D2.Socket[] { tileObject.upSocket, tileObject.rightSocket, tileObject.leftSocket,
-                                                           tileObject.downSocket, tileObject.aboveSocket, tileObject.belowSocket };
-
-        for(int i = 0; i < 6; i++)
-        {
-            tileStruct.socketsNames[i] = (uint)sockets[i].socket_name;
-            tileStruct.socketFlags[i] = sockets[i].horizontalFace ? (uint) 0x01 : 0x0;
-            tileStruct.socketFlags[i] += sockets[i].isSymmetric ? (uint)  0x02 : 0x0;
-            tileStruct.socketFlags[i] += sockets[i].isFlipped ? (uint) 0x04 : 0x0;
-            tileStruct.socketFlags[i] += sockets[i].verticalFace ? (uint) 0x08 : 0x0;
-            tileStruct.socketFlags[i] += sockets[i].rotationallyInvariant ? (uint) 0x10 : 0x0;
-            tileStruct.rotatioIndexes[i] = (uint) sockets[i].rotationIndex;
-        }
     }
 
     /// <summary>
@@ -557,8 +528,8 @@ public class WaveFunction3DGPU : MonoBehaviour
                 cellStruct.tileOptions[j] = tileObjectIndexes[j];
             }
             cellStruct.entropy = MAX_NEIGHBOURS;
+            cell3DStructs[i] = cellStruct;
         }
-
         return cell3DStructs;
     }
 }

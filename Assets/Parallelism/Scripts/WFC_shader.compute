@@ -43,33 +43,6 @@ struct Tile3DStruct
     int excludedNeighboursRight[MAX_NEIGHBOURS];    // Hashcodes of the tiles
     int excludedNeighboursDown[MAX_NEIGHBOURS];     // Hashcodes of the tiles
     int excludedNeighboursLeft[MAX_NEIGHBOURS];     // Hashcodes of the tiles
-
-    /* Sockets
-    |-------------------------------------------------------------------------------|
-    | HLSL doesn't support nested structs so the sockets are represented as arrays. |
-    | [0] = Up, [1] = Right, [2] = Left, [3] = Down, [4] = Above, [5] = Below       |
-    |-------------------------------------------------------------------------------|
-    | socketNames contains the names of the sockets in the form of ints that        |
-    | represent the enums in the C# code with the following correspondence:         |
-    | GRASS = 0, PATH = 1, WATER = 3, EMPTY = 4, WALL_LATERAL = 5, WALL_TOP = 6,    |
-    | WALL_CORNER_EXT = 7, WALL_CORNER_INT = 8, BORDER = 9, GRASS_BORDER = 10       |
-    | SOLID = 11                                                                    |
-    |-------------------------------------------------------------------------------|
-    | To avoid memory alignment issues, all the bools are stored in a uint array,   |
-    | each uint contaiining the bools for a socket.                                 |
-    | they can be accessed as follows:                                              |
-    | horizontalFace = ((socketFlags[x] & 0x01) != 0)                               |
-    | isSymmetric = ((socketFlags[x] & 0x02) != 0)                                  |
-    | isFlipped = ((socketFlags[x] & 0x04) != 0)                                    |
-    | isVerticalFace = ((socketFlags[x] & 0x08) != 0)                               |
-    | rotationallyInvariant = ((socketFlags[x] & 0x10) != 0)                        |
-    |-------------------------------------------------------------------------------|
-    | rotationIndexes contains the indexes of the rotations of the sockets.         |
-    |-------------------------------------------------------------------------------|
-    */
-    uint socketsNames[6];
-    uint socketFlags[6];
-    uint rotatioIndexes[6];
 };
 
 // Values from de C# code
@@ -77,13 +50,11 @@ uint dimensionsX, dimensionsY, dimensionsZ;
 uint iterations;
 uint floorTile;
 uint emptyTile;
+uint seed;
 
 // Save the cell with less entropy
 uint minEntropy;
 uint minEntropyIndex;
-
-//Copy of the grid
-RWStructuredBuffer<Cell3DStruct> modifiableGrid;
 
 // Buffers
 StructuredBuffer<Cell3DStruct> gridComponents;
@@ -91,7 +62,7 @@ StructuredBuffer<Tile3DStruct> tileObjects;
 RWStructuredBuffer<Cell3DStruct> output;
 
 // We need arrays of fixed lenght in HLSL, so -1 will be our null value
-void ClearArray(int array[MAX_NEIGHBOURS])
+void ClearArray(inout int array[MAX_NEIGHBOURS])
 {
     for (uint i = 0; i < MAX_NEIGHBOURS; i++)
     {
@@ -100,11 +71,11 @@ void ClearArray(int array[MAX_NEIGHBOURS])
 }
 
 // We need to have a modifiable copy of the grid so we copy it to another buffer
-void CreateModifiableGrid(uint2 initialIndex)
+void CopyToOutput(uint2 initialIndex)
 {
-    for(int i = 0; i < dimensionsX * dimensionsY * dimensionsZ; i++)
+    for(uint i = initialIndex.x * dimensionsX + initialIndex.y * dimensionsZ; i < dimensionsX * dimensionsY * dimensionsZ; i++)
     {
-        modifiableGrid[i] = gridComponents[i];
+        output[i] = gridComponents[i];
     }
 }
 
@@ -116,8 +87,9 @@ void CreateSolidFloor(uint2 initialIndex)
         for (uint x = initialIndex.x; x < dimensionsX; x++)
         {
             uint index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
-            output[index] = modifiableGrid[index];
+            output[index] = output[index];
             output[index].colapsed = (uint) 1;
+            output[index].entropy = 1;
             ClearArray(output[index].tileOptions);
             output[index].tileOptions[0] = floorTile;
             iterations++;
@@ -127,14 +99,15 @@ void CreateSolidFloor(uint2 initialIndex)
 
 void CreateSolidCeling(uint2 initialIndex)
 {
-    int y = dimensionsY-1;
+    uint y = dimensionsY-1;
     for (uint z = 0; z < dimensionsZ; z++)
     {
         for (uint x = 0; x < dimensionsX; x++)
         {
             uint index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
-            output[index] = modifiableGrid[index];
+            output[index] = output[index];
             output[index].colapsed = (uint) 1;
+            output[index].entropy = 1;
             ClearArray(output[index].tileOptions);
             output[index].tileOptions[0] = emptyTile;
             iterations++;
@@ -142,21 +115,18 @@ void CreateSolidCeling(uint2 initialIndex)
     }
 }
 
-bool ArrayContains(int list[MAX_NEIGHBOURS], int value)
+bool ArrayContains(int array[MAX_NEIGHBOURS], int value)
 {
     for (int i = 0; i < MAX_NEIGHBOURS; i++)
     {
-        if(list[i] == -1) return false;
-        if (list[i] == value) return true;
+        if(array[i] == -1) return false;
+        if (array[i] == value) return true;
     }
     return false;
 }
 
 void CheckNeighbours(uint x, uint y, uint z)
 {
-    minEntropy = MAX_NEIGHBOURS + 1;
-    minEntropyIndex = 0;
-
     uint up, down, left, right, above, below;
     uint index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
     right = (x + 1) + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
@@ -166,7 +136,7 @@ void CheckNeighbours(uint x, uint y, uint z)
     above = x + (z * dimensionsX) + ((y + 1) * dimensionsX * dimensionsZ);
     below = x + (z * dimensionsX) + ((y - 1) * dimensionsX * dimensionsZ);
 
-    if(modifiableGrid[index].colapsed == 1) return;
+    if(output[index].colapsed == 1) return;
 
     /* Adaptation of the get neighbours method in the C# code
     |-------------------------------------------------------------------------------|
@@ -176,15 +146,15 @@ void CheckNeighbours(uint x, uint y, uint z)
     | overall tile options.                                                         |
     |-------------------------------------------------------------------------------|
     | In the HLSL code, to avoid lists and its manipulations, we will go through    |
-    | all the possible neighbours and check if they are in the arrays of neighbours |
-    | of all the possible tiles of each neighbour.                                  |
+    | all the possible neighbours and check if they are in any of the arrays of     |
+    | neighbours of all the possible tiles of each neighbour.                       |
     |-------------------------------------------------------------------------------|
     */
-    int optionIndex = 0;
-    int validOptionsIndex = 0;
+    uint optionIndex = 0;
+    uint validOptionsIndex = 0;
     int validOptions[MAX_NEIGHBOURS];
     ClearArray(validOptions);
-    while (optionIndex < MAX_NEIGHBOURS && modifiableGrid[index].tileOptions[optionIndex] != -1)
+    while (optionIndex < MAX_NEIGHBOURS && output[index].tileOptions[optionIndex] != -1)
     {
         bool isNeighbour = true;
         // Checks the down cell
@@ -193,17 +163,18 @@ void CheckNeighbours(uint x, uint y, uint z)
             for(int i = 0; i < MAX_NEIGHBOURS; i++)
             {
                 // Check if we have reached the end of the array of tile options
-                if(modifiableGrid[down].tileOptions[i] == -1)
+                if(output[down].tileOptions[i] == -1)
                 {
                     // If we get to the end, it means that the option is not
                     // in the lists of possible neighbours of all the possible neighbour
                     // tiles, therefore it is not valid so we skip it
-                    if(optionIndex < MAX_NEIGHBOURS) optionIndex++;
+                    isNeighbour = false;
+                    optionIndex++;
                     break;
                 }
 
-                isNeighbour = ArrayContains(tileObjects[modifiableGrid[down].tileOptions[i]].upNeighbours, modifiableGrid[index].tileOptions[optionIndex]);
-                if(!isNeighbour) break;
+                isNeighbour = ArrayContains(tileObjects[output[down].tileOptions[i]].upNeighbours, output[index].tileOptions[optionIndex]);
+                if(isNeighbour) break;
             }
         }
         // Checks the right cell
@@ -212,17 +183,18 @@ void CheckNeighbours(uint x, uint y, uint z)
             for(int i = 0; i < MAX_NEIGHBOURS; i++)
             {
                 // Check if we have reached the end of the array of tile options
-                if(modifiableGrid[right].tileOptions[i] == -1)
+                if(output[right].tileOptions[i] == -1)
                 {
                     // If we get to the end, it means that the option is not
                     // in the lists of possible neighbours of all the possible neighbour
                     // tiles, therefore it is not valid so we skip it
-                    if(optionIndex < MAX_NEIGHBOURS) optionIndex++;
+                    isNeighbour = false;
+                    optionIndex++;
                     break;
                 }
 
-                isNeighbour = ArrayContains(tileObjects[modifiableGrid[right].tileOptions[i]].leftNeighbours, modifiableGrid[index].tileOptions[optionIndex]);
-                if(!isNeighbour) break;
+                isNeighbour = ArrayContains(tileObjects[output[right].tileOptions[i]].leftNeighbours, output[index].tileOptions[optionIndex]);
+                if(isNeighbour) break;
             }
         }
         // Checks the up cell
@@ -231,17 +203,18 @@ void CheckNeighbours(uint x, uint y, uint z)
             for(int i = 0; i < MAX_NEIGHBOURS; i++)
             {
                 // Check if we have reached the end of the array of tile options
-                if(modifiableGrid[up].tileOptions[i] == -1)
+                if(output[up].tileOptions[i] == -1)
                 {
                     // If we get to the end, it means that the option is not
                     // in the lists of possible neighbours of all the possible neighbour
                     // tiles, therefore it is not valid so we skip it
-                    if(optionIndex < MAX_NEIGHBOURS) optionIndex++;
+                    isNeighbour = false;
+                    optionIndex++;
                     break;
                 }
 
-                isNeighbour = ArrayContains(tileObjects[modifiableGrid[up].tileOptions[i]].downNeighbours, modifiableGrid[index].tileOptions[optionIndex]);
-                if(!isNeighbour) break;
+                isNeighbour = ArrayContains(tileObjects[output[up].tileOptions[i]].downNeighbours, output[index].tileOptions[optionIndex]);
+                if(isNeighbour) break;
             }
         }
         // Checks the left cell
@@ -250,17 +223,18 @@ void CheckNeighbours(uint x, uint y, uint z)
             for(int i = 0; i < MAX_NEIGHBOURS; i++)
             {
                 // Check if we have reached the end of the array of tile options
-                if(modifiableGrid[left].tileOptions[i] == -1)
+                if(output[left].tileOptions[i] == -1)
                 {
                     // If we get to the end, it means that the option is not
                     // in the lists of possible neighbours of all the possible neighbour
                     // tiles, therefore it is not valid so we skip it
-                    if(optionIndex < MAX_NEIGHBOURS) optionIndex++;
+                    isNeighbour = false;
+                    optionIndex++;
                     break;
                 }
 
-                isNeighbour = ArrayContains(tileObjects[modifiableGrid[left].tileOptions[i]].rightNeighbours, modifiableGrid[index].tileOptions[optionIndex]);
-                if(!isNeighbour) break;
+                isNeighbour = ArrayContains(tileObjects[output[left].tileOptions[i]].rightNeighbours, output[index].tileOptions[optionIndex]);
+                if(isNeighbour) break;
             }
         }
         // Checks the below cell
@@ -269,17 +243,18 @@ void CheckNeighbours(uint x, uint y, uint z)
             for(int i = 0; i < MAX_NEIGHBOURS; i++)
             {
                 // Check if we have reached the end of the array of tile options
-                if(modifiableGrid[below].tileOptions[i] == -1)
+                if(output[below].tileOptions[i] == -1)
                 {
                     // If we get to the end, it means that the option is not
                     // in the lists of possible neighbours of all the possible neighbour
                     // tiles, therefore it is not valid so we skip it
-                    if(optionIndex < MAX_NEIGHBOURS) optionIndex++;
+                    isNeighbour = false;
+                    optionIndex++;
                     break;
                 }
 
-                isNeighbour = ArrayContains(tileObjects[modifiableGrid[below].tileOptions[i]].aboveNeighbours, modifiableGrid[index].tileOptions[optionIndex]);
-                if(!isNeighbour) break;
+                isNeighbour = ArrayContains(tileObjects[output[below].tileOptions[i]].aboveNeighbours, output[index].tileOptions[optionIndex]);
+                if(isNeighbour) break;
             }
         }
         // Checks the above cell
@@ -288,30 +263,31 @@ void CheckNeighbours(uint x, uint y, uint z)
             for(int i = 0; i < MAX_NEIGHBOURS; i++)
             {
                 // Check if we have reached the end of the array of tile options
-                if(modifiableGrid[above].tileOptions[i] == -1)
+                if(output[above].tileOptions[i] == -1)
                 {
                     // If we get to the end, it means that the option is not
                     // in the lists of possible neighbours of all the possible neighbour
                     // tiles, therefore it is not valid so we skip it
-                    if(optionIndex < MAX_NEIGHBOURS) optionIndex++;
+                    isNeighbour = false;
+                    optionIndex++;
                     break;
                 }
 
-                isNeighbour = ArrayContains(tileObjects[modifiableGrid[above].tileOptions[i]].belowNeighbours, modifiableGrid[index].tileOptions[optionIndex]);
-                if(!isNeighbour) break;
+                isNeighbour = ArrayContains(tileObjects[output[above].tileOptions[i]].belowNeighbours, output[index].tileOptions[optionIndex]);
+                if(isNeighbour) break;
             }
         }
         if(isNeighbour)
         {
-            validOptions[validOptionsIndex] = optionIndex;
-            if(validOptionsIndex < MAX_NEIGHBOURS) validOptionsIndex++;
+            validOptions[validOptionsIndex] = output[index].tileOptions[optionIndex];
+            validOptionsIndex++;
         }
-        if(optionIndex < MAX_NEIGHBOURS) optionIndex++;
+        optionIndex++;
     }
 
     // We assign the new options to the cell
-    modifiableGrid[index].tileOptions = validOptions;
-    modifiableGrid[index].entropy = validOptionsIndex;
+    output[index].tileOptions = validOptions;
+    output[index].entropy = validOptionsIndex;
     if(validOptionsIndex < minEntropy)
     {
         minEntropy = validOptionsIndex;
@@ -322,39 +298,34 @@ void CheckNeighbours(uint x, uint y, uint z)
 bool CollapseCell(int cellToCollapseIndex)
 {
     // Collapse the cell
-    modifiableGrid[cellToCollapseIndex].colapsed = 1;
+    output[cellToCollapseIndex].colapsed = 1;
 
-    // Get the tile with more probability
-    int maxProbability = 0;
-    int maxProbabilityIndex = -1;
-    for(int i = 0; i < MAX_NEIGHBOURS; i++)
+    if(output[cellToCollapseIndex].tileOptions[0] == -1) return false;
+
+    int max = 0;
+    for(max = 0; max < MAX_NEIGHBOURS; max++)
     {
-        if(modifiableGrid[cellToCollapseIndex].tileOptions[i] == -1) break;
-        if(tileObjects[modifiableGrid[cellToCollapseIndex].tileOptions[i]].probability >= maxProbability)
+        if(output[cellToCollapseIndex].tileOptions[max] == -1)
         {
-            maxProbability = tileObjects[modifiableGrid[cellToCollapseIndex].tileOptions[i]].probability;
-            maxProbabilityIndex = i;
+            if(max > 0) max--;
+            break;
         }
     }
 
-    // Check for incopatibility
-    if (maxProbabilityIndex == -1)
-    {
-        return false;
-    }
-
-    int temp = modifiableGrid[cellToCollapseIndex].tileOptions[maxProbabilityIndex];
-    ClearArray(modifiableGrid[cellToCollapseIndex].tileOptions);
-    modifiableGrid[cellToCollapseIndex].tileOptions[0] = temp;
-    modifiableGrid[cellToCollapseIndex].entropy = 1;
-    output[cellToCollapseIndex] = modifiableGrid[cellToCollapseIndex];
+    int temp = output[cellToCollapseIndex].tileOptions[seed % (max + 1)];
+    ClearArray(output[cellToCollapseIndex].tileOptions);
+    output[cellToCollapseIndex].tileOptions[0] = temp;
+    output[cellToCollapseIndex].entropy = 1;
+    output[cellToCollapseIndex] = output[cellToCollapseIndex];
     return true;
 }
 
 void UpdateGeneration(uint2 initialIndex)
 {
-    while (iterations <= dimensionsX * dimensionsZ * dimensionsY)
+    while (iterations < dimensionsX * dimensionsZ * dimensionsY)
     {
+        minEntropy = MAX_NEIGHBOURS + 1;
+        minEntropyIndex = 0;
         for (uint y = 0; y < dimensionsY; y++)
         {
             for (uint z = initialIndex.y; z < dimensionsZ; z++)
@@ -366,13 +337,12 @@ void UpdateGeneration(uint2 initialIndex)
             }
         }
         iterations++;
-
         // If there's an incompatibility, we restart everything
         if(CollapseCell(minEntropyIndex)) continue;
         else
         {
             iterations = 0;
-            CreateModifiableGrid(initialIndex);
+            CopyToOutput(initialIndex);
             CreateSolidFloor(initialIndex);
             CreateSolidCeling(initialIndex);
         }
@@ -383,7 +353,9 @@ void UpdateGeneration(uint2 initialIndex)
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     uint2 initialIndex = id.xy;
+    CopyToOutput(initialIndex);
     CreateSolidFloor(initialIndex);
     CreateSolidCeling(initialIndex);
     UpdateGeneration(initialIndex);
+    output[0].entropy = minEntropy;
 }
