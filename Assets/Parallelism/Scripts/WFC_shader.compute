@@ -8,6 +8,9 @@
 |-------------------------------------------------------------------------------|
 */
 #define MAX_NEIGHBOURS 44
+#define X_EXTENSION 2
+#define Y_EXTENSION 2
+#define Z_EXTENSION 1
 
 struct Cell3DStruct
 {
@@ -46,15 +49,16 @@ struct Tile3DStruct
 };
 
 // Values from de C# code
-uint dimensionsX, dimensionsY, dimensionsZ;
-uint iterations;
-uint floorTile;
-uint emptyTile;
+uint gridDimensionsX, gridDimensionsY, gridDimensionsZ;
+uint floorTile, emptyTile;
 uint seed;
 
 // Save the cell with less entropy
 uint minEntropy;
 uint minEntropyIndex;
+
+// Cells to check
+uint3 cellsToCheck[X_EXTENSION * Y_EXTENSION * Z_EXTENSION];
 
 // Buffers
 StructuredBuffer<Cell3DStruct> gridComponents;
@@ -71,46 +75,16 @@ void ClearArray(inout int array[MAX_NEIGHBOURS])
 }
 
 // We need to have a modifiable copy of the grid so we copy it to another buffer
-void CopyToOutput(uint2 initialIndex)
+void CopyToOutput()
 {
-    for(uint i = initialIndex.x * dimensionsX + initialIndex.y * dimensionsZ; i < dimensionsX * dimensionsY * dimensionsZ; i++)
+    for(uint i = 0; i < gridDimensionsY; i++)
     {
-        output[i] = gridComponents[i];
-    }
-}
-
-void CreateSolidFloor(uint2 initialIndex)
-{
-    uint y = 0;
-    for (uint z = initialIndex.y; z < dimensionsZ; z++)
-    {
-        for (uint x = initialIndex.x; x < dimensionsX; x++)
+        [unroll]
+        for(uint j = 0; j < X_EXTENSION * Y_EXTENSION * Z_EXTENSION; j++)
         {
-            uint index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
-            output[index] = output[index];
-            output[index].colapsed = (uint) 1;
-            output[index].entropy = 1;
-            ClearArray(output[index].tileOptions);
-            output[index].tileOptions[0] = floorTile;
-            iterations++;
-        }
-    }
-}
-
-void CreateSolidCeling(uint2 initialIndex)
-{
-    uint y = dimensionsY-1;
-    for (uint z = 0; z < dimensionsZ; z++)
-    {
-        for (uint x = 0; x < dimensionsX; x++)
-        {
-            uint index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
-            output[index] = output[index];
-            output[index].colapsed = (uint) 1;
-            output[index].entropy = 1;
-            ClearArray(output[index].tileOptions);
-            output[index].tileOptions[0] = emptyTile;
-            iterations++;
+            cellsToCheck[j].y = i;
+            uint index = cellsToCheck[j].x + (cellsToCheck[j].z * gridDimensionsX) + (cellsToCheck[j].y * gridDimensionsX * gridDimensionsZ);
+            output[index] = gridComponents[index];
         }
     }
 }
@@ -128,13 +102,13 @@ bool ArrayContains(int array[MAX_NEIGHBOURS], int value)
 void CheckNeighbours(uint x, uint y, uint z)
 {
     uint up, down, left, right, above, below;
-    uint index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
-    right = (x + 1) + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
-    left = (x - 1) + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
-    up = x + ((z + 1) * dimensionsX) + (y * dimensionsX * dimensionsZ);
-    down = x + ((z - 1) * dimensionsX) + (y * dimensionsX * dimensionsZ);
-    above = x + (z * dimensionsX) + ((y + 1) * dimensionsX * dimensionsZ);
-    below = x + (z * dimensionsX) + ((y - 1) * dimensionsX * dimensionsZ);
+    uint index = x + (z * gridDimensionsX) + (y * gridDimensionsX * gridDimensionsZ);
+    right = (x + 1) + (z * gridDimensionsX) + (y * gridDimensionsX * gridDimensionsZ);
+    left = (x - 1) + (z * gridDimensionsX) + (y * gridDimensionsX * gridDimensionsZ);
+    up = x + ((z + 1) * gridDimensionsX) + (y * gridDimensionsX * gridDimensionsZ);
+    down = x + ((z - 1) * gridDimensionsX) + (y * gridDimensionsX * gridDimensionsZ);
+    above = x + (z * gridDimensionsX) + ((y + 1) * gridDimensionsX * gridDimensionsZ);
+    below = x + (z * gridDimensionsX) + ((y - 1) * gridDimensionsX * gridDimensionsZ);
 
     if(output[index].colapsed == 1) return;
 
@@ -162,59 +136,122 @@ void CheckNeighbours(uint x, uint y, uint z)
         {
             for(int i = 0; i < MAX_NEIGHBOURS; i++)
             {
-                // Check if we have reached the end of the array of tile options
-                if(output[down].tileOptions[i] == -1)
+                // If we are checking cells outside the operation range of the thread we must use the gridComponents buffer
+                // since it wont be updated in paralell
+                if(cellsToCheck[0].x + cellsToCheck[0].y + cellsToCheck[0].z == x + y + z || cellsToCheck[1].x + cellsToCheck[1].y + cellsToCheck[1].z == x + y + z)
                 {
-                    // If we get to the end, it means that the option is not
-                    // in the lists of possible neighbours of all the possible neighbour
-                    // tiles, therefore it is not valid so we skip it
-                    isNeighbour = false;
-                    optionIndex++;
-                    break;
-                }
+                    // Check if we have reached the end of the array of tile options
+                    if(gridComponents[down].tileOptions[i] == -1)
+                    {
+                        // If we get to the end, it means that the option is not
+                        // in the lists of possible neighbours of all the possible neighbour
+                        // tiles, therefore it is not valid so we skip it
+                        isNeighbour = false;
+                        optionIndex++;
+                        break;
+                    }
 
-                isNeighbour = ArrayContains(tileObjects[output[down].tileOptions[i]].upNeighbours, output[index].tileOptions[optionIndex]);
-                if(isNeighbour) break;
+                    isNeighbour = ArrayContains(tileObjects[gridComponents[down].tileOptions[i]].upNeighbours, gridComponents[index].tileOptions[optionIndex]);
+                    if(isNeighbour) break;
+                }
+                else
+                {
+                    // Check if we have reached the end of the array of tile options
+                    if(output[down].tileOptions[i] == -1)
+                    {
+                        // If we get to the end, it means that the option is not
+                        // in the lists of possible neighbours of all the possible neighbour
+                        // tiles, therefore it is not valid so we skip it
+                        isNeighbour = false;
+                        optionIndex++;
+                        break;
+                    }
+
+                    isNeighbour = ArrayContains(tileObjects[output[down].tileOptions[i]].upNeighbours, output[index].tileOptions[optionIndex]);
+                    if(isNeighbour) break;
+                }
             }
         }
         // Checks the right cell
-        if(isNeighbour && x < dimensionsX - 1)
+        if(isNeighbour && x < gridDimensionsX - 1)
         {
             for(int i = 0; i < MAX_NEIGHBOURS; i++)
             {
-                // Check if we have reached the end of the array of tile options
-                if(output[right].tileOptions[i] == -1)
+                // If we are checking cells outside the operation range of the thread we must use the gridComponents buffer
+                // since it wont be updated in paralell
+                if(cellsToCheck[1].x + cellsToCheck[1].y + cellsToCheck[1].z == x + y + z || cellsToCheck[3].x + cellsToCheck[3].y + cellsToCheck[3].z == x + y + z)
                 {
-                    // If we get to the end, it means that the option is not
-                    // in the lists of possible neighbours of all the possible neighbour
-                    // tiles, therefore it is not valid so we skip it
-                    isNeighbour = false;
-                    optionIndex++;
-                    break;
-                }
+                    // Check if we have reached the end of the array of tile options
+                    if(gridComponents[right].tileOptions[i] == -1)
+                    {
+                        // If we get to the end, it means that the option is not
+                        // in the lists of possible neighbours of all the possible neighbour
+                        // tiles, therefore it is not valid so we skip it
+                        isNeighbour = false;
+                        optionIndex++;
+                        break;
+                    }
 
-                isNeighbour = ArrayContains(tileObjects[output[right].tileOptions[i]].leftNeighbours, output[index].tileOptions[optionIndex]);
-                if(isNeighbour) break;
+                    isNeighbour = ArrayContains(tileObjects[gridComponents[right].tileOptions[i]].leftNeighbours, gridComponents[index].tileOptions[optionIndex]);
+                    if(isNeighbour) break;
+                }
+                else
+                {
+                    // Check if we have reached the end of the array of tile options
+                    if(output[right].tileOptions[i] == -1)
+                    {
+                        // If we get to the end, it means that the option is not
+                        // in the lists of possible neighbours of all the possible neighbour
+                        // tiles, therefore it is not valid so we skip it
+                        isNeighbour = false;
+                        optionIndex++;
+                        break;
+                    }
+
+                    isNeighbour = ArrayContains(tileObjects[output[right].tileOptions[i]].leftNeighbours, output[index].tileOptions[optionIndex]);
+                    if(isNeighbour) break;
+                }
             }
         }
         // Checks the up cell
-        if(isNeighbour && z < dimensionsZ - 1)
+        if(isNeighbour && z < gridDimensionsZ - 1)
         {
             for(int i = 0; i < MAX_NEIGHBOURS; i++)
             {
-                // Check if we have reached the end of the array of tile options
-                if(output[up].tileOptions[i] == -1)
+                // If we are checking cells outside the operation range of the thread we must use the gridComponents buffer
+                // since it wont be updated in paralell
+                if(cellsToCheck[2].x + cellsToCheck[2].y + cellsToCheck[2].z == x + y + z || cellsToCheck[3].x + cellsToCheck[3].y + cellsToCheck[3].z == x + y + z)
                 {
-                    // If we get to the end, it means that the option is not
-                    // in the lists of possible neighbours of all the possible neighbour
-                    // tiles, therefore it is not valid so we skip it
-                    isNeighbour = false;
-                    optionIndex++;
-                    break;
-                }
+                    // Check if we have reached the end of the array of tile options
+                    if(gridComponents[up].tileOptions[i] == -1)
+                    {
+                        // If we get to the end, it means that the option is not
+                        // in the lists of possible neighbours of all the possible neighbour
+                        // tiles, therefore it is not valid so we skip it
+                        isNeighbour = false;
+                        optionIndex++;
+                        break;
+                    }
 
-                isNeighbour = ArrayContains(tileObjects[output[up].tileOptions[i]].downNeighbours, output[index].tileOptions[optionIndex]);
-                if(isNeighbour) break;
+                    isNeighbour = ArrayContains(tileObjects[gridComponents[up].tileOptions[i]].downNeighbours, gridComponents[index].tileOptions[optionIndex]);
+                    if(isNeighbour) break;
+                }
+                else
+                {
+                    // Check if we have reached the end of the array of tile options
+                    if(output[up].tileOptions[i] == -1)
+                    {
+                        // If we get to the end, it means that the option is not
+                        // in the lists of possible neighbours of all the possible neighbour
+                        // tiles, therefore it is not valid so we skip it
+                        isNeighbour = false;
+                        optionIndex++;
+                        break;
+                    }
+
+                    isNeighbour = ArrayContains(tileObjects[output[up].tileOptions[i]].downNeighbours, output[index].tileOptions[optionIndex]);
+                    if(isNeighbour) break;
+                }
             }
         }
         // Checks the left cell
@@ -222,19 +259,40 @@ void CheckNeighbours(uint x, uint y, uint z)
         {
             for(int i = 0; i < MAX_NEIGHBOURS; i++)
             {
-                // Check if we have reached the end of the array of tile options
-                if(output[left].tileOptions[i] == -1)
+                // If we are checking cells outside the operation range of the thread we must use the gridComponents buffer
+                // since it wont be updated in paralell
+                if(cellsToCheck[0].x + cellsToCheck[0].y + cellsToCheck[0].z == x + y + z || cellsToCheck[2].x + cellsToCheck[2].y + cellsToCheck[2].z == x + y + z)
                 {
-                    // If we get to the end, it means that the option is not
-                    // in the lists of possible neighbours of all the possible neighbour
-                    // tiles, therefore it is not valid so we skip it
-                    isNeighbour = false;
-                    optionIndex++;
-                    break;
-                }
+                    // Check if we have reached the end of the array of tile options
+                    if(gridComponents[left].tileOptions[i] == -1)
+                    {
+                        // If we get to the end, it means that the option is not
+                        // in the lists of possible neighbours of all the possible neighbour
+                        // tiles, therefore it is not valid so we skip it
+                        isNeighbour = false;
+                        optionIndex++;
+                        break;
+                    }
 
-                isNeighbour = ArrayContains(tileObjects[output[left].tileOptions[i]].rightNeighbours, output[index].tileOptions[optionIndex]);
-                if(isNeighbour) break;
+                    isNeighbour = ArrayContains(tileObjects[gridComponents[left].tileOptions[i]].rightNeighbours, gridComponents[index].tileOptions[optionIndex]);
+                    if(isNeighbour) break;
+                }
+                else
+                {
+                    // Check if we have reached the end of the array of tile options
+                    if(output[left].tileOptions[i] == -1)
+                    {
+                        // If we get to the end, it means that the option is not
+                        // in the lists of possible neighbours of all the possible neighbour
+                        // tiles, therefore it is not valid so we skip it
+                        isNeighbour = false;
+                        optionIndex++;
+                        break;
+                    }
+
+                    isNeighbour = ArrayContains(tileObjects[output[left].tileOptions[i]].rightNeighbours, output[index].tileOptions[optionIndex]);
+                    if(isNeighbour) break;
+                }
             }
         }
         // Checks the below cell
@@ -258,7 +316,7 @@ void CheckNeighbours(uint x, uint y, uint z)
             }
         }
         // Checks the above cell
-        if(isNeighbour && y < dimensionsY - 1)
+        if(isNeighbour && y < gridDimensionsY - 1)
         {
             for(int i = 0; i < MAX_NEIGHBOURS; i++)
             {
@@ -297,6 +355,7 @@ void CheckNeighbours(uint x, uint y, uint z)
 
 bool CollapseCell(int cellToCollapseIndex)
 {
+    seed = (seed * 9301 + cellToCollapseIndex * 893234) % 233280;
     // Collapse the cell
     output[cellToCollapseIndex].colapsed = 1;
 
@@ -320,42 +379,47 @@ bool CollapseCell(int cellToCollapseIndex)
     return true;
 }
 
-void UpdateGeneration(uint2 initialIndex)
+void GetCellsToCheck(uint3 initialIndex, uint height)
 {
-    while (iterations < dimensionsX * dimensionsZ * dimensionsY)
+    cellsToCheck[0] = initialIndex.xyz + uint3(0, height, 0);
+    cellsToCheck[1] = initialIndex.xyz + uint3(1, height, 0);
+    cellsToCheck[2] = initialIndex.xyz + uint3(0, height, 1);
+    cellsToCheck[3] = initialIndex.xyz + uint3(1, height, 1);
+}
+
+void UpdateGeneration(uint3 initialIndex)
+{
+    uint iterations = 0;
+    while (iterations < X_EXTENSION * Y_EXTENSION * Z_EXTENSION)
     {
         minEntropy = MAX_NEIGHBOURS + 1;
         minEntropyIndex = 0;
-        for (uint y = 0; y < dimensionsY; y++)
+        for(int i = 0; i < X_EXTENSION * Y_EXTENSION * Z_EXTENSION; i++)
         {
-            for (uint z = initialIndex.y; z < dimensionsZ; z++)
-            {
-                for (uint x = initialIndex.x; x < dimensionsX; x++)
-                {
-                    CheckNeighbours(x, y, z);
-                }
-            }
+            CheckNeighbours(cellsToCheck[i].x, cellsToCheck[i].y, cellsToCheck[i].z);
         }
         iterations++;
+
         // If there's an incompatibility, we restart everything
-        if(CollapseCell(minEntropyIndex)) continue;
-        else
+        if(!CollapseCell(minEntropyIndex))
         {
             iterations = 0;
-            CopyToOutput(initialIndex);
-            CreateSolidFloor(initialIndex);
-            CreateSolidCeling(initialIndex);
+            GetCellsToCheck(initialIndex, 0);
+            CopyToOutput();
+            GetCellsToCheck(initialIndex, 1);
         }
     }
 }
 
-[numthreads(1,1,1)]
+[numthreads(4,4,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    uint2 initialIndex = id.xy;
-    CopyToOutput(initialIndex);
-    CreateSolidFloor(initialIndex);
-    CreateSolidCeling(initialIndex);
+    uint3 initialIndex;
+    initialIndex.x = id.x * X_EXTENSION;
+    initialIndex.y = id.y * Y_EXTENSION;
+    initialIndex.z = id.z * Z_EXTENSION;
+    GetCellsToCheck(initialIndex, 0);
+    CopyToOutput();
+    GetCellsToCheck(initialIndex, 1);
     UpdateGeneration(initialIndex);
-    output[0].entropy = minEntropy;
 }

@@ -7,7 +7,6 @@ using System;
 
 public class WaveFunction3DGPU : MonoBehaviour
 {
-    [SerializeField] private int iterations = 0;
     [SerializeField] public const int MAX_NEIGHBOURS = 44;
 
     [Header("Shader")]
@@ -92,6 +91,8 @@ public class WaveFunction3DGPU : MonoBehaviour
         // Create the structs
         Tile3DStruct[] tileObjectsStructs = CreateTile3DStructs();
         Cell3DStruct[] gridComponentsStructs = CreateCell3DStructs();
+        CreateSolidFloor(gridComponentsStructs);
+        CreateEmptyCeiling(gridComponentsStructs);
 
         // Initialize buffers
         ComputeBuffer gridComponentsBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
@@ -107,16 +108,15 @@ public class WaveFunction3DGPU : MonoBehaviour
         shader.SetBuffer(0, "tileObjects", tileObjectsBuffer);
         shader.SetBuffer(0, "output", outputBuffer);
         shader.SetInt("MAX_NEIGHBOURS", MAX_NEIGHBOURS);
-        shader.SetInt("dimensionsX", dimensionsX);
-        shader.SetInt("dimensionsY", dimensionsY);
-        shader.SetInt("dimensionsZ", dimensionsZ);
-        shader.SetInt("iterations", 0);
+        shader.SetInt("gridDimensionsX", dimensionsX);
+        shader.SetInt("gridDimensionsY", dimensionsY);
+        shader.SetInt("gridDimensionsZ", dimensionsZ);
         shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
         shader.SetInt("emptyTile", Array.IndexOf(tileObjects, emptyTile));
         shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());
 
         // Dispatch
-        shader.Dispatch(0, 1, 1, 1);
+        shader.Dispatch(0, dimensionsX / 4, dimensionsZ / 4, 1);
 
         // Get data
         Cell3DStruct[] output = new Cell3DStruct[gridComponentsStructs.Length];
@@ -129,6 +129,8 @@ public class WaveFunction3DGPU : MonoBehaviour
             cell.name = "Cell " + i;
             cell.collapsed = output[i].colapsed == 1;
             //cell.RecreateCell(tileObjects[output[i].tileOptions[0]]);
+
+            // Uncomment this to recreate the cell with all the possible tiles
 
             List<Tile3D2> newOptions = new List<Tile3D2>();
             for (int j = 0; j < MAX_NEIGHBOURS; j++)
@@ -531,5 +533,141 @@ public class WaveFunction3DGPU : MonoBehaviour
             cell3DStructs[i] = cellStruct;
         }
         return cell3DStructs;
+    }
+
+    unsafe void CreateSolidFloor(Cell3DStruct[] cell3DStructs)
+    {
+        int y = 0;
+        for (int z = 0; z < dimensionsZ; z++)
+        {
+            for (int x = 0; x < dimensionsX; x++)
+            {
+                int index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
+                cell3DStructs[index].colapsed = 1;
+                cell3DStructs[index].entropy = 1;
+                for(int i = 0; i < MAX_NEIGHBOURS; i++)
+                {
+                    cell3DStructs[index].tileOptions[i] = -1;
+                }
+                cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, floorTile);
+            }
+        }
+    }
+
+    unsafe void CreateEmptyCeiling(Cell3DStruct[] cell3DStructs)
+    {
+        int y = dimensionsY-1;
+        for (int z = 0; z < dimensionsZ; z++)
+        {
+            for (int x = 0; x < dimensionsX; x++)
+            {
+                int index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
+                cell3DStructs[index].colapsed = 1;
+                cell3DStructs[index].entropy = 1;
+                for(int i = 0; i < MAX_NEIGHBOURS; i++)
+                {
+                    cell3DStructs[index].tileOptions[i] = -1;
+                }
+                cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, emptyTile);
+            }
+        }
+    }
+
+    public unsafe void Regenerate() // TODO
+    {
+        if (onRegenerate != null)
+        {
+            onRegenerate();
+        }
+
+        // Clear the grid
+        for (int i = gameObject.transform.childCount - 1; i >= 0; i--)
+        {
+            Destroy(gameObject.transform.GetChild(i).gameObject);
+        }
+
+        ClearNeighbours(ref tileObjects);
+        CreateRemainingCells(ref tileObjects);
+        DefineNeighbourTiles(ref tileObjects, ref tileObjects);
+
+        gridComponents = new List<Cell3D2>();
+        stopwatch = new Stopwatch();
+
+        stopwatch.Start();
+        InitializeGrid();
+
+        // Create the structs
+        Tile3DStruct[] tileObjectsStructs = CreateTile3DStructs();
+        Cell3DStruct[] gridComponentsStructs = CreateCell3DStructs();
+        CreateSolidFloor(gridComponentsStructs);
+        CreateEmptyCeiling(gridComponentsStructs);
+
+        // Initialize buffers
+        ComputeBuffer gridComponentsBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
+        ComputeBuffer tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)));
+        ComputeBuffer outputBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
+
+        // Set data
+        gridComponentsBuffer.SetData(gridComponentsStructs);
+        tileObjectsBuffer.SetData(tileObjectsStructs);
+
+        // Data to buffers
+        shader.SetBuffer(0, "gridComponents", gridComponentsBuffer);
+        shader.SetBuffer(0, "tileObjects", tileObjectsBuffer);
+        shader.SetBuffer(0, "output", outputBuffer);
+        shader.SetInt("MAX_NEIGHBOURS", MAX_NEIGHBOURS);
+        shader.SetInt("gridDimensionsX", dimensionsX);
+        shader.SetInt("gridDimensionsY", dimensionsY);
+        shader.SetInt("gridDimensionsZ", dimensionsZ);
+        shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
+        shader.SetInt("emptyTile", Array.IndexOf(tileObjects, emptyTile));
+        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());
+
+        // Dispatch
+        shader.Dispatch(0, dimensionsX / 2, dimensionsZ / 2, 1);
+
+        // Get data
+        Cell3DStruct[] output = new Cell3DStruct[gridComponentsStructs.Length];
+        outputBuffer.GetData(output);
+
+        // Recreate the grid based on the data received by the shader
+        for (int i = 0; i < output.Length; i++)
+        {
+            Cell3D2 cell = gridComponents[i];
+            cell.name = "Cell " + i;
+            cell.collapsed = output[i].colapsed == 1;
+            //cell.RecreateCell(tileObjects[output[i].tileOptions[0]]);
+
+            // Uncomment this to recreate the cell with all the possible tiles
+
+            List<Tile3D2> newOptions = new List<Tile3D2>();
+            for (int j = 0; j < MAX_NEIGHBOURS; j++)
+            {
+                if (output[i].tileOptions[j] != -1) newOptions.Add(tileObjects[output[i].tileOptions[j]]);
+            }
+            cell.RecreateCell(newOptions.ToArray());
+
+            if (cell.transform.childCount != 0)
+            {
+                foreach (Transform child in cell.transform)
+                {
+                    Destroy(child.gameObject);
+                }
+            }
+
+            Tile3D2 instantiatedTile = Instantiate(cell.tileOptions[0], cell.transform.position, Quaternion.identity, cell.transform);
+            if (instantiatedTile.rotation != Vector3.zero)
+            {
+                instantiatedTile.gameObject.transform.Rotate(cell.tileOptions[0].rotation, Space.Self);
+            }
+
+            instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
+            instantiatedTile.gameObject.SetActive(true);
+        }
+
+        // Release memory buffers to avoid leaks
+        gridComponentsBuffer.Release();
+        tileObjectsBuffer.Release();
+        outputBuffer.Release();
     }
 }
