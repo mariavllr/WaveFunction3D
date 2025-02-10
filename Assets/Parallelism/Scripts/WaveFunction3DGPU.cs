@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEditor;
+using Debug = UnityEngine.Debug;
 using System.Diagnostics;
 using System;
 
@@ -51,13 +51,9 @@ public class WaveFunction3DGPU : MonoBehaviour
         | In order to be able to send data to the buffer, all the data within the struct|
         | must be blitable, that means that the size in memory for c# is exactly the    |
         | the same as in HLSL, for uint arrays we only need to ensure that they have    |
-        | the a fixed size. On the other hand, strings are not blitable, but we don't   |
-        | really care about the content of the array, we only need to be able to        |
-        | identify the tileType, so we can translate them into hashes.                  |
+        | the a fixed size.                                                             |
         |-------------------------------------------------------------------------------|
         */
-
-        public int tyleType;
         public int probability;
         public Vector3 rotation;
 
@@ -68,12 +64,6 @@ public class WaveFunction3DGPU : MonoBehaviour
         public fixed int leftNeighbours[MAX_NEIGHBOURS];
         public fixed int aboveNeighbors[MAX_NEIGHBOURS];
         public fixed int belowNeighbours[MAX_NEIGHBOURS];
-
-        // Excluded neighbours
-        public fixed int excludedNeighboursUp[MAX_NEIGHBOURS];
-        public fixed int excludedNeighboursRight[MAX_NEIGHBOURS];
-        public fixed int excludedNeighboursDown[MAX_NEIGHBOURS];
-        public fixed int excludedNeighboursLeft[MAX_NEIGHBOURS];
     };
 
     unsafe void Awake()
@@ -116,7 +106,7 @@ public class WaveFunction3DGPU : MonoBehaviour
         shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());
 
         // Dispatch
-        shader.Dispatch(0, dimensionsX / 4, dimensionsZ / 4, 1);
+        shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
 
         // Get data
         Cell3DStruct[] output = new Cell3DStruct[gridComponentsStructs.Length];
@@ -161,6 +151,8 @@ public class WaveFunction3DGPU : MonoBehaviour
         gridComponentsBuffer.Release();
         tileObjectsBuffer.Release();
         outputBuffer.Release();
+        stopwatch.Stop();
+        Debug.Log("Time elapsed: " + stopwatch.ElapsedMilliseconds + "ms");
     }
 
     /// <summary>
@@ -428,7 +420,6 @@ public class WaveFunction3DGPU : MonoBehaviour
         for(int i = 0; i < tileObjects.Length; i++)
         {
             Tile3DStruct tileStruct = new Tile3DStruct();
-            tileStruct.tyleType = tileObjects[i].tileType.GetHashCode();
             tileStruct.probability = tileObjects[i].probability;
             tileStruct.rotation = tileObjects[i].rotation;
 
@@ -441,10 +432,6 @@ public class WaveFunction3DGPU : MonoBehaviour
                 tileStruct.leftNeighbours[j] = -1;
                 tileStruct.aboveNeighbors[j] = -1;
                 tileStruct.belowNeighbours[j] = -1;
-                tileStruct.excludedNeighboursUp[j] = -1;
-                tileStruct.excludedNeighboursRight[j] = -1;
-                tileStruct.excludedNeighboursDown[j] = -1;
-                tileStruct.excludedNeighboursLeft[j] = -1;
             }
 
             // Copy neighbours (transforming them to indexes)
@@ -476,28 +463,6 @@ public class WaveFunction3DGPU : MonoBehaviour
             for (int j = 0; j < tileObjects[i].belowNeighbours.Count; j++)
             {
                 tileStruct.belowNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].belowNeighbours[j]);
-            }
-
-            // Copy excluded neighbours
-            int[] temp = tileObjects[i].excludedNeighboursUp.Select(s => tileObjects[i].excludedNeighboursUp.GetHashCode()).ToArray();
-            for (int j = 0; j < temp.Length; j++)
-            {
-                tileStruct.excludedNeighboursUp[j] = temp[j];
-            }
-            temp = tileObjects[i].excludedNeighboursRight.Select(s => tileObjects[i].excludedNeighboursRight.GetHashCode()).ToArray();
-            for (int j = 0; j < temp.Length; j++)
-            {
-                tileStruct.excludedNeighboursRight[j] = temp[j];
-            }
-            temp = tileObjects[i].excludedNeighboursDown.Select(s => tileObjects[i].excludedNeighboursDown.GetHashCode()).ToArray();
-            for (int j = 0; j < temp.Length; j++)
-            {
-                tileStruct.excludedNeighboursDown[j] = temp[j];
-            }
-            temp = tileObjects[i].excludedNeighboursLeft.Select(s => tileObjects[i].excludedNeighboursLeft.GetHashCode()).ToArray();
-            for (int j = 0; j < temp.Length; j++)
-            {
-                tileStruct.excludedNeighboursLeft[j] = temp[j];
             }
             tileStructs[i] = tileStruct;
         }
