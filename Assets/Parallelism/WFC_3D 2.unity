@@ -510,8 +510,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shader: {fileID: 7200000, guid: a7729b81eb8ef4d42b8bab97128c3dc0, type: 3}
   cellSize: 2
-  dimensionsX: 64
-  dimensionsZ: 64
+  dimensionsX: 8
+  dimensionsZ: 8
   dimensionsY: 3
   floorTile: {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
   emptyTile: {fileID: 4187426750720118590, guid: 85d911cca2c83ba40b7e12900bb75209, type: 3}

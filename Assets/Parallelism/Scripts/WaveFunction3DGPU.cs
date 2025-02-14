@@ -91,6 +91,7 @@ public class WaveFunction3DGPU : MonoBehaviour
 
         // Set data
         gridComponentsBuffer.SetData(gridComponentsStructs);
+        outputBuffer.SetData(gridComponentsStructs);
         tileObjectsBuffer.SetData(tileObjectsStructs);
 
         // Data to buffers
@@ -103,10 +104,31 @@ public class WaveFunction3DGPU : MonoBehaviour
         shader.SetInt("gridDimensionsZ", dimensionsZ);
         shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
         shader.SetInt("emptyTile", Array.IndexOf(tileObjects, emptyTile));
-        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());
+        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());//DateTime.Now.Ticks.GetHashCode());
+        shader.SetVector("offset", new Vector3(0, 1, 0));
 
-        // Dispatch
+        // Dispatch 1/5 of the grid
         shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
+
+        // // Dispatch 2/5 of the grid
+        // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 2);
+        // shader.SetVector("offset", new Vector3(-1, 1, -1));
+        // shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
+
+        // // Dispatch 3/5 of the grid
+        // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 3);
+        // shader.SetVector("offset", new Vector3(1, 1, -1));
+        // shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
+
+        // // Dispatch 4/5 of the grid
+        // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 4);
+        // shader.SetVector("offset", new Vector3(-1, 1, 1));
+        // shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
+
+        // // Dispatch 5/5 of the grid
+        // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 5);
+        // shader.SetVector("offset", new Vector3(1, 1, 1));
+        // shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
 
         // Get data
         Cell3DStruct[] output = new Cell3DStruct[gridComponentsStructs.Length];
@@ -115,19 +137,20 @@ public class WaveFunction3DGPU : MonoBehaviour
         // Recreate the grid based on the data received by the shader
         for (int i = 0; i < output.Length; i++)
         {
+            if(output[i].colapsed == 0) continue; // Testing
             Cell3D2 cell = gridComponents[i];
             cell.name = "Cell " + i;
             cell.collapsed = output[i].colapsed == 1;
-            //cell.RecreateCell(tileObjects[output[i].tileOptions[0]]);
+            cell.RecreateCell(tileObjects[output[i].tileOptions[0]]);
 
             // Uncomment this to recreate the cell with all the possible tiles
 
-            List<Tile3D2> newOptions = new List<Tile3D2>();
-            for (int j = 0; j < MAX_NEIGHBOURS; j++)
-            {
-                if (output[i].tileOptions[j] != -1) newOptions.Add(tileObjects[output[i].tileOptions[j]]);
-            }
-            cell.RecreateCell(newOptions.ToArray());
+            // List<Tile3D2> newOptions = new List<Tile3D2>();
+            // for (int j = 0; j < MAX_NEIGHBOURS; j++)
+            // {
+            //     if (output[i].tileOptions[j] != -1) newOptions.Add(tileObjects[output[i].tileOptions[j]]);
+            // }
+            // cell.RecreateCell(newOptions.ToArray());
 
             if (cell.transform.childCount != 0)
             {
@@ -510,7 +533,7 @@ public class WaveFunction3DGPU : MonoBehaviour
                 int index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
                 cell3DStructs[index].colapsed = 1;
                 cell3DStructs[index].entropy = 1;
-                for(int i = 0; i < MAX_NEIGHBOURS; i++)
+                for(int i = 1; i < MAX_NEIGHBOURS; i++)
                 {
                     cell3DStructs[index].tileOptions[i] = -1;
                 }
@@ -529,7 +552,7 @@ public class WaveFunction3DGPU : MonoBehaviour
                 int index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
                 cell3DStructs[index].colapsed = 1;
                 cell3DStructs[index].entropy = 1;
-                for(int i = 0; i < MAX_NEIGHBOURS; i++)
+                for(int i = 1; i < MAX_NEIGHBOURS; i++)
                 {
                     cell3DStructs[index].tileOptions[i] = -1;
                 }
@@ -574,6 +597,7 @@ public class WaveFunction3DGPU : MonoBehaviour
 
         // Set data
         gridComponentsBuffer.SetData(gridComponentsStructs);
+        outputBuffer.SetData(gridComponentsStructs);
         tileObjectsBuffer.SetData(tileObjectsStructs);
 
         // Data to buffers
@@ -586,10 +610,31 @@ public class WaveFunction3DGPU : MonoBehaviour
         shader.SetInt("gridDimensionsZ", dimensionsZ);
         shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
         shader.SetInt("emptyTile", Array.IndexOf(tileObjects, emptyTile));
-        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());
+        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());//DateTime.Now.Ticks.GetHashCode());
+        shader.SetVector("offset", new Vector3(0, 1, 0));
 
-        // Dispatch
-        shader.Dispatch(0, dimensionsX / 2, dimensionsZ / 2, 1);
+        // Dispatch 1/5 of the grid
+        shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
+
+        // Dispatch 2/5 of the grid
+        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 2);
+        shader.SetVector("offset", new Vector3(-1, 1, -1));
+        shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
+
+        // Dispatch 3/5 of the grid
+        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 3);
+        shader.SetVector("offset", new Vector3(1, 1, -1));
+        shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
+
+        // Dispatch 4/5 of the grid
+        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 4);
+        shader.SetVector("offset", new Vector3(-1, 1, 1));
+        shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
+
+        // Dispatch 5/5 of the grid
+        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 5);
+        shader.SetVector("offset", new Vector3(1, 1, 1));
+        shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
 
         // Get data
         Cell3DStruct[] output = new Cell3DStruct[gridComponentsStructs.Length];
@@ -598,6 +643,7 @@ public class WaveFunction3DGPU : MonoBehaviour
         // Recreate the grid based on the data received by the shader
         for (int i = 0; i < output.Length; i++)
         {
+            if(output[i].colapsed == 0) continue; // Testing
             Cell3D2 cell = gridComponents[i];
             cell.name = "Cell " + i;
             cell.collapsed = output[i].colapsed == 1;
@@ -634,5 +680,7 @@ public class WaveFunction3DGPU : MonoBehaviour
         gridComponentsBuffer.Release();
         tileObjectsBuffer.Release();
         outputBuffer.Release();
+        stopwatch.Stop();
+        Debug.Log("Time elapsed: " + stopwatch.ElapsedMilliseconds + "ms");
     }
 }
