@@ -259,7 +259,7 @@ bool CollapseCell(int cellToCollapseIndex)
     {
         if(output[cellToCollapseIndex].tileOptions[max] == -1)
         {
-            if(max > 0) max--;
+            if(max > 1) max--;
             break;
         }
     }
@@ -330,6 +330,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     initialIndex.y = id.y * Y_EXTENSION + id.y + offset.y;
     initialIndex.z = id.z * Z_EXTENSION + id.z + offset.z;
     GetCellsToCheck(initialIndex);
-    if(offset.x != 1) RestartCells();
+    RestartCells();
+    seed = 3436899856;
     UpdateGeneration(initialIndex);
 }

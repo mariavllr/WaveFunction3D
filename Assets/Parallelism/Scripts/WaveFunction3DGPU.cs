@@ -4,6 +4,8 @@ using UnityEngine;
 using Debug = UnityEngine.Debug;
 using System.Diagnostics;
 using System;
+using UnityEditor;
+using System.Reflection;
 
 public class WaveFunction3DGPU : MonoBehaviour
 {
@@ -101,7 +103,7 @@ public class WaveFunction3DGPU : MonoBehaviour
         shader.SetInt("gridDimensionsZ", dimensionsZ);
         shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
         shader.SetInt("emptyTile", Array.IndexOf(tileObjects, emptyTile));
-        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());//DateTime.Now.Ticks.GetHashCode());
+        //shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());//DateTime.Now.Ticks.GetHashCode());
         shader.SetVector("offset", new Vector3(0, 1, 0));
 
         // Dispatch 1/5 of the grid
@@ -112,20 +114,22 @@ public class WaveFunction3DGPU : MonoBehaviour
         shader.SetVector("offset", new Vector3(1, 1, 1));
         shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
 
-        // // Dispatch 3/5 of the grid
-        // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 3);
-        // shader.SetVector("offset", new Vector3(-1, 1, 1));
-        // shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
+        // Dispatch 3/5 of the grid
+        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 3);
+        shader.SetVector("offset", new Vector3(-1, 1, 1));
+        shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
 
-        // // Dispatch 4/5 of the grid
-        // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 4);
-        // shader.SetVector("offset", new Vector3(-1, 1, -1));
-        // shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
+        // Dispatch 4/5 of the grid
+        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 4);
+        shader.SetVector("offset", new Vector3(-1, 1, -1));
+        shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
 
-        // // Dispatch 5/5 of the grid
-        // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 5);
-        // shader.SetVector("offset", new Vector3(1, 1, -1));
-        // shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
+        // Dispatch 5/5 of the grid
+        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 5);
+        shader.SetVector("offset", new Vector3(1, 1, -1));
+        shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
+
+        //TriggerRenderDocCapture();
 
         // Get data
         outputBuffer.GetData(gridComponentsStructs);
@@ -137,15 +141,15 @@ public class WaveFunction3DGPU : MonoBehaviour
             Cell3D2 cell = gridComponents[i];
             cell.name = "Cell " + i;
             cell.collapsed = gridComponentsStructs[i].colapsed == 1;
-            cell.RecreateCell(tileObjects[gridComponentsStructs[i].tileOptions[0]]);
+            //cell.RecreateCell(tileObjects[gridComponentsStructs[i].tileOptions[0]]);
 
             // Uncomment this to recreate the cell with all the possible tiles
-            // List<Tile3D2> newOptions = new List<Tile3D2>();
-            // for (int j = 0; j < MAX_NEIGHBOURS; j++)
-            // {
-            //     if (output[i].tileOptions[j] != -1) newOptions.Add(tileObjects[output[i].tileOptions[j]]);
-            // }
-            // cell.RecreateCell(newOptions.ToArray());
+            List<Tile3D2> newOptions = new List<Tile3D2>();
+            for (int j = 0; j < MAX_NEIGHBOURS; j++)
+            {
+                if (gridComponentsStructs[i].tileOptions[j] != -1) newOptions.Add(tileObjects[gridComponentsStructs[i].tileOptions[j]]);
+            }
+            cell.RecreateCell(newOptions.ToArray());
 
             if (cell.transform.childCount != 0)
             {
@@ -676,5 +680,21 @@ public class WaveFunction3DGPU : MonoBehaviour
         outputBuffer.Release();
         stopwatch.Stop();
         Debug.Log("Time elapsed: " + stopwatch.ElapsedMilliseconds + "ms");
+    }
+
+    /// <summary>
+    /// This method is used to trigger the RenderDoc capture (RenderDoc must be installed, launched and linked to Unity)
+    /// </summary>
+    private void TriggerRenderDocCapture()
+    {
+        Assembly asm = typeof(UnityEditor.EditorWindow).Assembly;
+        Type GameViewType = asm.GetType("UnityEditor.GameView");
+        Type HostViewType = asm.GetType("UnityEditor.HostView");
+        Type GUIViewType = asm.GetType("UnityEditor.GUIView");
+        EditorWindow window = EditorWindow.GetWindow(GameViewType);
+        FieldInfo m_ParentFieldInfo = typeof(EditorWindow).GetField("m_Parent", BindingFlags.Instance | BindingFlags.NonPublic);
+        var m_Parent = m_ParentFieldInfo.GetValue(window);
+        MethodInfo CaptureRenderDocFullContentInfo = GUIViewType.GetMethod("CaptureRenderDocFullContent", BindingFlags.Public | BindingFlags.Instance);
+        CaptureRenderDocFullContentInfo.Invoke(m_Parent, null);
     }
 }
