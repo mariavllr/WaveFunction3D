@@ -58,12 +58,13 @@ uint3 cellsToCheck[X_EXTENSION * Y_EXTENSION * Z_EXTENSION];
 // Buffers
 StructuredBuffer<Tile3DStruct> tileObjects;
 RWStructuredBuffer<Cell3DStruct> output;
+RWStructuredBuffer<int> state;
 
 // We need arrays of fixed lenght in HLSL, so -1 will be our null value
 // this function just fills the array with -1
 void ClearArray(inout int array[MAX_NEIGHBOURS])
 {
-    for (uint i = 0; i < MAX_NEIGHBOURS; i++)
+    for (int i = 0; i < MAX_NEIGHBOURS; i++)
     {
         array[i] = -1;
     }
@@ -317,6 +318,7 @@ void UpdateGeneration(uint3 initialIndex)
         // If there's an incompatibility, we restart everything
         if(!CollapseCell(minEntropyIndex))
         {
+            InterlockedAdd(state[0], 1);
             break;
         }
     }
@@ -331,6 +333,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     initialIndex.z = id.z * Z_EXTENSION + id.z + offset.z;
     GetCellsToCheck(initialIndex);
     RestartCells();
-    seed = 3436899856;
+    //seed = 3436899856;
     UpdateGeneration(initialIndex);
 }

@@ -68,7 +68,7 @@ public class WaveFunction3DGPU : MonoBehaviour
         public fixed int belowNeighbours[MAX_NEIGHBOURS];
     };
 
-    unsafe void Awake()
+    unsafe void Start()
     {
         ClearNeighbours(ref tileObjects);
         CreateRemainingCells(ref tileObjects);
@@ -89,47 +89,62 @@ public class WaveFunction3DGPU : MonoBehaviour
         // Initialize buffers
         ComputeBuffer tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)));
         ComputeBuffer outputBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
+        ComputeBuffer stateBuffer = new ComputeBuffer(1, sizeof(int));
 
         // Set data
-        outputBuffer.SetData(gridComponentsStructs);
         tileObjectsBuffer.SetData(tileObjectsStructs);
 
         // Data to buffers
         shader.SetBuffer(0, "tileObjects", tileObjectsBuffer);
         shader.SetBuffer(0, "output", outputBuffer);
+        shader.SetBuffer(0, "state", stateBuffer);
         shader.SetInt("MAX_NEIGHBOURS", MAX_NEIGHBOURS);
         shader.SetInt("gridDimensionsX", dimensionsX);
         shader.SetInt("gridDimensionsY", dimensionsY);
         shader.SetInt("gridDimensionsZ", dimensionsZ);
         shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
         shader.SetInt("emptyTile", Array.IndexOf(tileObjects, emptyTile));
-        //shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());//DateTime.Now.Ticks.GetHashCode());
         shader.SetVector("offset", new Vector3(0, 1, 0));
 
-        // Dispatch 1/5 of the grid
-        shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
+        // Loop until the grid is fully collapsed without any incomatibilities
+        int[] incompatibilities = {1};
+        int attempts = 1;
 
-        // Dispatch 2/5 of the grid
-        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());
-        shader.SetVector("offset", new Vector3(1, 1, 1));
-        shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
+        while(incompatibilities[0] != 0)
+        {
+            // Reset buffers
+            outputBuffer.SetData(gridComponentsStructs);
+            stateBuffer.SetData(new int[] { 0 });
 
-        // Dispatch 3/5 of the grid
-        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 3);
-        shader.SetVector("offset", new Vector3(-1, 1, 1));
-        shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
+            // Set different seed between attemps
+            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * attempts);
 
-        // Dispatch 4/5 of the grid
-        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 4);
-        shader.SetVector("offset", new Vector3(-1, 1, -1));
-        shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
+            // Dispatch 1/5 of the grid
+            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
 
-        // Dispatch 5/5 of the grid
-        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 5);
-        shader.SetVector("offset", new Vector3(1, 1, -1));
-        shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
+            // Dispatch 2/5 of the grid
+            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());
+            shader.SetVector("offset", new Vector3(1, 1, 1));
+            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
 
-        //TriggerRenderDocCapture();
+            // Dispatch 3/5 of the grid
+            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 3);
+            shader.SetVector("offset", new Vector3(-1, 1, 1));
+            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
+
+            // Dispatch 4/5 of the grid
+            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 4);
+            shader.SetVector("offset", new Vector3(-1, 1, -1));
+            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
+
+            // Dispatch 5/5 of the grid
+            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 5);
+            shader.SetVector("offset", new Vector3(1, 1, -1));
+            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), 1, dimensionsZ / 6 + (dimensionsZ % 6));
+
+            stateBuffer.GetData(incompatibilities);
+            attempts++;
+        }
 
         // Get data
         outputBuffer.GetData(gridComponentsStructs);
