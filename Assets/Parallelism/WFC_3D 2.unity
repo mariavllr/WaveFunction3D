@@ -512,7 +512,7 @@ MonoBehaviour:
   cellSize: 2
   dimensionsX: 16
   dimensionsZ: 16
-  dimensionsY: 3
+  dimensionsY: 10
   floorTile: {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
   emptyTile: {fileID: 4187426750720118590, guid: 85d911cca2c83ba40b7e12900bb75209, type: 3}
   tileObjects:

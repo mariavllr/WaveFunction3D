@@ -10,7 +10,7 @@
 */
 #define MAX_NEIGHBOURS 44
 #define X_EXTENSION 2
-#define Y_EXTENSION 1
+#define Y_EXTENSION 2
 #define Z_EXTENSION 2
 
 struct Cell3DStruct
@@ -278,6 +278,10 @@ void GetCellsToCheck(uint3 initialIndex)
     cellsToCheck[1] = initialIndex.xyz + uint3(1, 0, 0);
     cellsToCheck[2] = initialIndex.xyz + uint3(0, 0, 1);
     cellsToCheck[3] = initialIndex.xyz + uint3(1, 0, 1);
+    cellsToCheck[4] = initialIndex.xyz + uint3(0, 1, 0);
+    cellsToCheck[5] = initialIndex.xyz + uint3(1, 1, 0);
+    cellsToCheck[6] = initialIndex.xyz + uint3(0, 1, 1);
+    cellsToCheck[7] = initialIndex.xyz + uint3(1, 1, 1);
 }
 
 void RestartCells()
