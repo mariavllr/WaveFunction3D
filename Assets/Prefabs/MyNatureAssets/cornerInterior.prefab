@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6885147203639529833}
   - component: {fileID: 7773819161700164887}
   - component: {fileID: -7303881402095945184}
+  - component: {fileID: 338494515201291300}
   m_Layer: 0
   m_Name: cornerInterior
   m_TagString: Untagged
@@ -181,3 +182,24 @@ MonoBehaviour:
     verticalFace: 1
     rotationIndex: 0
     rotationallyInvariant: 1
+--- !u!65 &338494515201291300
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8045558483139722020}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.0000005, y: 2, z: 2.0009766}
+  m_Center: {x: -0.00000017881393, y: 1, z: 0.00048828125}

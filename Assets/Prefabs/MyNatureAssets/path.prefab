@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 7740005597652459216}
   - component: {fileID: 5945932373260400827}
   - component: {fileID: 7460393361235670901}
+  - component: {fileID: 7672650329939229926}
   m_Layer: 0
   m_Name: path
   m_TagString: Untagged
@@ -121,6 +122,7 @@ MonoBehaviour:
   - {fileID: 6212450690081621253, guid: 3255070160283fc489cf1f956528d556, type: 3}
   - {fileID: 2250791952819849961, guid: 5d12111e5075e064a893c57304e0d4c7, type: 3}
   - {fileID: 3751833786985758621, guid: 2fe2cfe68e47b1249a7cfd3035f538ff, type: 3}
+  - {fileID: 2403397123480543169, guid: 39c9bbca7d2ea054781d763e7f4084f3, type: 3}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
@@ -146,6 +148,7 @@ MonoBehaviour:
   - {fileID: 6212450690081621253, guid: 3255070160283fc489cf1f956528d556, type: 3}
   - {fileID: 2250791952819849961, guid: 5d12111e5075e064a893c57304e0d4c7, type: 3}
   - {fileID: 3751833786985758621, guid: 2fe2cfe68e47b1249a7cfd3035f538ff, type: 3}
+  - {fileID: 2403397123480543169, guid: 39c9bbca7d2ea054781d763e7f4084f3, type: 3}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
@@ -212,3 +215,24 @@ MonoBehaviour:
     verticalFace: 1
     rotationIndex: 0
     rotationallyInvariant: 1
+--- !u!65 &7672650329939229926
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4030842282370064143}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2, y: 0.5, z: 2}
+  m_Center: {x: 0, y: 0.25, z: 0}

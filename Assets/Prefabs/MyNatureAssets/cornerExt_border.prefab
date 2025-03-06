@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 1667616868865513909}
   - component: {fileID: 9183860253329244595}
   - component: {fileID: -9001271374159152946}
+  - component: {fileID: -6138197257496004710}
   m_Layer: 0
   m_Name: cornerExt_border
   m_TagString: Untagged
@@ -113,8 +114,8 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   rightNeighbours:
-  - {fileID: 3110566506449276630, guid: 85a8b3df246529841a56d407a88fff4d, type: 3}
   - {fileID: 1948357013093823869, guid: d8ebdb494d7ccb94fb4cf65abab95235, type: 3}
+  - {fileID: -8109604136941196672, guid: 092215a8d1bcad2418b84274a69b3e59, type: 3}
   - {fileID: 0}
   - {fileID: 0}
   downNeighbours:
@@ -129,7 +130,7 @@ MonoBehaviour:
   aboveNeighbours:
   - {fileID: 1948357013093823869, guid: d8ebdb494d7ccb94fb4cf65abab95235, type: 3}
   belowNeighbours:
-  - {fileID: 5879200595051830065, guid: 37dddf1fe29a6d94cb5de369f0660295, type: 3}
+  - {fileID: 2005606087145236132, guid: 16408525eb48f6b40961da77ada8ad0f, type: 3}
   excludedNeighboursUp: []
   excludedNeighboursRight: []
   excludedNeighboursDown: []
@@ -183,3 +184,24 @@ MonoBehaviour:
     verticalFace: 1
     rotationIndex: 0
     rotationallyInvariant: 0
+--- !u!65 &-6138197257496004710
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5831479776787883922}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.40252125, y: 0.5, z: 0.4025209}
+  m_Center: {x: -0.7987394, y: 0.25, z: 0.79873955}
