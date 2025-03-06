@@ -19,6 +19,7 @@ public class WaveFunction3DGPU : MonoBehaviour
     [SerializeField] private int dimensionsX, dimensionsZ, dimensionsY;
     [SerializeField] Tile3D2 floorTile;                     // Tile for the floor
     [SerializeField] Tile3D2 emptyTile;                     // Tile for the ceiling
+    [SerializeField] Tile3D2 grassTile;                     // Tile for the grass
     [SerializeField] private Tile3D2[] tileObjects;         // All the tiles that can be used to generate the map
 
     [Header("Grid")]
@@ -108,43 +109,43 @@ public class WaveFunction3DGPU : MonoBehaviour
 
         // Loop until the grid is fully collapsed without any incomatibilities
         int[] incompatibilities = {1};
-        int attempts = 1;
+        int attempts = 0;
 
-        while(incompatibilities[0] != 0)
+        while(incompatibilities[0] != 0 && attempts < 1000)
         {
             // Reset buffers
             outputBuffer.SetData(gridComponentsStructs);
             stateBuffer.SetData(new int[] { 0 });
 
             // Set different seed between attemps
-            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * attempts);
+            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * (attempts + 1));
 
-            // Dispatch 1/5 of the grid
-            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), dimensionsY / 6 + (dimensionsY % 6), dimensionsZ / 6 + (dimensionsZ % 6));
+            // Dispatch 1/5 of the grid (not displaced)
+            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 8 + (dimensionsX % 8), 1, dimensionsZ / 8 + (dimensionsZ % 8));
 
-            // Dispatch 2/5 of the grid
-            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());
-            shader.SetVector("offset", new Vector3(1, 2, 1));
-            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), dimensionsY / 6 + (dimensionsY % 6), dimensionsZ / 6 + (dimensionsZ % 6));
+            // Dispatch 2/5 of the grid (displaced to the front-right)
+            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 2);
+            shader.SetVector("offset", new Vector3(1, 1, 1));
+            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 8 + (dimensionsX % 8), 1, dimensionsZ / 8 + (dimensionsZ % 8));
 
-            // Dispatch 3/5 of the grid
+            // Dispatch 3/5 of the grid (displaced to the front-left)
             shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 3);
-            shader.SetVector("offset", new Vector3(-1, 2, 1));
-            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), dimensionsY / 6 + (dimensionsY % 6), dimensionsZ / 6 + (dimensionsZ % 6));
+            shader.SetVector("offset", new Vector3(-1, 1, 1));
+            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 8 + (dimensionsX % 8), 1, dimensionsZ / 8 + (dimensionsZ % 8));
 
-            // Dispatch 4/5 of the grid
+            // Dispatch 4/5 of the grid (displaced to the back-left)
             shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 4);
-            shader.SetVector("offset", new Vector3(-1, 0, -1));
-            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), dimensionsY / 6 + (dimensionsY % 6), dimensionsZ / 6 + (dimensionsZ % 6));
+            shader.SetVector("offset", new Vector3(-1, 1, -1));
+            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 8 + (dimensionsX % 8), 1, dimensionsZ / 8 + (dimensionsZ % 8));
 
-            // Dispatch 5/5 of the grid
+            // Dispatch 5/5 of the grid (displaced to the back-right)
             shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 5);
-            shader.SetVector("offset", new Vector3(1, 0, -1));
-            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 6 + (dimensionsX % 6), dimensionsY / 6 + (dimensionsY % 6), dimensionsZ / 6 + (dimensionsZ % 6));
+            shader.SetVector("offset", new Vector3(1, 1, -1));
+            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 8 + (dimensionsX % 8), 1, dimensionsZ / 8 + (dimensionsZ % 8));
 
             stateBuffer.GetData(incompatibilities);
-            Debug.Log("Incompatibilities: " + incompatibilities[0] + " Attempts: " + attempts);
             attempts++;
+            Debug.Log("Incompatibilities: " + incompatibilities[0] + " Attempts: " + attempts);
         }
 
         // Get data
@@ -188,6 +189,7 @@ public class WaveFunction3DGPU : MonoBehaviour
         // Release memory buffers to avoid leaks
         tileObjectsBuffer.Release();
         outputBuffer.Release();
+        stateBuffer.Release();
         stopwatch.Stop();
         Debug.Log("Time elapsed: " + stopwatch.ElapsedMilliseconds + "ms");
     }

@@ -9,9 +9,9 @@
 |-------------------------------------------------------------------------------|
 */
 #define MAX_NEIGHBOURS 44
-#define X_EXTENSION 2
-#define Y_EXTENSION 2
-#define Z_EXTENSION 2
+#define X_EXTENSION 3
+#define Y_EXTENSION 1
+#define Z_EXTENSION 3
 
 struct Cell3DStruct
 {
@@ -276,12 +276,13 @@ void GetCellsToCheck(uint3 initialIndex)
 {
     cellsToCheck[0] = initialIndex.xyz + uint3(0, 0, 0);
     cellsToCheck[1] = initialIndex.xyz + uint3(1, 0, 0);
-    cellsToCheck[2] = initialIndex.xyz + uint3(0, 0, 1);
-    cellsToCheck[3] = initialIndex.xyz + uint3(1, 0, 1);
-    cellsToCheck[4] = initialIndex.xyz + uint3(0, 1, 0);
-    cellsToCheck[5] = initialIndex.xyz + uint3(1, 1, 0);
-    cellsToCheck[6] = initialIndex.xyz + uint3(0, 1, 1);
-    cellsToCheck[7] = initialIndex.xyz + uint3(1, 1, 1);
+    cellsToCheck[2] = initialIndex.xyz + uint3(2, 0, 0);
+    cellsToCheck[3] = initialIndex.xyz + uint3(0, 0, 1);
+    cellsToCheck[4] = initialIndex.xyz + uint3(1, 0, 1);
+    cellsToCheck[5] = initialIndex.xyz + uint3(2, 0, 1);
+    cellsToCheck[6] = initialIndex.xyz + uint3(0, 0, 2);
+    cellsToCheck[7] = initialIndex.xyz + uint3(1, 0, 2);
+    cellsToCheck[8] = initialIndex.xyz + uint3(2, 0, 2);
 }
 
 void RestartCells()
@@ -337,6 +338,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     initialIndex.z = id.z * Z_EXTENSION + id.z + offset.z;
     GetCellsToCheck(initialIndex);
     RestartCells();
+    seed += initialIndex.x * 34 + initialIndex.y * 76 + initialIndex.z;
     //seed = 3436899856;
     UpdateGeneration(initialIndex);
 }
