@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 8382abc3a94345740ad657962381421d, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -282,8 +282,8 @@ Camera:
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60
-  orthographic: 0
-  orthographic size: 5
+  orthographic: 1
+  orthographic size: 16.3
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -307,8 +307,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.39705816, y: 0.0016472556, z: -0.00071296317, w: 0.91779166}
-  m_LocalPosition: {x: 18.746616, y: 24.891068, z: -8.385791}
+  m_LocalRotation: {x: 0.4086214, y: -0.34321833, z: 0.16925652, w: 0.82860243}
+  m_LocalPosition: {x: 29.1, y: 31.2, z: -1.6}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -396,7 +396,7 @@ Light:
     m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.9
     m_Bias: 0.05
     m_NormalBias: 0.4
     m_NearPlane: 0.2
@@ -449,7 +449,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 410087039}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
+  m_LocalRotation: {x: 0.27276114, y: -0.39116514, z: 0.12258373, w: 0.8703818}
   m_LocalPosition: {x: 0, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -497,7 +497,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!64 &824080799
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -543,7 +543,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: d3b0103603ccab8438f955c820b16ffb, type: 2}
+  - {fileID: 2100000, guid: 867ec64eba6038b4e95709fa94008027, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -582,9 +582,9 @@ Transform:
   m_GameObject: {fileID: 824080798}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 18, y: 3.79, z: 25}
-  m_LocalScale: {x: 5.8578, y: 5.8578, z: 5.8578}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 8.44, y: -10.6, z: 22.2}
+  m_LocalScale: {x: 8.6, y: 8.6, z: 8.6}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -667,9 +667,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   iterations: 0
-  dimensionsX: 15
-  dimensionsZ: 15
-  dimensionsY: 6
+  dimensionsX: 10
+  dimensionsZ: 10
+  dimensionsY: 4
   floorTile: {fileID: 1523664878442172427, guid: 22e98c0e0cc76aa4c9bd5660cd6318bd, type: 3}
   emptyTile: {fileID: 1948357013093823869, guid: d8ebdb494d7ccb94fb4cf65abab95235, type: 3}
   grassTile: {fileID: -265474770744947562, guid: b2bd8fc612b3e394eb9d7691cb8bd27b, type: 3}
@@ -690,14 +690,15 @@ MonoBehaviour:
   - {fileID: 8165634797195891756, guid: bf48b029c0cdf254eb772a8db962147e, type: 3}
   - {fileID: 6212450690081621253, guid: 3255070160283fc489cf1f956528d556, type: 3}
   - {fileID: 2250791952819849961, guid: 5d12111e5075e064a893c57304e0d4c7, type: 3}
-  - {fileID: 3751833786985758621, guid: 2fe2cfe68e47b1249a7cfd3035f538ff, type: 3}
-  - {fileID: 2403397123480543169, guid: 39c9bbca7d2ea054781d763e7f4084f3, type: 3}
   cellSize: 2
   gridComponents: []
   cellObj: {fileID: 1502123613828246437, guid: 1b4cdae25b68ecf4d8aa2c75b51a62cc, type: 3}
   checkDistance: 2
-  useOptimization: 1
+  useOptimization: 0
   inOrderGeneration: 0
+  fixedTiles:
+  - {fileID: 2403397123480543169, guid: 39c9bbca7d2ea054781d763e7f4084f3, type: 3}
+  - {fileID: 3751833786985758621, guid: 2fe2cfe68e47b1249a7cfd3035f538ff, type: 3}
 --- !u!4 &1154171694
 Transform:
   m_ObjectHideFlags: 0

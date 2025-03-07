@@ -8,20 +8,19 @@ public class Cell3D : MonoBehaviour
     public Tile3D[] tileOptions;
     public bool haSidoVisitado; //debug
     public bool visitable = false;
-    public bool tieneCiudad;
-    public int index; //debug
-    public bool blocked = false; //If is bloq, no tile can be spawned here
 
+    public int index; //debug
     public bool showDebugVisitableCells;
-    
+    public int entropy;
+    public bool artificialEntropy = false;
 
     public void CreateCell(bool collapseState, Tile3D[] tiles, int cellIndex)
     {
         collapsed = collapseState;
         tileOptions = tiles;
         haSidoVisitado = false;
-        tieneCiudad = false;
         index = cellIndex;
+        entropy = tileOptions.Length;
 
         if (!showDebugVisitableCells) Destroy(transform.GetChild(0).gameObject);
     }
@@ -29,6 +28,7 @@ public class Cell3D : MonoBehaviour
     public void RecreateCell(Tile3D[] tiles)
     {
         tileOptions = tiles;
+        if (!artificialEntropy) entropy = tileOptions.Length;
     }
 
     public void MakeVisitable()

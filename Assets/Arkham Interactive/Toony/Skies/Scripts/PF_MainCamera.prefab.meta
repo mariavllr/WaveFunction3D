@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4698c91b91d5fcf4bac2569088e9ec39
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 11020
+  packageName: Toony Skies
+  packageVersion: 1.1
+  assetPath: Assets/Arkham Interactive/Toony/Skies/Scripts/PF_MainCamera.prefab
+  uploadId: 29253

@@ -101,7 +101,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tileType: corner
-  probability: 10
+  probability: 1
   rotateRight: 1
   rotate180: 1
   rotateLeft: 1
@@ -114,6 +114,19 @@ MonoBehaviour:
   rightNeighbours:
   - {fileID: -265474770744947562, guid: b2bd8fc612b3e394eb9d7691cb8bd27b, type: 3}
   - {fileID: 1477516197913392094, guid: 7ef91487c616c434894c486dc43fd955, type: 3}
+  - {fileID: 7460393361235670901, guid: 225141d0abfc84044afd37c950b08247, type: 3}
+  - {fileID: 8165634797195891756, guid: bf48b029c0cdf254eb772a8db962147e, type: 3}
+  - {fileID: 6212450690081621253, guid: 3255070160283fc489cf1f956528d556, type: 3}
+  - {fileID: 2250791952819849961, guid: 5d12111e5075e064a893c57304e0d4c7, type: 3}
+  - {fileID: 3751833786985758621, guid: 2fe2cfe68e47b1249a7cfd3035f538ff, type: 3}
+  - {fileID: 2403397123480543169, guid: 39c9bbca7d2ea054781d763e7f4084f3, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
@@ -121,6 +134,19 @@ MonoBehaviour:
   - {fileID: 0}
   downNeighbours:
   - {fileID: -265474770744947562, guid: b2bd8fc612b3e394eb9d7691cb8bd27b, type: 3}
+  - {fileID: 6212450690081621253, guid: 3255070160283fc489cf1f956528d556, type: 3}
+  - {fileID: 2250791952819849961, guid: 5d12111e5075e064a893c57304e0d4c7, type: 3}
+  - {fileID: 3751833786985758621, guid: 2fe2cfe68e47b1249a7cfd3035f538ff, type: 3}
+  - {fileID: 2403397123480543169, guid: 39c9bbca7d2ea054781d763e7f4084f3, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}

@@ -107,7 +107,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tileType: 
-  probability: 4
+  probability: 1
+  fixedTile: 1
+  fixedNumber: 1
+  rangeTile: 0
+  minimumNumber: 0
+  maximumNumber: 0
   rotateRight: 0
   rotate180: 0
   rotateLeft: 0

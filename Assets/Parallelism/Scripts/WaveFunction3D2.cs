@@ -5,6 +5,8 @@ using UnityEngine;
 using UnityEditor;
 using System.Diagnostics;
 using Debug = UnityEngine.Debug;
+using System;
+using Random = UnityEngine.Random;
 
 public class WaveFunction3D2 : MonoBehaviour
 {
@@ -30,6 +32,12 @@ public class WaveFunction3D2 : MonoBehaviour
     public static event OnRegenerate onRegenerate;
     Stopwatch stopwatch;
 
+
+
+    [SerializeField] List<Tile3D2> fixedTiles;
+
+
+
     void Awake()
     {
         ClearNeighbours(ref tileObjects);
@@ -43,6 +51,7 @@ public class WaveFunction3D2 : MonoBehaviour
         InitializeGrid();
         CreateSolidFloor();
         CreateSolidCeiling();
+      //  CreateFixedTiles();
         UpdateGeneration();
     }
 
@@ -225,7 +234,7 @@ public class WaveFunction3D2 : MonoBehaviour
                     if (tile.upSocket.isSymmetric || otherTile.downSocket.isSymmetric
                     || (otherTile.downSocket.isFlipped && !tile.upSocket.isFlipped)
                     || (!otherTile.downSocket.isFlipped && tile.upSocket.isFlipped))
-                    tile.upNeighbours.Add(otherTile);
+                        tile.upNeighbours.Add(otherTile);
                 }
                 // Down neighbours
                 if (otherTile.upSocket.socket_name == tile.downSocket.socket_name
@@ -235,7 +244,7 @@ public class WaveFunction3D2 : MonoBehaviour
                     if (otherTile.upSocket.isSymmetric || tile.downSocket.isSymmetric
                     || (otherTile.upSocket.isFlipped && !tile.downSocket.isFlipped)
                     || (!otherTile.upSocket.isFlipped && tile.downSocket.isFlipped))
-                    tile.downNeighbours.Add(otherTile);
+                        tile.downNeighbours.Add(otherTile);
                 }
                 // Right neighbours
                 if (otherTile.leftSocket.socket_name == tile.rightSocket.socket_name
@@ -245,7 +254,7 @@ public class WaveFunction3D2 : MonoBehaviour
                     if (otherTile.leftSocket.isSymmetric || tile.rightSocket.isSymmetric
                     || (otherTile.leftSocket.isFlipped && !tile.rightSocket.isFlipped)
                     || (!otherTile.leftSocket.isFlipped && tile.rightSocket.isFlipped))
-                    tile.rightNeighbours.Add(otherTile);
+                        tile.rightNeighbours.Add(otherTile);
                 }
                 // Left neighbours
                 if (otherTile.rightSocket.socket_name == tile.leftSocket.socket_name
@@ -255,7 +264,7 @@ public class WaveFunction3D2 : MonoBehaviour
                     if (otherTile.rightSocket.isSymmetric || tile.leftSocket.isSymmetric
                         || (otherTile.rightSocket.isFlipped && !tile.leftSocket.isFlipped)
                         || (!otherTile.rightSocket.isFlipped && tile.leftSocket.isFlipped))
-                    tile.leftNeighbours.Add(otherTile);
+                        tile.leftNeighbours.Add(otherTile);
                 }
 
                 // VERTICAL FACES: both faces must have invariable rotation or the same rotation index
@@ -263,10 +272,10 @@ public class WaveFunction3D2 : MonoBehaviour
                 // Below neighbours
                 if (otherTile.belowSocket.socket_name == tile.aboveSocket.socket_name)
                 {
-                    if((otherTile.belowSocket.rotationallyInvariant
+                    if ((otherTile.belowSocket.rotationallyInvariant
                         && tile.aboveSocket.rotationallyInvariant)
                         || (otherTile.belowSocket.rotationIndex == tile.aboveSocket.rotationIndex))
-                    tile.aboveNeighbours.Add(otherTile);
+                        tile.aboveNeighbours.Add(otherTile);
                 }
 
                 // Above neighbours
@@ -275,7 +284,7 @@ public class WaveFunction3D2 : MonoBehaviour
                     if ((otherTile.aboveSocket.rotationallyInvariant
                         && tile.belowSocket.rotationallyInvariant)
                         || (otherTile.aboveSocket.rotationIndex == tile.belowSocket.rotationIndex))
-                    tile.belowNeighbours.Add(otherTile);
+                        tile.belowNeighbours.Add(otherTile);
                 }
             }
         }
@@ -292,7 +301,7 @@ public class WaveFunction3D2 : MonoBehaviour
             {
                 for (int x = 0; x < dimensionsX; x++)
                 {
-                    Cell3D2 newCell = Instantiate(cellObj, new Vector3(x*cellSize, y * cellSize, z*cellSize), Quaternion.identity, gameObject.transform);
+                    Cell3D2 newCell = Instantiate(cellObj, new Vector3(x * cellSize, y * cellSize, z * cellSize), Quaternion.identity, gameObject.transform);
                     newCell.CreateCell(false, tileObjects, x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ));
                     gridComponents.Add(newCell);
                 }
@@ -330,6 +339,7 @@ public class WaveFunction3D2 : MonoBehaviour
 
                 instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
                 instantiatedTile.gameObject.SetActive(true);
+
                 iterations++;
             }
         }
@@ -340,7 +350,7 @@ public class WaveFunction3D2 : MonoBehaviour
     /// </summary>
     void CreateSolidCeiling()
     {
-        int y = dimensionsY-1;
+        int y = dimensionsY - 1;
         for (int z = 0; z < dimensionsZ; z++)
         {
             for (int x = 0; x < dimensionsX; x++)
@@ -370,6 +380,114 @@ public class WaveFunction3D2 : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Create fixed tiles in random cells to generate the rest
+    /// </summary>
+    void CreateFixedTiles()
+    {
+        if (fixedTiles.Count == 0) { return; }
+
+        List<Cell3D2> newGenerationList = new List<Cell3D2>(gridComponents);
+
+        //Find the fixed tile 
+        for (int i = 0; i < fixedTiles.Count; i++)
+        {
+            int numberOfTiles = 0;
+
+            //If it is a fixed number, use that number
+            if (fixedTiles[i].fixedTile) numberOfTiles = fixedTiles[i].fixedNumber;
+
+            //If it is a range, calculate it
+            else if (fixedTiles[i].rangeTile)
+            {
+                numberOfTiles = Random.Range(fixedTiles[i].minimumNumber, fixedTiles[i].maximumNumber);
+            }
+
+            if (numberOfTiles <= 0) return;
+
+
+            int tilesInstantiated = 0;
+
+            //Until we find a cell that is not collapsed, generate a random index
+            while (tilesInstantiated < numberOfTiles)
+            {
+                int randIndex = Random.Range(0, dimensionsX * dimensionsY * dimensionsZ);
+
+                //If it is not collapsed, put a tile and add one to the instantiated tiles counter
+                if (!newGenerationList[randIndex].collapsed)
+                {
+                    Cell3D2 cellToCollapse = newGenerationList[randIndex];
+                    Tile3D2 chosenTile = fixedTiles[i];
+                    cellToCollapse.tileOptions = new Tile3D2[] { chosenTile };
+                    cellToCollapse.collapsed = true;
+
+                    //Modify the entropy to the cells next to it so the generation always starts here
+                    int up, down, left, right;
+                    up = cellToCollapse.index + dimensionsX;
+                    down = cellToCollapse.index - dimensionsX;
+                    left = cellToCollapse.index - 1;
+                    right = cellToCollapse.index + 1;
+
+                    // UP. not at the end of a column (on z axis).
+                    if (((cellToCollapse.index / dimensionsX) % dimensionsZ) != dimensionsZ - 1)
+                    {
+                        newGenerationList[up].entropy = 1;
+                        newGenerationList[up].artificialEntropy = true;
+                    }
+
+                    // DOWN. not at the start of a column (on z axis).
+                    if (((cellToCollapse.index / dimensionsX) % dimensionsZ) != 0)
+                    {
+                        newGenerationList[down].entropy = 1;
+                        newGenerationList[down].artificialEntropy = true;
+                    }
+
+                    // LEFT. not at the start of a row
+                    if (cellToCollapse.index % dimensionsX != 0)
+                    {
+                        newGenerationList[left].entropy = 1;
+                        newGenerationList[left].artificialEntropy = true;
+                    }
+
+                    // RIGHT. not at the end of a row
+                    if ((cellToCollapse.index + 1) % dimensionsX != 0)
+                    {
+                        newGenerationList[right].entropy = 1;
+                        newGenerationList[right].artificialEntropy = true;
+                    }
+
+
+                    if (cellToCollapse.transform.childCount != 0)
+                    {
+                        foreach (Transform child in cellToCollapse.transform)
+                        {
+                            Destroy(child.gameObject);
+                        }
+                    }
+
+                    Tile3D2 instantiatedTile = Instantiate(chosenTile, cellToCollapse.transform.position, Quaternion.identity, cellToCollapse.transform);
+                    if (instantiatedTile.rotation != Vector3.zero)
+                    {
+                        instantiatedTile.gameObject.transform.Rotate(floorTile.rotation, Space.Self);
+                    }
+
+                    instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
+                    instantiatedTile.gameObject.SetActive(true);
+
+                    cellToCollapse.entropy = 1;
+                    cellToCollapse.visitable = false;
+                    if(useOptimization) GetNeighboursCloseToCollapsedCell(cellToCollapse);
+
+                    tilesInstantiated++;
+                    iterations++;
+
+                    gridComponents = newGenerationList;
+                }
+
+                //If it is collapsed, the loop starts again
+            }
+        }
+    }
 
     /// <summary>
     /// Reorders the grid based on the entropy of the cells, collapsing the one with less entropy
@@ -388,15 +506,17 @@ public class WaveFunction3D2 : MonoBehaviour
         int stopIndex = default;
         if (!inOrderGeneration)
         {
-            tempGrid.Sort((a, b) => { return a.tileOptions.Length - b.tileOptions.Length; });
+
+            //tempGrid.Sort((a, b) => { return a.tileOptions.Length - b.tileOptions.Length; });
+            tempGrid.Sort((a, b) => { return a.entropy - b.entropy; });
 
             // Removes all the cells with more options than the first one
             // This is done to ensure that only the cells with less entropy are selected
-            int arrLength = tempGrid[0].tileOptions.Length;
+            int arrLength = tempGrid[0].entropy;
 
             for (int i = 1; i < tempGrid.Count; i++)
             {
-                if (tempGrid[i].tileOptions.Length > arrLength)
+                if (tempGrid[i].entropy > arrLength)
                 {
                     stopIndex = i;
                     break;
@@ -405,6 +525,7 @@ public class WaveFunction3D2 : MonoBehaviour
         }
 
         yield return new WaitForSeconds(0f); // Debugging purposes
+
 
         CollapseCell(ref tempGrid, stopIndex);
     }
@@ -419,7 +540,7 @@ public class WaveFunction3D2 : MonoBehaviour
         Cell3D2 cellToCollapse;
 
         // If non-ordered generation, select a random cell, if not, select the first one
-        if (!inOrderGeneration)  cellToCollapse = tempGrid[Random.Range(0, stopIndex)];
+        if (!inOrderGeneration) cellToCollapse = tempGrid[Random.Range(0, stopIndex)];
         else cellToCollapse = tempGrid[0];
 
         cellToCollapse.collapsed = true;
@@ -631,7 +752,7 @@ public class WaveFunction3D2 : MonoBehaviour
         {
             //END
             stopwatch.Stop();
-            print($"Ha tardado {stopwatch.ElapsedMilliseconds} ms en acabar ({stopwatch.ElapsedMilliseconds/1000} s)");
+            print($"Ha tardado {stopwatch.ElapsedMilliseconds} ms en acabar ({stopwatch.ElapsedMilliseconds / 1000} s)");
         }
 
     }
@@ -812,6 +933,7 @@ public class WaveFunction3D2 : MonoBehaviour
         InitializeGrid();
         CreateSolidFloor();
         CreateSolidCeiling();
+       // CreateFixedTiles();
         UpdateGeneration();
     }
 }

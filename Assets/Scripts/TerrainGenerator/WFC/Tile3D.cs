@@ -39,6 +39,14 @@ public class Tile3D : MonoBehaviour
     public string tileType;
     public int probability;
 
+    [Header("Fixed tiles")]
+    [Tooltip("Do not mark at the sime time fixed and range! Only one")]
+    public bool fixedTile; //If this is checked, there has to be a specific number of these tiles
+    public int fixedNumber;
+    public bool rangeTile; //If this is checked, there has to be a range of these tiles
+    public int minimumNumber;
+    public int maximumNumber;
+
     [Header("Create rotated tiles")]
     public bool rotateRight;
     public bool rotate180;

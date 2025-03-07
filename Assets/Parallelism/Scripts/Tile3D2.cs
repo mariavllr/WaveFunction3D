@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using UnityEditor;
 public class Tile3D2 : MonoBehaviour
 {
     public enum Border
@@ -38,6 +38,14 @@ public class Tile3D2 : MonoBehaviour
     public string tileType;
     public int probability;
 
+    [Header("Fixed tiles")]
+    [Tooltip("Do not mark at the sime time fixed and range! Only one")]
+    public bool fixedTile; //If this is checked, there has to be a specific number of these tiles
+    public int fixedNumber;
+    public bool rangeTile; //If this is checked, there has to be a range of these tiles
+    public int minimumNumber;
+    public int maximumNumber;
+
     [Header("Create rotated tiles")]
     public bool rotateRight;
     public bool rotate180;
@@ -59,8 +67,6 @@ public class Tile3D2 : MonoBehaviour
     public List<string> excludedNeighboursRight = new();
     public List<string> excludedNeighboursDown = new();
     public List<string> excludedNeighboursLeft = new();
-
-    public bool excludeInTopLayer;
 
     [Tooltip("Para definir la direccion la derecha siempre ser� el eje X (rojo) y arriba ser� el eje Z (azul)")]
     [Header("Sockets")]

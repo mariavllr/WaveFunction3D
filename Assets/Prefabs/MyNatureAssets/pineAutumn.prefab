@@ -103,7 +103,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tileType: 
-  probability: 5
+  probability: 30
+  fixedTile: 0
+  fixedNumber: 0
+  rangeTile: 1
+  minimumNumber: 1
+  maximumNumber: 4
   rotateRight: 0
   rotate180: 0
   rotateLeft: 0
@@ -119,6 +124,7 @@ MonoBehaviour:
   - {fileID: 6212450690081621253, guid: 3255070160283fc489cf1f956528d556, type: 3}
   - {fileID: 2250791952819849961, guid: 5d12111e5075e064a893c57304e0d4c7, type: 3}
   - {fileID: 3751833786985758621}
+  - {fileID: 2403397123480543169, guid: 39c9bbca7d2ea054781d763e7f4084f3, type: 3}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
@@ -138,6 +144,7 @@ MonoBehaviour:
   - {fileID: 6212450690081621253, guid: 3255070160283fc489cf1f956528d556, type: 3}
   - {fileID: 2250791952819849961, guid: 5d12111e5075e064a893c57304e0d4c7, type: 3}
   - {fileID: 3751833786985758621}
+  - {fileID: 2403397123480543169, guid: 39c9bbca7d2ea054781d763e7f4084f3, type: 3}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
@@ -155,6 +162,7 @@ MonoBehaviour:
   - {fileID: 6212450690081621253, guid: 3255070160283fc489cf1f956528d556, type: 3}
   - {fileID: 2250791952819849961, guid: 5d12111e5075e064a893c57304e0d4c7, type: 3}
   - {fileID: 3751833786985758621}
+  - {fileID: 2403397123480543169, guid: 39c9bbca7d2ea054781d763e7f4084f3, type: 3}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
@@ -181,6 +189,7 @@ MonoBehaviour:
   - {fileID: 6212450690081621253, guid: 3255070160283fc489cf1f956528d556, type: 3}
   - {fileID: 2250791952819849961, guid: 5d12111e5075e064a893c57304e0d4c7, type: 3}
   - {fileID: 3751833786985758621}
+  - {fileID: 2403397123480543169, guid: 39c9bbca7d2ea054781d763e7f4084f3, type: 3}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}

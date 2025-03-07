@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEditor;
 using System.Diagnostics;
 using Debug = UnityEngine.Debug;
+using Random = UnityEngine.Random;
 
 public class WaveFunction3D : MonoBehaviour
 {
@@ -36,6 +37,8 @@ public class WaveFunction3D : MonoBehaviour
 
     public bool inOrderGeneration;
 
+    [SerializeField] List<Tile3D> fixedTiles;
+
     void Awake()
     {
 
@@ -52,6 +55,7 @@ public class WaveFunction3D : MonoBehaviour
         CreateSolidFloor();
         CreateSolidCeiling();
         if (firstFloorBorder) CreateBorderContour();
+        CreateFixedTiles();
         UpdateGeneration();
     }
 
@@ -333,6 +337,115 @@ public class WaveFunction3D : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Create fixed tiles in random cells to generate the rest
+    /// </summary>
+    void CreateFixedTiles()
+    {
+        if (fixedTiles.Count == 0) { return; }
+
+        List<Cell3D> newGenerationList = new List<Cell3D>(gridComponents);
+
+        //Find the fixed tile 
+        for (int i = 0; i < fixedTiles.Count; i++)
+        {
+            int numberOfTiles = 0;
+
+            //If it is a fixed number, use that number
+            if (fixedTiles[i].fixedTile) numberOfTiles = fixedTiles[i].fixedNumber;
+
+            //If it is a range, calculate it
+            else if (fixedTiles[i].rangeTile)
+            {
+                numberOfTiles = Random.Range(fixedTiles[i].minimumNumber, fixedTiles[i].maximumNumber);
+            }
+
+            if (numberOfTiles <= 0) return;
+
+
+            int tilesInstantiated = 0;
+
+            //Until we find a cell that is not collapsed, generate a random index
+            while (tilesInstantiated < numberOfTiles)
+            {
+                int randIndex = Random.Range(0, dimensionsX * dimensionsY * dimensionsZ);
+
+                //If it is not collapsed, put a tile and add one to the instantiated tiles counter
+                if (!newGenerationList[randIndex].collapsed)
+                {
+                    Cell3D cellToCollapse = newGenerationList[randIndex];
+                    Tile3D chosenTile = fixedTiles[i];
+                    cellToCollapse.tileOptions = new Tile3D[] { chosenTile };
+                    cellToCollapse.collapsed = true;
+
+                    //Modify the entropy to the cells next to it so the generation always starts here
+                    int up, down, left, right;
+                    up = cellToCollapse.index + dimensionsX;
+                    down = cellToCollapse.index - dimensionsX;
+                    left = cellToCollapse.index - 1;
+                    right = cellToCollapse.index + 1;
+
+                    // UP. not at the end of a column (on z axis).
+                    if (((cellToCollapse.index / dimensionsX) % dimensionsZ) != dimensionsZ - 1)
+                    {
+                        newGenerationList[up].entropy = 1;
+                        newGenerationList[up].artificialEntropy = true;
+                    }
+
+                    // DOWN. not at the start of a column (on z axis).
+                    if (((cellToCollapse.index / dimensionsX) % dimensionsZ) != 0)
+                    {
+                        newGenerationList[down].entropy = 1;
+                        newGenerationList[down].artificialEntropy = true;
+                    }
+
+                    // LEFT. not at the start of a row
+                    if (cellToCollapse.index % dimensionsX != 0)
+                    {
+                        newGenerationList[left].entropy = 1;
+                        newGenerationList[left].artificialEntropy = true;
+                    }
+
+                    // RIGHT. not at the end of a row
+                    if ((cellToCollapse.index + 1) % dimensionsX != 0)
+                    {
+                        newGenerationList[right].entropy = 1;
+                        newGenerationList[right].artificialEntropy = true;
+                    }
+
+
+                    if (cellToCollapse.transform.childCount != 0)
+                    {
+                        foreach (Transform child in cellToCollapse.transform)
+                        {
+                            Destroy(child.gameObject);
+                        }
+                    }
+
+                    Tile3D instantiatedTile = Instantiate(chosenTile, cellToCollapse.transform.position, Quaternion.identity, cellToCollapse.transform);
+                    if (instantiatedTile.rotation != Vector3.zero)
+                    {
+                        instantiatedTile.gameObject.transform.Rotate(floorTile.rotation, Space.Self);
+                    }
+
+                    instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
+                    instantiatedTile.gameObject.SetActive(true);
+
+                    cellToCollapse.entropy = 1;
+                    cellToCollapse.visitable = false;
+                    if (useOptimization) GetNeighboursCloseToCollapsedCell(cellToCollapse);
+
+                    tilesInstantiated++;
+                    iterations++;
+
+                    gridComponents = newGenerationList;
+                }
+
+                //If it is collapsed, the loop starts again
+            }
+        }
+    }
+
     //--------GRASS BORDER CONTOUR--------------
     void CreateBorderContour()
     {
@@ -400,7 +513,7 @@ public class WaveFunction3D : MonoBehaviour
 
                         instantiatedTile.gameObject.SetActive(true);
                     }
-                    
+                    if (useOptimization) GetNeighboursCloseToCollapsedCell(cellToCollapse);
                     iterations++;
                     border = false;
                 }
@@ -943,7 +1056,7 @@ public class WaveFunction3D : MonoBehaviour
         CreateSolidFloor();
         CreateSolidCeiling();
         if (firstFloorBorder) CreateBorderContour();
-
+        CreateFixedTiles();
         UpdateGeneration();
     }
 }

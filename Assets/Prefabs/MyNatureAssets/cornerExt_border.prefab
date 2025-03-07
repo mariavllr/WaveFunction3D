@@ -113,8 +113,8 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   rightNeighbours:
-  - {fileID: 3110566506449276630, guid: 85a8b3df246529841a56d407a88fff4d, type: 3}
   - {fileID: 1948357013093823869, guid: d8ebdb494d7ccb94fb4cf65abab95235, type: 3}
+  - {fileID: -8109604136941196672, guid: 092215a8d1bcad2418b84274a69b3e59, type: 3}
   - {fileID: 0}
   - {fileID: 0}
   downNeighbours:
@@ -129,7 +129,7 @@ MonoBehaviour:
   aboveNeighbours:
   - {fileID: 1948357013093823869, guid: d8ebdb494d7ccb94fb4cf65abab95235, type: 3}
   belowNeighbours:
-  - {fileID: 5879200595051830065, guid: 37dddf1fe29a6d94cb5de369f0660295, type: 3}
+  - {fileID: 2005606087145236132, guid: 16408525eb48f6b40961da77ada8ad0f, type: 3}
   excludedNeighboursUp: []
   excludedNeighboursRight: []
   excludedNeighboursDown: []
