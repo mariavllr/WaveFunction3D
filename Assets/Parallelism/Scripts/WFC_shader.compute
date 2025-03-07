@@ -9,9 +9,9 @@
 |-------------------------------------------------------------------------------|
 */
 #define MAX_NEIGHBOURS 44
-#define X_EXTENSION 3
+#define X_EXTENSION 4
 #define Y_EXTENSION 1
-#define Z_EXTENSION 3
+#define Z_EXTENSION 4
 
 struct Cell3DStruct
 {
@@ -277,12 +277,19 @@ void GetCellsToCheck(uint3 initialIndex)
     cellsToCheck[0] = initialIndex.xyz + uint3(0, 0, 0);
     cellsToCheck[1] = initialIndex.xyz + uint3(1, 0, 0);
     cellsToCheck[2] = initialIndex.xyz + uint3(2, 0, 0);
-    cellsToCheck[3] = initialIndex.xyz + uint3(0, 0, 1);
-    cellsToCheck[4] = initialIndex.xyz + uint3(1, 0, 1);
-    cellsToCheck[5] = initialIndex.xyz + uint3(2, 0, 1);
-    cellsToCheck[6] = initialIndex.xyz + uint3(0, 0, 2);
-    cellsToCheck[7] = initialIndex.xyz + uint3(1, 0, 2);
-    cellsToCheck[8] = initialIndex.xyz + uint3(2, 0, 2);
+    cellsToCheck[3] = initialIndex.xyz + uint3(3, 0, 0);
+    cellsToCheck[4] = initialIndex.xyz + uint3(0, 0, 1);
+    cellsToCheck[5] = initialIndex.xyz + uint3(1, 0, 1);
+    cellsToCheck[6] = initialIndex.xyz + uint3(2, 0, 1);
+    cellsToCheck[7] = initialIndex.xyz + uint3(3, 0, 1);
+    cellsToCheck[8] = initialIndex.xyz + uint3(0, 0, 2);
+    cellsToCheck[9] = initialIndex.xyz + uint3(1, 0, 2);
+    cellsToCheck[10] = initialIndex.xyz + uint3(2, 0, 2);
+    cellsToCheck[11] = initialIndex.xyz + uint3(3, 0, 2);
+    cellsToCheck[12] = initialIndex.xyz + uint3(0, 0, 3);
+    cellsToCheck[13] = initialIndex.xyz + uint3(1, 0, 3);
+    cellsToCheck[14] = initialIndex.xyz + uint3(2, 0, 3);
+    cellsToCheck[15] = initialIndex.xyz + uint3(3, 0, 3);
 }
 
 void RestartCells()

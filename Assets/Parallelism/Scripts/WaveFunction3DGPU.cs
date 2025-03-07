@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System;
 using UnityEditor;
 using System.Reflection;
+using UnityEditor.ShaderGraph;
 
 public class WaveFunction3DGPU : MonoBehaviour
 {
@@ -105,51 +106,29 @@ public class WaveFunction3DGPU : MonoBehaviour
         shader.SetInt("gridDimensionsZ", dimensionsZ);
         shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
         shader.SetInt("emptyTile", Array.IndexOf(tileObjects, emptyTile));
-        shader.SetVector("offset", new Vector3(0, 1, 0));
 
-        // Loop until the grid is fully collapsed without any incomatibilities
-        int[] incompatibilities = {1};
-        int attempts = 0;
-
-        while(incompatibilities[0] != 0 && attempts < 1000)
+        // Generate each layer of the map starting from the bottom
+        for(int i = 1; i < dimensionsY - 1; i++)
         {
-            // Reset buffers
-            outputBuffer.SetData(gridComponentsStructs);
-            stateBuffer.SetData(new int[] { 0 });
-
-            // Set different seed between attemps
-            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * (attempts + 1));
-
-            // Dispatch 1/5 of the grid (not displaced)
-            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 8 + (dimensionsX % 8), 1, dimensionsZ / 8 + (dimensionsZ % 8));
-
-            // Dispatch 2/5 of the grid (displaced to the front-right)
-            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 2);
-            shader.SetVector("offset", new Vector3(1, 1, 1));
-            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 8 + (dimensionsX % 8), 1, dimensionsZ / 8 + (dimensionsZ % 8));
-
-            // Dispatch 3/5 of the grid (displaced to the front-left)
-            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 3);
-            shader.SetVector("offset", new Vector3(-1, 1, 1));
-            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 8 + (dimensionsX % 8), 1, dimensionsZ / 8 + (dimensionsZ % 8));
-
-            // Dispatch 4/5 of the grid (displaced to the back-left)
-            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 4);
-            shader.SetVector("offset", new Vector3(-1, 1, -1));
-            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 8 + (dimensionsX % 8), 1, dimensionsZ / 8 + (dimensionsZ % 8));
-
-            // Dispatch 5/5 of the grid (displaced to the back-right)
-            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 5);
-            shader.SetVector("offset", new Vector3(1, 1, -1));
-            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 8 + (dimensionsX % 8), 1, dimensionsZ / 8 + (dimensionsZ % 8));
-
-            stateBuffer.GetData(incompatibilities);
-            attempts++;
-            Debug.Log("Incompatibilities: " + incompatibilities[0] + " Attempts: " + attempts);
+            // Loop until the grid is fully collapsed without any incomatibilities
+            int attempts = 0;
+            int[] incompatibilities = { 1 };
+            Vector3[] offsets = { new Vector3(0, i, 0), new Vector3(2, i, 0), new Vector3(0, i, 2), new Vector3(2, i, 2) };
+            while(incompatibilities[0] != 0 && attempts < 1000)
+            {
+                outputBuffer.SetData(gridComponentsStructs);
+                stateBuffer.SetData(new int[] { 0 });
+                foreach (Vector3 offset in offsets)
+                {
+                    shader.SetInt("seed", UnityEngine.Random.Range(0, int.MaxValue));
+                    shader.SetVector("offset", offset);
+                    shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 10 + (dimensionsX % 10), 1, dimensionsZ / 10 + (dimensionsZ % 10));
+                }
+                stateBuffer.GetData(incompatibilities);
+                attempts++;
+            }
+            outputBuffer.GetData(gridComponentsStructs);
         }
-
-        // Get data
-        outputBuffer.GetData(gridComponentsStructs);
 
         // Recreate the grid based on the data received by the shader
         for (int i = 0; i < gridComponentsStructs.Length; i++)
@@ -556,6 +535,22 @@ public class WaveFunction3DGPU : MonoBehaviour
                 cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, floorTile);
             }
         }
+
+        // y = 1;
+        // for (int z = 0; z < dimensionsZ; z++)
+        // {
+        //     for (int x = 0; x < dimensionsX; x++)
+        //     {
+        //         int index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
+        //         cell3DStructs[index].colapsed = 1;
+        //         cell3DStructs[index].entropy = 1;
+        //         for(int i = 1; i < MAX_NEIGHBOURS; i++)
+        //         {
+        //             cell3DStructs[index].tileOptions[i] = -1;
+        //         }
+        //         cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, grassTile);
+        //     }
+        // }
     }
 
     unsafe void CreateEmptyCeiling(Cell3DStruct[] cell3DStructs)
