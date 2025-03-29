@@ -44,7 +44,6 @@ struct Tile3DStruct
 
 // Values from de C# code
 uint gridDimensionsX, gridDimensionsY, gridDimensionsZ;
-uint floorTile, emptyTile;
 uint seed;
 uint3 offset;
 
@@ -346,6 +345,5 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     GetCellsToCheck(initialIndex);
     RestartCells();
     seed += initialIndex.x * 34 + initialIndex.y * 76 + initialIndex.z;
-    //seed = 3436899856;
     UpdateGeneration(initialIndex);
 }

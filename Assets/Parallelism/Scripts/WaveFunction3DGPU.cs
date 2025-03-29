@@ -104,8 +104,6 @@ public class WaveFunction3DGPU : MonoBehaviour
         shader.SetInt("gridDimensionsX", dimensionsX);
         shader.SetInt("gridDimensionsY", dimensionsY);
         shader.SetInt("gridDimensionsZ", dimensionsZ);
-        shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
-        shader.SetInt("emptyTile", Array.IndexOf(tileObjects, emptyTile));
 
         // Generate each layer of the map starting from the bottom
         for(int i = 1; i < dimensionsY - 1; i++)
@@ -137,15 +135,15 @@ public class WaveFunction3DGPU : MonoBehaviour
             Cell3D2 cell = gridComponents[i];
             cell.name = "Cell " + i;
             cell.collapsed = gridComponentsStructs[i].colapsed == 1;
-            //cell.RecreateCell(tileObjects[gridComponentsStructs[i].tileOptions[0]]);
+            cell.RecreateCell(tileObjects[gridComponentsStructs[i].tileOptions[0]]);
 
             // Uncomment this to recreate the cell with all the possible tiles
-            List<Tile3D2> newOptions = new List<Tile3D2>();
-            for (int j = 0; j < MAX_NEIGHBOURS; j++)
-            {
-                if (gridComponentsStructs[i].tileOptions[j] != -1) newOptions.Add(tileObjects[gridComponentsStructs[i].tileOptions[j]]);
-            }
-            cell.RecreateCell(newOptions.ToArray());
+            // List<Tile3D2> newOptions = new List<Tile3D2>();
+            // for (int j = 0; j < MAX_NEIGHBOURS; j++)
+            // {
+            //     if (gridComponentsStructs[i].tileOptions[j] != -1) newOptions.Add(tileObjects[gridComponentsStructs[i].tileOptions[j]]);
+            // }
+            // cell.RecreateCell(newOptions.ToArray());
 
             if (cell.transform.childCount != 0)
             {
@@ -457,7 +455,7 @@ public class WaveFunction3DGPU : MonoBehaviour
             {
                 tileStruct.upNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].upNeighbours[j]);
             }
-
+            //... and so on for the rest of the neighbours
             for (int j = 0; j < tileObjects[i].rightNeighbours.Count; j++)
             {
                 tileStruct.rightNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].rightNeighbours[j]);
