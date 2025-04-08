@@ -71,5 +71,19 @@ public class Tile3D2 : MonoBehaviour
     public Socket aboveSocket;
     public Socket belowSocket;
 
+    public override bool Equals(object obj)
+    {
+        if (obj is Tile3D2 other)
+        {
+            return this.tileType == other.tileType &&
+                   this.rotation == other.rotation;
+        }
+        return false;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(tileType, rotation);
+    }
 
 }

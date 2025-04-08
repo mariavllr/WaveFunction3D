@@ -7,19 +7,24 @@ public class Cell3D2 : MonoBehaviour
     public bool collapsed;
     public Tile3D2[] tileOptions;
     public bool haSidoVisitado; //debug
-    public bool visitable = false;
-    public bool tieneCiudad;
+    public bool visitable = false; //optimization
     public int index; //debug
-    public bool blocked = false; //If is bloq, no tile can be spawned here
     public bool showDebugVisitableCells;
+    public bool centerCubeCell;
+
+    MeshRenderer meshRenderer;
+
+
 
     public void CreateCell(bool collapseState, Tile3D2[] tiles, int cellIndex)
     {
         collapsed = collapseState;
         tileOptions = tiles;
         haSidoVisitado = false;
-        tieneCiudad = false;
         index = cellIndex;
+        centerCubeCell = false;
+
+        meshRenderer = GetComponentInChildren<MeshRenderer>();
 
         if (!showDebugVisitableCells) Destroy(transform.GetChild(0).gameObject);
     }
@@ -32,6 +37,24 @@ public class Cell3D2 : MonoBehaviour
     public void MakeVisitable()
     {
         visitable = true;
-        if (!collapsed && showDebugVisitableCells) GetComponentInChildren<MeshRenderer>().material.color = new Color32(255, 30, 0, 50);
+        //    if (!collapsed && showDebugVisitableCells) MakeVisible(true);
+    }
+
+    public void MakeVisible(bool visibility)
+    {
+        meshRenderer = GetComponentInChildren<MeshRenderer>();
+        if (meshRenderer != null) meshRenderer.enabled = visibility;
+    }
+
+    public void ChangeAlpha(float alpha)
+    {
+        meshRenderer = GetComponentInChildren<MeshRenderer>();
+        if (meshRenderer != null)
+        {
+            Color color = meshRenderer.material.color;
+            color.a = alpha;
+            meshRenderer.material.color = color;
+        }
+
     }
 }
