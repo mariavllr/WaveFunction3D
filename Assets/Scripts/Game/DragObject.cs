@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-
+using DG.Tweening;
 public class DragObject : MonoBehaviour
 {
     private Camera mainCamera;
@@ -13,22 +13,25 @@ public class DragObject : MonoBehaviour
     public static event Action<Tile3D2> OnTileDragged;
     public static event Action<GameObject> OnTileReleased;
 
-    public static event Action<Vector3, Tile3D2> OnTileRotated;
 
     //Para mostrar las celdas validas y mostrar una preview del objeto colocado
     private List<Cell3D2> validCells = new List<Cell3D2>(); // para acceder a las celdas válidas, se actualiza desde WaveFunctionGame
 
     private Cell3D2 currentPreviewCell = null;
     private GameObject currentPreviewInstance = null;
+    private WaveFunctionGame wfc;
 
     Material previewMaterial;
     private void Awake()
     {
         DeleteTile.OnDeleteTile += OnTileDeleted;
+        CardGenerator.OnTileRotated += OnTileRotated;
+        wfc = FindAnyObjectByType<WaveFunctionGame>();
     }
     private void OnDestroy()
     {
         DeleteTile.OnDeleteTile -= OnTileDeleted;
+        CardGenerator.OnTileRotated -= OnTileRotated;
     }
     public void SetValidCells(List<Cell3D2> cells)
     {
@@ -39,7 +42,7 @@ public class DragObject : MonoBehaviour
     {
         mainCamera = Camera.main;
         tile = GetComponent<Tile3D2>();
-        previewMaterial = FindAnyObjectByType<WaveFunctionGame>().previewMaterial;
+        previewMaterial = wfc.previewMaterial;
     }
 
     void Update()
@@ -79,6 +82,8 @@ public class DragObject : MonoBehaviour
                     currentPreviewCell = closest;
                     // Instanciar nuevo preview
                     currentPreviewInstance = CreatePreviewAtCell(currentPreviewCell);
+                    //Sonido de cambiar de cell
+                    wfc.audioSource.PlayOneShot(wfc.changeCellSound, 0.5f);
                 }
             }
 
@@ -94,6 +99,8 @@ public class DragObject : MonoBehaviour
                     currentPreviewInstance = null;
                     currentPreviewCell = null;
                 }
+
+                wfc.audioSource.PlayOneShot(wfc.collapseCellSound, 0.5f);
             }
         }
 
@@ -107,15 +114,9 @@ public class DragObject : MonoBehaviour
         return mainCamera.ScreenToWorldPoint(mouseScreenPos);
     }
 
-    //ahora no funciona mucho
-    private void RotateTile()
+    void OnTileRotated(Vector3 rotation, Tile3D2 tile)
     {
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            gameObject.transform.Rotate(new Vector3(0, 90, 0));
-            tile.rotation = transform.rotation.eulerAngles;
-            OnTileRotated?.Invoke(transform.rotation.eulerAngles, tile);
-        }
+        OnTileDeleted();
     }
 
     void OnTileDeleted()
@@ -193,6 +194,11 @@ public class DragObject : MonoBehaviour
         }
 
         preview.name = "PreviewTile";
+
+        // Efecto de rebote con DOTween
+        Vector3 originalPosition = preview.transform.position;
+        preview.transform.position = new Vector3(originalPosition.x, originalPosition.y - 0.5f, originalPosition.z); // Empujar hacia abajo un poco
+        preview.transform.DOJump(originalPosition, jumpPower: 0.25f, numJumps: 1, duration: 0.3f).SetEase(Ease.OutBounce); // Rebotar hacia arriba
 
         return preview;
     }

@@ -1,7 +1,10 @@
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
-
+using DG.Tweening;
+using UnityEngine.UIElements;
+using System;
+using UnityEngine.Tilemaps;
 public class CardGenerator : MonoBehaviour
 {
     [SerializeField] public List<Tile3D2> tilesList;
@@ -9,6 +12,8 @@ public class CardGenerator : MonoBehaviour
     public int queueSize;
     public float distance;
     private float offset = 0;
+
+    public static event Action<Vector3, Tile3D2> OnTileRotated;
 
     private void Start()
     {
@@ -25,6 +30,14 @@ public class CardGenerator : MonoBehaviour
     private void OnDestroy()
     {
         DragObject.OnTileReleased -= OnTileRemoved; //  Desuscribimos para evitar errores
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            RotateTile();
+        }
     }
 
     private void InicializeTileQueue()
@@ -53,6 +66,8 @@ public class CardGenerator : MonoBehaviour
         // Calculate the total weight
         int totalWeight = weightedTiles.Sum(item => item.weight);
 
+
+
         // Generate a random number between 0 and totalWeight - 1
         System.Random random = new System.Random();
         int randomNumber = random.Next(0, totalWeight);
@@ -69,6 +84,7 @@ public class CardGenerator : MonoBehaviour
     private void EnqueueTile()
     {
         Tile3D2 tileToEnqueue = GetRandomTile();
+        tileToEnqueue.gameObject.SetActive(true);
 
         // Si la cola no está vacía, colocar la nueva tile debajo de la última
         Vector3 newTilePosition;
@@ -90,8 +106,21 @@ public class CardGenerator : MonoBehaviour
         }
         tileQueue.Enqueue(instantiatedTile);
 
+        //EFECTO REBOTE
+        float delayBetweenBounces = 0.1f;
+        int index = 0;
 
-        //TO DO: Que salgan solo tiles que se puedan colocar, o por lo menos con probabilidades para que no salga todo el rato esquinas y caminos
+        foreach (Tile3D2 tile in tileQueue)
+        {
+            float delay = index * delayBetweenBounces;
+
+            tile.transform
+                .DOJump(tile.transform.position, jumpPower: 0.25f, numJumps: 1, duration: 0.3f)
+                .SetEase(Ease.InOutFlash)
+                .SetDelay(delay);
+
+            index++;
+        }
     }
 
     private void MoveUpQueue()
@@ -100,14 +129,6 @@ public class CardGenerator : MonoBehaviour
         foreach (Tile3D2 tile in tileQueue)
         {
             tile.transform.position += new Vector3(0, distance, 0);
-        }
-    }
-
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.P))
-        {
-            PrintStack();
         }
     }
 
@@ -121,6 +142,50 @@ public class CardGenerator : MonoBehaviour
         tileQueue.First().gameObject.AddComponent<DragObject>();
     }
 
+    //Cuando rote, queremos que busque su tile rotada en la tile list. Siempre rotará +90 grados.
+    private void RotateTile()
+    {
+        Tile3D2 actualTile = tileQueue.First();
+        string tileName = actualTile.name;
+
+        //Dividimos entre el nombre de la tile y su rotacion
+        string currentTileType = actualTile.tileType;
+        float currentRotation = actualTile.rotation.y;
+
+        // Calcular nueva rotación
+        float newRotation = (currentRotation + 90) % 360;
+
+        // Buscar la nueva tile en la lista
+        Tile3D2 newTile = tilesList.Find(tile => tile.tileType == currentTileType && tile.rotation.y == newRotation);
+
+        if (newTile != null)
+        {
+            //Ya tenemos la tile rotada. Hay que sustituirla
+            actualTile.name = newTile.name;
+            actualTile.tileType = newTile.tileType;
+            actualTile.probability = newTile.probability;
+            actualTile.rotation = newTile.rotation;
+
+            actualTile.upNeighbours = newTile.upNeighbours;
+            actualTile.rightNeighbours = newTile.rightNeighbours;
+            actualTile.downNeighbours = newTile.downNeighbours;
+            actualTile.leftNeighbours = newTile.leftNeighbours;
+            actualTile.aboveNeighbours = newTile.aboveNeighbours;
+            actualTile.belowNeighbours = newTile.belowNeighbours;
+
+            actualTile.gameObject.transform.Rotate(new Vector3(0, 90, 0), Space.Self);
+
+        }
+        else
+        {
+            Debug.LogError($"ROTATING TILE: Tile with name {newTile.name} not found.");
+        }
+
+
+
+        OnTileRotated?.Invoke(actualTile.rotation, actualTile);
+    }
+
     private void OnDeleteTile()
     {
         tileQueue.Dequeue();
@@ -130,7 +195,7 @@ public class CardGenerator : MonoBehaviour
         tileQueue.First().gameObject.AddComponent<DragObject>();
     }
 
-
+    //DEBUG
     private void PrintStack()
     {
         print("PRINTING QUEUE:");

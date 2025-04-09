@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEditor;
 using System.Diagnostics;
 using Debug = UnityEngine.Debug;
+using DG.Tweening;
 
 public class WaveFunctionGame : MonoBehaviour
 {
@@ -21,6 +22,11 @@ public class WaveFunctionGame : MonoBehaviour
     public Material previewMaterial;
     public float alphaCube = 0.1f;
 
+    //sounds
+    public AudioSource audioSource;
+    public AudioClip changeCellSound;
+    public AudioClip collapseCellSound;
+
 
     [Header("Map generation")]
     [SerializeField] private int dimensionsX, dimensionsZ, dimensionsY;
@@ -28,6 +34,7 @@ public class WaveFunctionGame : MonoBehaviour
     [SerializeField] Tile3D2 emptyTile;                     //Tile for the ceiling
     [SerializeField] private Tile3D2[] tileObjects;         //All the tiles that can be used to generate the map
     [SerializeField] int cellSize;
+    [SerializeField] GameObject newTilesContainer;          //When rotation tiles are generated, the new gameobjects need to be stored somewhere
 
     [Header("Grid")]
     [SerializeField] private List<Cell3D2> gridComponents;   //A list with all the cells inside the grid
@@ -46,7 +53,7 @@ public class WaveFunctionGame : MonoBehaviour
     {
         DragObject.OnTileDragged += OnTileDrag;
         DragObject.OnTileReleased += OnTileRemoved;
-        DragObject.OnTileRotated += OnTileRotation;
+        CardGenerator.OnTileRotated += OnTileRotation;
         DeleteTile.OnDeleteTile += OnTileDeleted;
     }
 
@@ -54,7 +61,7 @@ public class WaveFunctionGame : MonoBehaviour
     {
         DragObject.OnTileDragged -= OnTileDrag;
         DragObject.OnTileReleased -= OnTileRemoved;
-        DragObject.OnTileRotated -= OnTileRotation;
+        CardGenerator.OnTileRotated -= OnTileRotation;
     }
 
 
@@ -64,9 +71,11 @@ public class WaveFunctionGame : MonoBehaviour
         CreateRemainingCells(ref tileObjects);
         DefineNeighbourTiles(ref tileObjects, ref tileObjects);
 
+        newTilesContainer.SetActive(false); // Hide the new tiles container in the editor
         gridComponents = new List<Cell3D2>();
         stopwatch = new Stopwatch();
         centerCubeCells = 0;
+        audioSource = GetComponent<AudioSource>();
 
         stopwatch.Start();
         InitializeGrid();
@@ -106,7 +115,8 @@ public class WaveFunctionGame : MonoBehaviour
         GameObject newTile = new GameObject(name);
         newTile.gameObject.tag = tile.gameObject.tag;
         newTile.SetActive(false);
-        newTile.hideFlags = HideFlags.HideInHierarchy;
+        newTile.transform.parent = newTilesContainer.transform;
+        // newTile.hideFlags = HideFlags.HideInHierarchy;
 
         MeshFilter meshFilter = newTile.AddComponent<MeshFilter>();
         meshFilter.sharedMesh = tile.gameObject.GetComponent<MeshFilter>().sharedMesh;
@@ -505,7 +515,7 @@ public class WaveFunctionGame : MonoBehaviour
         if (selectedTile is null)
         {
             Debug.LogError("INCOMPATIBILITY!");
-            //Regenerate();
+            Regenerate();
             return;
         }
 
@@ -699,7 +709,6 @@ public class WaveFunctionGame : MonoBehaviour
             for (int i = cardGenerator.tilesList.Count -1; i >= 0; i--)
             {
                 Tile3D2 element = cardGenerator.tilesList[i];
-                element.gameObject.SetActive(true);
                 if (element.tileType == "solid" || element.tileType == "empty" || element.tileType == "cornerExtBorder" || element.tileType == "border" || element.tileType == "cornerIntBorder")
                 {
                     cardGenerator.tilesList.Remove(element);
@@ -905,6 +914,8 @@ public class WaveFunctionGame : MonoBehaviour
     }
 
 
+    //-----------------TILE EVENTS-------------------
+
     private void OnTileDrag(Tile3D2 draggedTile)
     {
         actualTileDragged = draggedTile.gameObject;
@@ -932,28 +943,12 @@ public class WaveFunctionGame : MonoBehaviour
 
     public void OnTileRotation(Vector3 rotation, Tile3D2 tileRotated)
     {
-        List<Cell3D2> tempGrid = new List<Cell3D2>(gridComponents);
-
-        tempGrid.RemoveAll(c => c.collapsed);
-        tempGrid.RemoveAll(c => !c.visitable);
-
-        //todas las del mismo tipo y rotacion
-        validCells = tempGrid
-        .Where(cell => cell.tileOptions
-            .Any(tile => tile.tileType == tileRotated.tileType && tile.rotation == rotation))
-        .ToList();
-
-
-
-        foreach (Cell3D2 cell in tempGrid)
+        foreach (Cell3D2 cell in gridComponents)
         {
-            cell.MakeVisible(false);
+            if (!cell.collapsed) cell.MakeVisible(false);
         }
 
-        foreach (Cell3D2 cell in validCells)
-        {
-            cell.MakeVisible(true);
-        }
+        OnTileDrag(tileRotated);
     }
 
     private void OnTileRemoved(GameObject tileRemoved)
@@ -1004,6 +999,9 @@ public class WaveFunctionGame : MonoBehaviour
 
         instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
         instantiatedTile.gameObject.SetActive(true);
+
+        // Efecto de rebote con DOTween
+        instantiatedTile.transform.DOJump(instantiatedTile.transform.position, jumpPower: 0.5f, numJumps: 1, duration: 0.3f).SetEase(Ease.InOutFlash);
 
 
         foreach (Cell3D2 cell in validCells)
@@ -1063,7 +1061,9 @@ public class WaveFunctionGame : MonoBehaviour
         }
 
         iterations = 0;
+        centerCubeCells = 0;
         gridComponents.Clear();
+        cubeStep = true;
 
         stopwatch.Reset();
         stopwatch.Start();
@@ -1072,6 +1072,6 @@ public class WaveFunctionGame : MonoBehaviour
         CreateSolidFloor();
         CreateSolidCeiling();
         GetCenterCube();
-        UpdateGeneration();
+        UpdateGenerationCube();
     }
 }
