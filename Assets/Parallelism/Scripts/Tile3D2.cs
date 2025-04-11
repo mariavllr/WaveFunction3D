@@ -17,7 +17,15 @@ public class Tile3D2 : MonoBehaviour
         WALL_CORNER_INT,
         BORDER,
         GRASS_BORDER,
-        SOLID
+        SOLID,
+        SAND,
+        GRASS_SAND,
+        SAND_WALL_LATERAL,
+        SAND_WALL_CORNER_EXT,
+        SAND_WALL_CORNER_INT,
+        SAND_BORDER,
+        SAND_WALL_TOP
+
     }
     [Serializable]
     public struct Socket

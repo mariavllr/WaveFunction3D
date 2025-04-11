@@ -709,7 +709,8 @@ public class WaveFunctionGame : MonoBehaviour
             for (int i = cardGenerator.tilesList.Count -1; i >= 0; i--)
             {
                 Tile3D2 element = cardGenerator.tilesList[i];
-                if (element.tileType == "solid" || element.tileType == "empty" || element.tileType == "cornerExtBorder" || element.tileType == "border" || element.tileType == "cornerIntBorder")
+                if (element.tileType == "solid" || element.tileType == "empty" || element.tileType == "cornerExtBorder" || element.tileType == "border" 
+                    || element.tileType == "cornerIntBorder" || element.tileType == "cornerExt_border_sand" || element.tileType == "borderSand" || element.tileType == "cornerInt_border_sand")
                 {
                     cardGenerator.tilesList.Remove(element);
                 }

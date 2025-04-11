@@ -664,16 +664,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   iterations: 0
   cardGenerator: {fileID: 1993922141}
-  initialCubeSize: 4
+  initialCubeSize: 5
   centerCubeCells: 0
   previewMaterial: {fileID: 2100000, guid: a73241f484e4587449d4a4626a539797, type: 2}
   alphaCube: 0.1
   audioSource: {fileID: 1154171696}
   changeCellSound: {fileID: 8300000, guid: 98c66415d582c1942b26896ba6873faf, type: 3}
   collapseCellSound: {fileID: 8300000, guid: 8645ef972d1dceb4a9374400079e2d28, type: 3}
-  dimensionsX: 9
-  dimensionsZ: 9
-  dimensionsY: 4
+  dimensionsX: 10
+  dimensionsZ: 10
+  dimensionsY: 5
   floorTile: {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
   emptyTile: {fileID: 4187426750720118590, guid: 85d911cca2c83ba40b7e12900bb75209, type: 3}
   tileObjects:
@@ -693,6 +693,16 @@ MonoBehaviour:
   - {fileID: 1999385850999562556, guid: 0fd35885c92eccb4a8ccebb913ce9e8d, type: 3}
   - {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
   - {fileID: 5376119154660965731, guid: 31679c91f49e20748b1f096c5ae4caca, type: 3}
+  - {fileID: 1196809893583817041, guid: 05efb5b251b5b754fb701cda8e1b08b0, type: 3}
+  - {fileID: 8304928268084086392, guid: 13acc795abedd87488ed9f6c35438114, type: 3}
+  - {fileID: 3296245747524927174, guid: 0bb7a71fc04929244a3aeff8f09f5ea3, type: 3}
+  - {fileID: 6050265361964801049, guid: d075341a29914ea41a8718d6cf62cc7b, type: 3}
+  - {fileID: 5732100880684727847, guid: f191b8a530ab39342a6d1fbe66e934ca, type: 3}
+  - {fileID: 5556657275122696391, guid: 4993281c4e3dd9c4f946efb4517c9d88, type: 3}
+  - {fileID: 9088737001066412842, guid: 1d0809ff38743cd46a0c5f2cc70193fd, type: 3}
+  - {fileID: 9051043890488073, guid: 818e650b967b74143acb2c3dbb066971, type: 3}
+  - {fileID: 5711855720254036686, guid: 6c643727c8918384a89daa84b85684ed, type: 3}
+  - {fileID: 6917541155803654142, guid: 4d73e4b1781aded4b82be6caa755adc6, type: 3}
   cellSize: 2
   newTilesContainer: {fileID: 2111692170}
   gridComponents: []
@@ -1106,6 +1116,13 @@ MonoBehaviour:
   - {fileID: 8831606223975869083, guid: dc7f162292b5d6648b0f4395082a211a, type: 3}
   - {fileID: 1999385850999562556, guid: 0fd35885c92eccb4a8ccebb913ce9e8d, type: 3}
   - {fileID: 5376119154660965731, guid: 31679c91f49e20748b1f096c5ae4caca, type: 3}
+  - {fileID: 1196809893583817041, guid: 05efb5b251b5b754fb701cda8e1b08b0, type: 3}
+  - {fileID: 3296245747524927174, guid: 0bb7a71fc04929244a3aeff8f09f5ea3, type: 3}
+  - {fileID: 6050265361964801049, guid: d075341a29914ea41a8718d6cf62cc7b, type: 3}
+  - {fileID: 8304928268084086392, guid: 13acc795abedd87488ed9f6c35438114, type: 3}
+  - {fileID: 9088737001066412842, guid: 1d0809ff38743cd46a0c5f2cc70193fd, type: 3}
+  - {fileID: 6917541155803654142, guid: 4d73e4b1781aded4b82be6caa755adc6, type: 3}
+  - {fileID: 5711855720254036686, guid: 6c643727c8918384a89daa84b85684ed, type: 3}
   queueSize: 3
   distance: 2.5
 --- !u!4 &1993922142
