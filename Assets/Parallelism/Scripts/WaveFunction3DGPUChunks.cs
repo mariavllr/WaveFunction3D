@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections;
 using System.Linq;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -6,8 +7,11 @@ using System.Diagnostics;
 using System;
 using UnityEditor;
 using System.Reflection;
+using UnityEngine.Rendering;
+using System.Threading.Tasks;
+using UnityEngine.Profiling;
 
-public class WaveFunction3DGPU : MonoBehaviour
+public class WaveFunction3DGPUChunks : MonoBehaviour
 {
     [SerializeField] public const int MAX_NEIGHBOURS = 44;
 
@@ -30,6 +34,13 @@ public class WaveFunction3DGPU : MonoBehaviour
     public delegate void OnRegenerate();
     public static event OnRegenerate onRegenerate;
     Stopwatch stopwatch;
+    private Tile3DStruct[] tileObjectsStructs;
+    private Cell3DStruct[] gridComponentsStructs;
+    private ComputeBuffer tileObjectsBuffer;
+    private ComputeBuffer outputBuffer;
+    private ComputeBuffer stateBuffer;
+    private CommandBuffer cmd;
+    private int kernel;
 
     // Structs for the shader
     unsafe struct Cell3DStruct
@@ -71,6 +82,7 @@ public class WaveFunction3DGPU : MonoBehaviour
 
     unsafe void Start()
     {
+        Application.targetFrameRate = -1;
         ClearNeighbours(ref tileObjects);
         CreateRemainingCells(ref tileObjects);
         DefineNeighbourTiles(ref tileObjects, ref tileObjects);
@@ -82,51 +94,84 @@ public class WaveFunction3DGPU : MonoBehaviour
         InitializeGrid();
 
         // Create the structs
-        Tile3DStruct[] tileObjectsStructs = CreateTile3DStructs();
-        Cell3DStruct[] gridComponentsStructs = CreateCell3DStructs();
+        tileObjectsStructs = CreateTile3DStructs();
+        gridComponentsStructs = CreateCell3DStructs();
         CreateSolidFloor(gridComponentsStructs);
         CreateEmptyCeiling(gridComponentsStructs);
 
         // Initialize buffers
-        ComputeBuffer tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)));
-        ComputeBuffer outputBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
-        ComputeBuffer stateBuffer = new ComputeBuffer(1, sizeof(int));
+        tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)), ComputeBufferType.Structured);
+        outputBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)), ComputeBufferType.Structured);
+        stateBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Counter);
+        kernel = shader.FindKernel("CSMain");
 
         // Set data
         tileObjectsBuffer.SetData(tileObjectsStructs);
+        outputBuffer.SetData(gridComponentsStructs);
 
+        // Start the coroutine to dispatch the chunk
+        MainFunction();
+    }
+
+    private void MainFunction()
+    {
         // Data to buffers
-        shader.SetBuffer(0, "tileObjects", tileObjectsBuffer);
-        shader.SetBuffer(0, "output", outputBuffer);
-        shader.SetBuffer(0, "state", stateBuffer);
+        shader.SetBuffer(kernel, "tileObjects", tileObjectsBuffer);
+        shader.SetBuffer(kernel, "output", outputBuffer);
+        shader.SetBuffer(kernel, "state", stateBuffer);
         shader.SetInt("MAX_NEIGHBOURS", MAX_NEIGHBOURS);
         shader.SetInt("gridDimensionsX", dimensionsX);
         shader.SetInt("gridDimensionsY", dimensionsY);
         shader.SetInt("gridDimensionsZ", dimensionsZ);
+        shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
 
-        // Generate each layer of the map starting from the bottom
-        for(int i = 1; i < dimensionsY - 1; i++)
+        int offset = 0;
+        int layer = 1;
+        DispatchLayer();
+
+        void DispatchLayer()
         {
-            // Loop until the grid is fully collapsed without any incomatibilities
-            int attempts = 0;
-            int[] incompatibilities = { 1 };
-            Vector3[] offsets = { new Vector3(0, i, 0), new Vector3(2, i, 0), new Vector3(0, i, 2), new Vector3(2, i, 2) };
-            while(incompatibilities[0] != 0 && attempts < 1000)
+            Action<AsyncGPUReadbackRequest> GPUCallback = new Action<AsyncGPUReadbackRequest>((stateBuffer) =>
             {
-                outputBuffer.SetData(gridComponentsStructs);
-                stateBuffer.SetData(new int[] { 0 });
-                foreach (Vector3 offset in offsets)
-                {
-                    shader.SetInt("seed", UnityEngine.Random.Range(0, int.MaxValue));
-                    shader.SetVector("offset", offset);
-                    shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 10 + (dimensionsX % 10), 1, dimensionsZ / 10 + (dimensionsZ % 10));
-                }
-                stateBuffer.GetData(incompatibilities);
-                attempts++;
+                DispatchLayer();
+            });
+            Vector3[] offsets = new Vector3[] {new Vector3(0, layer, 0), new Vector3(2, layer, 0), new Vector3(0, layer, 2), new Vector3(2, layer, 2)};
+            shader.SetInt("seed", UnityEngine.Random.Range(0, int.MaxValue));
+            shader.SetVector("offset", offsets[offset]);
+            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 10 + (dimensionsX % 10), 1, dimensionsZ / 10 + (dimensionsZ % 10));
+            offset++;
+            if (offset < offsets.Length)
+            {
+                AsyncGPUReadbackRequest request = AsyncGPUReadback.Request(stateBuffer, GPUCallback);
             }
-            outputBuffer.GetData(gridComponentsStructs);
+            else
+            {
+                int[] state = new int[1];
+                stateBuffer.GetData(state);
+                if (state[0] == 0 && layer < dimensionsY - 1)
+                {
+                    layer++;
+                    offset = 0;
+                    stateBuffer.SetData(new int[1] { 0 });
+                    DispatchLayer();
+                }
+                else if (state[0] != 0)
+                {
+                    offset = 0;
+                    stateBuffer.SetData(new int[1] { 0 });
+                    DispatchLayer();
+                }
+                else
+                {
+                    outputBuffer.GetData(gridComponentsStructs);
+                    InstanteChunk();
+                    ReleaseMemory();
+                }
+            }
         }
-
+    }
+    private unsafe void InstanteChunk()
+    {
         stopwatch.Stop();
         Debug.Log("Time elapsed: " + stopwatch.ElapsedMilliseconds + "ms");
 
@@ -164,8 +209,10 @@ public class WaveFunction3DGPU : MonoBehaviour
             instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
             instantiatedTile.gameObject.SetActive(true);
         }
+    }
 
-        // Release memory buffers to avoid leaks
+    private void ReleaseMemory()
+    {
         tileObjectsBuffer.Release();
         outputBuffer.Release();
         stateBuffer.Release();
@@ -533,22 +580,6 @@ public class WaveFunction3DGPU : MonoBehaviour
                 cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, floorTile);
             }
         }
-
-        // y = 1;
-        // for (int z = 0; z < dimensionsZ; z++)
-        // {
-        //     for (int x = 0; x < dimensionsX; x++)
-        //     {
-        //         int index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
-        //         cell3DStructs[index].colapsed = 1;
-        //         cell3DStructs[index].entropy = 1;
-        //         for(int i = 1; i < MAX_NEIGHBOURS; i++)
-        //         {
-        //             cell3DStructs[index].tileOptions[i] = -1;
-        //         }
-        //         cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, grassTile);
-        //     }
-        // }
     }
 
     unsafe void CreateEmptyCeiling(Cell3DStruct[] cell3DStructs)
@@ -692,21 +723,4 @@ public class WaveFunction3DGPU : MonoBehaviour
         stopwatch.Stop();
         Debug.Log("Time elapsed: " + stopwatch.ElapsedMilliseconds + "ms");
     }
-#if UNITY_EDITOR
-    /// <summary>
-    /// This method is used to trigger the RenderDoc capture (RenderDoc must be installed, launched and linked to Unity)
-    /// </summary>
-    private void TriggerRenderDocCapture()
-    {
-        Assembly asm = typeof(UnityEditor.EditorWindow).Assembly;
-        Type GameViewType = asm.GetType("UnityEditor.GameView");
-        Type HostViewType = asm.GetType("UnityEditor.HostView");
-        Type GUIViewType = asm.GetType("UnityEditor.GUIView");
-        EditorWindow window = EditorWindow.GetWindow(GameViewType);
-        FieldInfo m_ParentFieldInfo = typeof(EditorWindow).GetField("m_Parent", BindingFlags.Instance | BindingFlags.NonPublic);
-        var m_Parent = m_ParentFieldInfo.GetValue(window);
-        MethodInfo CaptureRenderDocFullContentInfo = GUIViewType.GetMethod("CaptureRenderDocFullContent", BindingFlags.Public | BindingFlags.Instance);
-        CaptureRenderDocFullContentInfo.Invoke(m_Parent, null);
-    }
-#endif
 }

@@ -1,6 +1,8 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
-#pragma enable_d3d11_debug_symbols
+#pragma kernel Reset
+#pragma kernel ResetState
+//#pragma enable_d3d11_debug_symbols
 
 /*
 |-------------------------------------------------------------------------------|
@@ -69,12 +71,12 @@ void ClearArray(inout int array[MAX_NEIGHBOURS])
     }
 }
 
-// Check if a value is in an array
+// Check if a value is in an array ( ORDERED ARRAY NEEDED)
 bool ArrayContains(int array[MAX_NEIGHBOURS], int value)
 {
     for (int i = 0; i < MAX_NEIGHBOURS; i++)
     {
-        if (array[i] == -1) return false;
+        if (array[i] == -1 || array[i] > value) return false;
         else if (array[i] == value) return true;
     }
     return false;
@@ -107,10 +109,10 @@ void CheckNeighbours(uint x, uint y, uint z)
     | neighbours of all the possible tiles of each neighbour.                       |
     |-------------------------------------------------------------------------------|
     */
-    uint optionIndex = 0;
-    uint validOptionsIndex = 0;
+    int optionIndex = 0;
+    int validOptionsIndex = 0;
     int validOptions[MAX_NEIGHBOURS];
-    ClearArray(validOptions);
+    for(int i = 0; i < MAX_NEIGHBOURS; i++) validOptions[i] = -1;
     while (optionIndex < MAX_NEIGHBOURS && output[index].tileOptions[optionIndex] != -1)
     {
         bool isNeighbour = true;
@@ -346,4 +348,26 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     RestartCells();
     seed += initialIndex.x * 34 + initialIndex.y * 76 + initialIndex.z;
     UpdateGeneration(initialIndex);
+}
+
+[numthreads(1,1,1)]
+void Reset (uint3 id : SV_DispatchThreadID)
+{
+    // Reset the state of the cells
+    for(uint i = 0; i < gridDimensionsX * gridDimensionsY * gridDimensionsZ; i++)
+    {
+        output[i].colapsed = 0;
+        output[i].entropy = MAX_NEIGHBOURS;
+        for(int j = 0; j < MAX_NEIGHBOURS; j++)
+        {
+            output[i].tileOptions[j] = j;
+        }
+    }
+    state[0] = 0;
+}
+
+[numthreads(1,1,1)]
+void ResetState (uint3 id : SV_DispatchThreadID)
+{
+    state[0] = 0;
 }

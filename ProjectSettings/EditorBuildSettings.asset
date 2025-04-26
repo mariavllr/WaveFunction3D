@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Parallelism/WFC_3D 2.unity
+    guid: 85f26552d250adb4fb0cf7de759f6c68
+  - enabled: 0
     path: Assets/Scenes/WFC_3D.unity
     guid: 99c9720ab356a0642a771bea13969a05
   m_configObjects:
