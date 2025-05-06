@@ -349,25 +349,3 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     seed += initialIndex.x * 34 + initialIndex.y * 76 + initialIndex.z;
     UpdateGeneration(initialIndex);
 }
-
-[numthreads(1,1,1)]
-void Reset (uint3 id : SV_DispatchThreadID)
-{
-    // Reset the state of the cells
-    for(uint i = 0; i < gridDimensionsX * gridDimensionsY * gridDimensionsZ; i++)
-    {
-        output[i].colapsed = 0;
-        output[i].entropy = MAX_NEIGHBOURS;
-        for(int j = 0; j < MAX_NEIGHBOURS; j++)
-        {
-            output[i].tileOptions[j] = j;
-        }
-    }
-    state[0] = 0;
-}
-
-[numthreads(1,1,1)]
-void ResetState (uint3 id : SV_DispatchThreadID)
-{
-    state[0] = 0;
-}

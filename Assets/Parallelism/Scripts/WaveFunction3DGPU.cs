@@ -119,7 +119,7 @@ public class WaveFunction3DGPU : MonoBehaviour
                 {
                     shader.SetInt("seed", UnityEngine.Random.Range(0, int.MaxValue));
                     shader.SetVector("offset", offset);
-                    shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 10 + (dimensionsX % 10), 1, dimensionsZ / 10 + (dimensionsZ % 10));
+                    shader.Dispatch(shader.FindKernel("CSMain"), Mathf.CeilToInt((float)dimensionsX / 10), 1, Mathf.CeilToInt((float)dimensionsZ / 10));
                 }
                 stateBuffer.GetData(incompatibilities);
                 attempts++;

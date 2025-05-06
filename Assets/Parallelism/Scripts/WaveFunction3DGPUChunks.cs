@@ -1,15 +1,11 @@
 using System.Collections.Generic;
-using System.Collections;
 using System.Linq;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using System.Diagnostics;
 using System;
-using UnityEditor;
-using System.Reflection;
 using UnityEngine.Rendering;
-using System.Threading.Tasks;
-using UnityEngine.Profiling;
+using Unity.Mathematics;
 
 public class WaveFunction3DGPUChunks : MonoBehaviour
 {
@@ -36,14 +32,15 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
     Stopwatch stopwatch;
     private Tile3DStruct[] tileObjectsStructs;
     private Cell3DStruct[] gridComponentsStructs;
+    private Cell3DStruct[] output;
     private ComputeBuffer tileObjectsBuffer;
     private ComputeBuffer outputBuffer;
     private ComputeBuffer stateBuffer;
-    private CommandBuffer cmd;
     private int kernel;
+    private int chunkSize = 8;
 
     // Structs for the shader
-    unsafe struct Cell3DStruct
+    public unsafe struct Cell3DStruct
     {
         public uint colapsed;
         // Number of tiles that can be placed in the cell
@@ -58,7 +55,7 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         public fixed int tileOptions[MAX_NEIGHBOURS];
     };
 
-    unsafe struct Tile3DStruct
+    public unsafe struct Tile3DStruct
     {
         /*
         |-------------------------------------------------------------------------------|
@@ -82,7 +79,6 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
 
     unsafe void Start()
     {
-        Application.targetFrameRate = -1;
         ClearNeighbours(ref tileObjects);
         CreateRemainingCells(ref tileObjects);
         DefineNeighbourTiles(ref tileObjects, ref tileObjects);
@@ -98,21 +94,21 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         gridComponentsStructs = CreateCell3DStructs();
         CreateSolidFloor(gridComponentsStructs);
         CreateEmptyCeiling(gridComponentsStructs);
+        output = GridUtils.ExtractSubGrid(new Vector3Int(0, 0, 0), new Vector3Int(chunkSize, dimensionsY, chunkSize), gridComponentsStructs, new Vector3Int(dimensionsX, dimensionsY, dimensionsZ));
 
         // Initialize buffers
         tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)), ComputeBufferType.Structured);
-        outputBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)), ComputeBufferType.Structured);
+        outputBuffer = new ComputeBuffer(output.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)), ComputeBufferType.Structured);
         stateBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Counter);
         kernel = shader.FindKernel("CSMain");
 
         // Set data
         tileObjectsBuffer.SetData(tileObjectsStructs);
-        outputBuffer.SetData(gridComponentsStructs);
+        outputBuffer.SetData(output);
 
-        // Start the coroutine to dispatch the chunk
+        // Dispatch a single chunk
         MainFunction();
     }
-
     private void MainFunction()
     {
         // Data to buffers
@@ -120,9 +116,9 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         shader.SetBuffer(kernel, "output", outputBuffer);
         shader.SetBuffer(kernel, "state", stateBuffer);
         shader.SetInt("MAX_NEIGHBOURS", MAX_NEIGHBOURS);
-        shader.SetInt("gridDimensionsX", dimensionsX);
+        shader.SetInt("gridDimensionsX", chunkSize);
         shader.SetInt("gridDimensionsY", dimensionsY);
-        shader.SetInt("gridDimensionsZ", dimensionsZ);
+        shader.SetInt("gridDimensionsZ", chunkSize);
         shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
 
         int offset = 0;
@@ -135,10 +131,11 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
             {
                 DispatchLayer();
             });
+
             Vector3[] offsets = new Vector3[] {new Vector3(0, layer, 0), new Vector3(2, layer, 0), new Vector3(0, layer, 2), new Vector3(2, layer, 2)};
             shader.SetInt("seed", UnityEngine.Random.Range(0, int.MaxValue));
             shader.SetVector("offset", offsets[offset]);
-            shader.Dispatch(shader.FindKernel("CSMain"), dimensionsX / 10 + (dimensionsX % 10), 1, dimensionsZ / 10 + (dimensionsZ % 10));
+            shader.Dispatch(shader.FindKernel("CSMain"), Mathf.CeilToInt((float)dimensionsX / 10), 1, Mathf.CeilToInt((float)dimensionsZ / 10));
             offset++;
             if (offset < offsets.Length)
             {
@@ -163,7 +160,9 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
                 }
                 else
                 {
-                    outputBuffer.GetData(gridComponentsStructs);
+                    outputBuffer.GetData(output);
+                    int index = GridUtils.GetIndexFromCoords(new Vector3Int(0, 0, 0), new Vector3Int(dimensionsX, dimensionsY, dimensionsZ));
+                    GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output, index);
                     InstanteChunk();
                     ReleaseMemory();
                 }
@@ -210,7 +209,6 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
             instantiatedTile.gameObject.SetActive(true);
         }
     }
-
     private void ReleaseMemory()
     {
         tileObjectsBuffer.Release();
@@ -600,7 +598,6 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
             }
         }
     }
-
     public unsafe void Regenerate() // TODO
     {
         if (onRegenerate != null)
