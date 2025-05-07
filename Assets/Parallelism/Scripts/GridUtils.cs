@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -5,7 +6,15 @@ using Cell3DStruct = WaveFunction3DGPUChunks.Cell3DStruct;
 
 public class GridUtils : MonoBehaviour
 {
-    public static Cell3DStruct[] ExtractSubGrid(Vector3Int startCoords, Vector3Int subGridDimensions, Cell3DStruct[] ogGrid, Vector3Int ogGridDimensions)
+    /// <summary>
+    /// Extracts a subgrid from the original grid based on the start coordinates and dimensions of the subgrid.
+    /// </summary>
+    /// <param name="startCoords"></param> Initial coordinates of the subgrid in the original grid.
+    /// <param name="subGridDimensions"></param> Dimensions of the subgrid to be extracted.
+    /// <param name="ogGrid"></param> The original grid from which the subgrid will be extracted.
+    /// <param name="ogGridDimensions"></param> Dimensions of the original grid.
+    /// <returns></returns> Returns a tuple containing the extracted subgrid and the indices of the original grid that correspond to the subgrid.
+    public static Tuple<Cell3DStruct[], int[]> ExtractSubGrid(Vector3Int startCoords, ref Vector3Int subGridDimensions, Cell3DStruct[] ogGrid, Vector3Int ogGridDimensions)
     {
         // Clamp to matrix bounds
         startCoords.x = Mathf.Max(0, startCoords.x);
@@ -15,6 +24,7 @@ public class GridUtils : MonoBehaviour
 
         // Extract the subgrid
         List<Cell3DStruct> subGrid = new List<Cell3DStruct>();
+        List<int> subGridIndices = new List<int>();
         for (int y = startCoords.y; y < startCoords.y + subGridDimensions.y; y++)
         {
             for (int z = startCoords.z; z < startCoords.z + subGridDimensions.z; z++)
@@ -22,11 +32,11 @@ public class GridUtils : MonoBehaviour
                 for (int x = startCoords.x; x < startCoords.x + subGridDimensions.x; x++)
                 {
                     subGrid.Add(ogGrid[x + z * ogGridDimensions.x + y * ogGridDimensions.x * ogGridDimensions.z]);
+                    subGridIndices.Add(x + z * ogGridDimensions.x + y * ogGridDimensions.x * ogGridDimensions.z);
                 }
             }
         }
-
-        return subGrid.ToArray();
+        return new Tuple<Cell3DStruct[], int[]>(subGrid.ToArray(), subGridIndices.ToArray());
     }
 
     public static int GetIndexFromCoords(Vector3Int coords, Vector3Int gridDimensions)
@@ -42,8 +52,8 @@ public class GridUtils : MonoBehaviour
         return coords.x + coords.z * gridDimensions.x + coords.y * gridDimensions.x * gridDimensions.z;
     }
 
-    public static void CombineGridWithSubgrid(Cell3DStruct[] grid, Cell3DStruct[] subGrid, int startIndex)
+    public static void CombineGridWithSubgrid(Cell3DStruct[] grid, Cell3DStruct[] subGrid, int[] subGridIndices)
     {
-        for (int i = 0; i < subGrid.Length; i++) grid[startIndex + i] = subGrid[i];
+        for (int i = 0; i < subGrid.Length; i++) grid[subGridIndices[i]] = subGrid[i];
     }
 }

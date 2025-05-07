@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System;
 using UnityEngine.Rendering;
 using Unity.Mathematics;
+using Unity.VisualScripting;
 
 public class WaveFunction3DGPUChunks : MonoBehaviour
 {
@@ -32,12 +33,16 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
     Stopwatch stopwatch;
     private Tile3DStruct[] tileObjectsStructs;
     private Cell3DStruct[] gridComponentsStructs;
-    private Cell3DStruct[] output;
+    private Tuple<Cell3DStruct[], int[]> output;
     private ComputeBuffer tileObjectsBuffer;
     private ComputeBuffer outputBuffer;
     private ComputeBuffer stateBuffer;
     private int kernel;
-    private int chunkSize = 8;
+    private int wishSubGridSize = 12;
+    private Vector3Int clampedSubGridSize;
+    private int chunkSize = 4;
+    private int actualChunk = 0;
+    private List<Vector3Int> chunkOffsets;
 
     // Structs for the shader
     public unsafe struct Cell3DStruct
@@ -54,7 +59,6 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         */
         public fixed int tileOptions[MAX_NEIGHBOURS];
     };
-
     public unsafe struct Tile3DStruct
     {
         /*
@@ -79,6 +83,19 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
 
     unsafe void Start()
     {
+        StartGeneration();
+    }
+
+    private void Update()
+    {
+        if(Input.GetKeyDown(KeyCode.Space))
+        {
+            if(actualChunk < chunkOffsets.Count) PrepareChunkDispatch(chunkOffsets[++actualChunk]);
+        }
+    }
+
+    private void StartGeneration()
+    {
         ClearNeighbours(ref tileObjects);
         CreateRemainingCells(ref tileObjects);
         DefineNeighbourTiles(ref tileObjects, ref tileObjects);
@@ -94,50 +111,71 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         gridComponentsStructs = CreateCell3DStructs();
         CreateSolidFloor(gridComponentsStructs);
         CreateEmptyCeiling(gridComponentsStructs);
-        output = GridUtils.ExtractSubGrid(new Vector3Int(0, 0, 0), new Vector3Int(chunkSize, dimensionsY, chunkSize), gridComponentsStructs, new Vector3Int(dimensionsX, dimensionsY, dimensionsZ));
 
-        // Initialize buffers
+        Vector2Int iterations = new Vector2Int(0, 0);
+        iterations.x = Mathf.CeilToInt((float)dimensionsX / (chunkSize - 1));
+        iterations.y = Mathf.CeilToInt((float)dimensionsZ / (chunkSize - 1));
+        chunkOffsets = new List<Vector3Int>();
+
+        for(int i = -1; i < iterations.y; i++)
+        {
+            for(int j = -1; j < iterations.x; j++)
+            {
+                chunkOffsets.Add(new Vector3Int(j, 0, i) * (chunkSize - 1));
+            }
+        }
+        // Dispatch a the middle chunk of a 3x3 subgrid
+        PrepareChunkDispatch(chunkOffsets[actualChunk]);
+    }
+
+    private void PrepareChunkDispatch(Vector3Int subGridCoords)
+    {
+        Debug.Log("Dispatching chunk: " + subGridCoords);
+        clampedSubGridSize = new Vector3Int(wishSubGridSize, dimensionsY, wishSubGridSize);
+        output = GridUtils.ExtractSubGrid(subGridCoords, ref clampedSubGridSize, gridComponentsStructs, new Vector3Int(dimensionsX, dimensionsY, dimensionsZ));
+
         tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)), ComputeBufferType.Structured);
-        outputBuffer = new ComputeBuffer(output.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)), ComputeBufferType.Structured);
+        outputBuffer = new ComputeBuffer(output.Item1.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)), ComputeBufferType.Structured);
         stateBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Counter);
         kernel = shader.FindKernel("CSMain");
 
-        // Set data
         tileObjectsBuffer.SetData(tileObjectsStructs);
-        outputBuffer.SetData(output);
+        outputBuffer.SetData(output.Item1);
 
-        // Dispatch a single chunk
-        MainFunction();
+        Vector3 chunkSubGridCoords = new Vector3(1, 0, 1);
+        if(subGridCoords.x == -(chunkSize - 1)) chunkSubGridCoords.x = 0;
+        if(subGridCoords.z == -(chunkSize - 1)) chunkSubGridCoords.z = 0;
+        DispatchChunk(chunkSubGridCoords);
     }
-    private void MainFunction()
+
+    private void DispatchChunk(Vector3 chunkOffset)
     {
         // Data to buffers
         shader.SetBuffer(kernel, "tileObjects", tileObjectsBuffer);
         shader.SetBuffer(kernel, "output", outputBuffer);
         shader.SetBuffer(kernel, "state", stateBuffer);
-        shader.SetInt("MAX_NEIGHBOURS", MAX_NEIGHBOURS);
-        shader.SetInt("gridDimensionsX", chunkSize);
-        shader.SetInt("gridDimensionsY", dimensionsY);
-        shader.SetInt("gridDimensionsZ", chunkSize);
+        shader.SetInt("MAX_NEIGHBOURS", MAX_NEIGHBOURS); // REVISAR QUE ESTO NO SE PUEDE HACER
+        shader.SetInt("gridDimensionsX", clampedSubGridSize.x);
+        shader.SetInt("gridDimensionsY", clampedSubGridSize.y);
+        shader.SetInt("gridDimensionsZ", clampedSubGridSize.z);
+        shader.SetVector("chunkOffset", chunkOffset); //To make sure that we generate the middle chunk of the 3x3 subGrid
+        shader.SetInt("chunkSize", chunkSize);
         shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
 
         int offset = 0;
         int layer = 1;
         DispatchLayer();
 
-        void DispatchLayer()
+        void DispatchLayer(int attempts = 0)
         {
-            Action<AsyncGPUReadbackRequest> GPUCallback = new Action<AsyncGPUReadbackRequest>((stateBuffer) =>
-            {
-                DispatchLayer();
-            });
+            Action<AsyncGPUReadbackRequest> GPUCallback = new Action<AsyncGPUReadbackRequest>((stateBuffer) => { DispatchLayer(); });
 
             Vector3[] offsets = new Vector3[] {new Vector3(0, layer, 0), new Vector3(2, layer, 0), new Vector3(0, layer, 2), new Vector3(2, layer, 2)};
             shader.SetInt("seed", UnityEngine.Random.Range(0, int.MaxValue));
-            shader.SetVector("offset", offsets[offset]);
+            shader.SetVector("dispatchOffset", offsets[offset]);
             shader.Dispatch(shader.FindKernel("CSMain"), Mathf.CeilToInt((float)dimensionsX / 10), 1, Mathf.CeilToInt((float)dimensionsZ / 10));
             offset++;
-            if (offset < offsets.Length)
+            if (offset < offsets.Length && chunkSize > 4)
             {
                 AsyncGPUReadbackRequest request = AsyncGPUReadback.Request(stateBuffer, GPUCallback);
             }
@@ -150,26 +188,35 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
                     layer++;
                     offset = 0;
                     stateBuffer.SetData(new int[1] { 0 });
-                    DispatchLayer();
+                    AsyncGPUReadback.Request(stateBuffer, _ => DispatchLayer());
                 }
                 else if (state[0] != 0)
                 {
                     offset = 0;
                     stateBuffer.SetData(new int[1] { 0 });
-                    DispatchLayer();
+                    if(attempts < 30) AsyncGPUReadback.Request(stateBuffer, _ => DispatchLayer(++attempts));
+                    else Debug.Log("Failed to generate chunk: after 30 attempts.");
                 }
                 else
                 {
-                    outputBuffer.GetData(output);
-                    int index = GridUtils.GetIndexFromCoords(new Vector3Int(0, 0, 0), new Vector3Int(dimensionsX, dimensionsY, dimensionsZ));
-                    GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output, index);
-                    InstanteChunk();
-                    ReleaseMemory();
+                    outputBuffer.GetData(output.Item1);
+                    GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output.Item1, output.Item2);
+                    InstantiateChunk();
+                    /*
+                    if(actualChunk < chunkOffsets.Count - 1)
+                    {
+                        PrepareChunkDispatch(chunkOffsets[++actualChunk]);
+                    }
+                    else
+                    {
+                        InstantiateChunk();
+                        ReleaseMemory();
+                    }*/
                 }
             }
         }
     }
-    private unsafe void InstanteChunk()
+    private unsafe void InstantiateChunk()
     {
         stopwatch.Stop();
         Debug.Log("Time elapsed: " + stopwatch.ElapsedMilliseconds + "ms");

@@ -1,7 +1,5 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
-#pragma kernel Reset
-#pragma kernel ResetState
 //#pragma enable_d3d11_debug_symbols
 
 /*
@@ -47,7 +45,9 @@ struct Tile3DStruct
 // Values from de C# code
 uint gridDimensionsX, gridDimensionsY, gridDimensionsZ;
 uint seed;
-uint3 offset;
+uint3 dispatchOffset;
+uint3 chunkOffset;
+int chunkSize;
 
 // Save the cell with less entropy
 int minEntropy;
@@ -96,6 +96,7 @@ void CheckNeighbours(uint x, uint y, uint z)
 
     if(output[index].colapsed == 1) return;
     if(x < 0 || x >= gridDimensionsX || y < 0 || y >= gridDimensionsY || z < 0 || z >= gridDimensionsZ) return;
+    if(x >= (chunkSize + chunkOffset.x * chunkSize) || z >= (chunkSize + chunkOffset.z * chunkSize)) return;
 
     /* Adaptation of the get neighbours method in the C# code
     |-------------------------------------------------------------------------------|
@@ -297,6 +298,7 @@ void RestartCells()
 {
     for(uint i = 0; i < X_EXTENSION * Y_EXTENSION * Z_EXTENSION; i++)
     {
+        if(cellsToCheck[i].x >= (chunkSize + chunkOffset.x * chunkSize) || cellsToCheck[i].z >= (chunkSize + chunkOffset.z * chunkSize)) continue;
         if (cellsToCheck[i].x >= 0 && cellsToCheck[i].x < gridDimensionsX
             && cellsToCheck[i].y >= 0 && cellsToCheck[i].y < gridDimensionsY
             && cellsToCheck[i].z >= 0 && cellsToCheck[i].z < gridDimensionsZ)
@@ -341,9 +343,9 @@ void UpdateGeneration(uint3 initialIndex)
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     uint3 initialIndex;
-    initialIndex.x = id.x * X_EXTENSION + id.x + offset.x;
-    initialIndex.y = id.y * Y_EXTENSION + id.y + offset.y;
-    initialIndex.z = id.z * Z_EXTENSION + id.z + offset.z;
+    initialIndex.x = id.x * X_EXTENSION + id.x + dispatchOffset.x + chunkOffset.x * chunkSize;
+    initialIndex.y = id.y * Y_EXTENSION + id.y + dispatchOffset.y;
+    initialIndex.z = id.z * Z_EXTENSION + id.z + dispatchOffset.z + chunkOffset.z * chunkSize;
     GetCellsToCheck(initialIndex);
     RestartCells();
     seed += initialIndex.x * 34 + initialIndex.y * 76 + initialIndex.z;
