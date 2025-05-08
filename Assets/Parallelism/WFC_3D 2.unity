@@ -508,7 +508,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da7b730f96ef2f840b9406a7a401531f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  shader: {fileID: 7200000, guid: a7729b81eb8ef4d42b8bab97128c3dc0, type: 3}
+  shader: {fileID: 7200000, guid: 8d48452b361f16c43a5d023e5c2f2c41, type: 3}
   cellSize: 2
   dimensionsX: 32
   dimensionsZ: 32

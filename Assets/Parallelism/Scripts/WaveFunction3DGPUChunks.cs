@@ -113,15 +113,15 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         CreateEmptyCeiling(gridComponentsStructs);
 
         Vector2Int iterations = new Vector2Int(0, 0);
-        iterations.x = Mathf.CeilToInt((float)dimensionsX / (chunkSize - 1));
-        iterations.y = Mathf.CeilToInt((float)dimensionsZ / (chunkSize - 1));
+        iterations.x = Mathf.CeilToInt((float)dimensionsX / (chunkSize + 1));
+        iterations.y = Mathf.CeilToInt((float)dimensionsZ / (chunkSize + 1));
         chunkOffsets = new List<Vector3Int>();
 
         for(int i = -1; i < iterations.y; i++)
         {
             for(int j = -1; j < iterations.x; j++)
             {
-                chunkOffsets.Add(new Vector3Int(j, 0, i) * (chunkSize - 1));
+                chunkOffsets.Add(new Vector3Int(j, 0, i) * chunkSize);
             }
         }
         // Dispatch a the middle chunk of a 3x3 subgrid
@@ -143,8 +143,8 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         outputBuffer.SetData(output.Item1);
 
         Vector3 chunkSubGridCoords = new Vector3(1, 0, 1);
-        if(subGridCoords.x == -(chunkSize - 1)) chunkSubGridCoords.x = 0;
-        if(subGridCoords.z == -(chunkSize - 1)) chunkSubGridCoords.z = 0;
+        if(subGridCoords.x == -chunkSize) chunkSubGridCoords.x = 0;
+        if(subGridCoords.z == -chunkSize) chunkSubGridCoords.z = 0;
         DispatchChunk(chunkSubGridCoords);
     }
 
@@ -160,7 +160,6 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         shader.SetInt("gridDimensionsZ", clampedSubGridSize.z);
         shader.SetVector("chunkOffset", chunkOffset); //To make sure that we generate the middle chunk of the 3x3 subGrid
         shader.SetInt("chunkSize", chunkSize);
-        shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
 
         int offset = 0;
         int layer = 1;
@@ -194,24 +193,38 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
                 {
                     offset = 0;
                     stateBuffer.SetData(new int[1] { 0 });
-                    if(attempts < 30) AsyncGPUReadback.Request(stateBuffer, _ => DispatchLayer(++attempts));
-                    else Debug.Log("Failed to generate chunk: after 30 attempts.");
+                    //AsyncGPUReadback.Request(stateBuffer, _ => DispatchLayer(++attempts));
+                    if(attempts < 1000)
+                    {
+                        //outputBuffer.GetData(output.Item1);
+                        //GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output.Item1, output.Item2);
+                        //InstantiateChunk();
+                        AsyncGPUReadback.Request(stateBuffer, _ => DispatchLayer(++attempts));
+                    }
+                    else
+                    {
+                        Debug.Log("Failed to generate chunk: after 30 attempts.");
+                        outputBuffer.GetData(output.Item1);
+                        GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output.Item1, output.Item2);
+                        InstantiateChunk();
+                        ReleaseMemory();
+                    }
                 }
                 else
                 {
                     outputBuffer.GetData(output.Item1);
                     GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output.Item1, output.Item2);
-                    InstantiateChunk();
-                    /*
-                    if(actualChunk < chunkOffsets.Count - 1)
-                    {
-                        PrepareChunkDispatch(chunkOffsets[++actualChunk]);
-                    }
-                    else
+                    // InstantiateChunk();
+                    // if(actualChunk < chunkOffsets.Count - 1)
+                    // {
+                    //     InstantiateChunk();
+                    //     PrepareChunkDispatch(chunkOffsets[++actualChunk]);
+                    // }
+                    // else
                     {
                         InstantiateChunk();
                         ReleaseMemory();
-                    }*/
+                    }
                 }
             }
         }
@@ -224,19 +237,19 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         // Recreate the grid based on the data received by the shader
         for (int i = 0; i < gridComponentsStructs.Length; i++)
         {
-            if(gridComponentsStructs[i].colapsed == 0) continue; // Testing
+            // if(gridComponentsStructs[i].colapsed == 0) continue; // Testing
             Cell3D2 cell = gridComponents[i];
             cell.name = "Cell " + i;
             cell.collapsed = gridComponentsStructs[i].colapsed == 1;
-            cell.RecreateCell(tileObjects[gridComponentsStructs[i].tileOptions[0]]);
+            //cell.RecreateCell(tileObjects[gridComponentsStructs[i].tileOptions[0]]);
 
             // Uncomment this to recreate the cell with all the possible tiles
-            // List<Tile3D2> newOptions = new List<Tile3D2>();
-            // for (int j = 0; j < MAX_NEIGHBOURS; j++)
-            // {
-            //     if (gridComponentsStructs[i].tileOptions[j] != -1) newOptions.Add(tileObjects[gridComponentsStructs[i].tileOptions[j]]);
-            // }
-            // cell.RecreateCell(newOptions.ToArray());
+            List<Tile3D2> newOptions = new List<Tile3D2>();
+            for (int j = 0; j < MAX_NEIGHBOURS; j++)
+            {
+                if (gridComponentsStructs[i].tileOptions[j] != -1) newOptions.Add(tileObjects[gridComponentsStructs[i].tileOptions[j]]);
+            }
+            cell.RecreateCell(newOptions.ToArray());
 
             if (cell.transform.childCount != 0)
             {
@@ -246,6 +259,7 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
                 }
             }
 
+            if(!cell.collapsed) continue; // Only instantiate the tiles that are not collapsed
             Tile3D2 instantiatedTile = Instantiate(cell.tileOptions[0], cell.transform.position, Quaternion.identity, cell.transform);
             if (instantiatedTile.rotation != Vector3.zero)
             {

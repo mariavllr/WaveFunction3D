@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 using Cell3DStruct = WaveFunction3DGPUChunks.Cell3DStruct;
 
@@ -17,6 +16,8 @@ public class GridUtils : MonoBehaviour
     public static Tuple<Cell3DStruct[], int[]> ExtractSubGrid(Vector3Int startCoords, ref Vector3Int subGridDimensions, Cell3DStruct[] ogGrid, Vector3Int ogGridDimensions)
     {
         // Clamp to matrix bounds
+        if(startCoords.x < 0) subGridDimensions.x = subGridDimensions.x + startCoords.x;
+        if(startCoords.z < 0) subGridDimensions.z = subGridDimensions.z + startCoords.z;
         startCoords.x = Mathf.Max(0, startCoords.x);
         startCoords.z = Mathf.Max(0, startCoords.z);
         subGridDimensions.x = Mathf.Min(subGridDimensions.x, ogGridDimensions.x - startCoords.x);

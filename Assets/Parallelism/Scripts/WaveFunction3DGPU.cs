@@ -122,6 +122,7 @@ public class WaveFunction3DGPU : MonoBehaviour
                     shader.Dispatch(shader.FindKernel("CSMain"), Mathf.CeilToInt((float)dimensionsX / 10), 1, Mathf.CeilToInt((float)dimensionsZ / 10));
                 }
                 stateBuffer.GetData(incompatibilities);
+                Debug.Log("Incompatibilities: " + incompatibilities[0]);
                 attempts++;
             }
             outputBuffer.GetData(gridComponentsStructs);

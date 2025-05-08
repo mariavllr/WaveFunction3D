@@ -44,14 +44,17 @@ struct Tile3DStruct
 // Values from de C# code
 uint gridDimensionsX, gridDimensionsY, gridDimensionsZ;
 uint seed;
-uint3 offset;
+uint3 dispatchOffset;
+uint3 chunkOffset;
+int chunkSize;
 
 // Save the cell with less entropy
 int minEntropy;
 int minEntropyIndex;
 
 // Cells to check
-uint3 cellsToCheck[X_EXTENSION * Y_EXTENSION * Z_EXTENSION];
+uint3 cellsToCheck[X_EXTENSION * Y_EXTENSION * Z_EXTENSION]; // Cells that will be generated
+uint3 borderCellsToCheck[X_EXTENSION * (Y_EXTENSION) * Z_EXTENSION + 4 * (Y_EXTENSION)]; // Cells that border the cells explained before and will only be updated
 
 // Buffers
 StructuredBuffer<Tile3DStruct> tileObjects;
@@ -80,7 +83,7 @@ bool ArrayContains(int array[MAX_NEIGHBOURS], int value)
 }
 
 // Check the neighbours of a cell
-void CheckNeighbours(uint x, uint y, uint z)
+void CheckNeighbours(uint x, uint y, uint z, bool isBorder = false)
 {
     uint up, down, left, right, above, below;
     uint index = x + (z * gridDimensionsX) + (y * gridDimensionsX * gridDimensionsZ);
@@ -93,6 +96,7 @@ void CheckNeighbours(uint x, uint y, uint z)
 
     if(output[index].colapsed == 1) return;
     if(x < 0 || x >= gridDimensionsX || y < 0 || y >= gridDimensionsY || z < 0 || z >= gridDimensionsZ) return;
+    if(!isBorder && (x >= (chunkSize + chunkOffset.x * chunkSize) || z >= (chunkSize + chunkOffset.z * chunkSize))) return;
 
     /* Adaptation of the get neighbours method in the C# code
     |-------------------------------------------------------------------------------|
@@ -238,7 +242,7 @@ void CheckNeighbours(uint x, uint y, uint z)
     // We assign the new options to the cell
     output[index].tileOptions = validOptions;
     output[index].entropy = validOptionsIndex;
-    if(validOptionsIndex <= minEntropy)
+    if(validOptionsIndex <= minEntropy && !isBorder)
     {
         minEntropy = validOptionsIndex;
         minEntropyIndex = index;
@@ -272,40 +276,47 @@ bool CollapseCell(int cellToCollapseIndex)
 
 void GetCellsToCheck(uint3 initialIndex)
 {
-    cellsToCheck[0] = initialIndex.xyz + uint3(0, 0, 0);
-    cellsToCheck[1] = initialIndex.xyz + uint3(1, 0, 0);
-    cellsToCheck[2] = initialIndex.xyz + uint3(2, 0, 0);
-    cellsToCheck[3] = initialIndex.xyz + uint3(3, 0, 0);
-    cellsToCheck[4] = initialIndex.xyz + uint3(0, 0, 1);
-    cellsToCheck[5] = initialIndex.xyz + uint3(1, 0, 1);
-    cellsToCheck[6] = initialIndex.xyz + uint3(2, 0, 1);
-    cellsToCheck[7] = initialIndex.xyz + uint3(3, 0, 1);
-    cellsToCheck[8] = initialIndex.xyz + uint3(0, 0, 2);
-    cellsToCheck[9] = initialIndex.xyz + uint3(1, 0, 2);
-    cellsToCheck[10] = initialIndex.xyz + uint3(2, 0, 2);
-    cellsToCheck[11] = initialIndex.xyz + uint3(3, 0, 2);
-    cellsToCheck[12] = initialIndex.xyz + uint3(0, 0, 3);
-    cellsToCheck[13] = initialIndex.xyz + uint3(1, 0, 3);
-    cellsToCheck[14] = initialIndex.xyz + uint3(2, 0, 3);
-    cellsToCheck[15] = initialIndex.xyz + uint3(3, 0, 3);
-}
-
-void RestartCells()
-{
-    for(uint i = 0; i < X_EXTENSION * Y_EXTENSION * Z_EXTENSION; i++)
+    [unroll(1)]
+    for(int y = 0; y < Y_EXTENSION; y++)
     {
-        if (cellsToCheck[i].x >= 0 && cellsToCheck[i].x < gridDimensionsX
-            && cellsToCheck[i].y >= 0 && cellsToCheck[i].y < gridDimensionsY
-            && cellsToCheck[i].z >= 0 && cellsToCheck[i].z < gridDimensionsZ)
+        for(int z = 0; z < Z_EXTENSION; z++)
         {
-            uint index = cellsToCheck[i].x + (cellsToCheck[i].z * gridDimensionsX) + (cellsToCheck[i].y * gridDimensionsX * gridDimensionsZ);
-            output[index].colapsed = 0;
-            output[index].entropy = MAX_NEIGHBOURS;
-            for(int j = 0; j < MAX_NEIGHBOURS; j++)
+            for(int x = 0; x < X_EXTENSION; x++)
             {
-                output[index].tileOptions[j] = j;
+                cellsToCheck[x + (z * X_EXTENSION) + (y * X_EXTENSION * Y_EXTENSION)] = initialIndex.xyz + uint3(x, y, z);
             }
         }
+    }
+}
+
+void GetBorderCellsToCheck(uint3 initialIndex)
+{
+    int index = 0;
+    [unroll]
+    for(int y = 0; y < Y_EXTENSION; y++)
+    {
+        for(int x = 0; x < X_EXTENSION; x++)
+        {
+            borderCellsToCheck[index++] = initialIndex.xyz + uint3(x, y, -1);
+            borderCellsToCheck[index++] = initialIndex.xyz + uint3(x, y, Z_EXTENSION);
+        }
+    }
+
+    [unroll]
+    for(int y = 0; y < Y_EXTENSION; y++)
+    {
+        for(int z = 0; z < Z_EXTENSION; z++)
+        {
+            borderCellsToCheck[index++] = initialIndex.xyz + uint3(-1, y, z);
+            borderCellsToCheck[index++] = initialIndex.xyz + uint3(X_EXTENSION, y, z);
+        }
+    }
+    for(int y = 0; y < Y_EXTENSION; y++)
+    {
+        borderCellsToCheck[index++] = initialIndex.xyz + uint3(-1, y, -1);
+        borderCellsToCheck[index++] = initialIndex.xyz + uint3(X_EXTENSION, y, -1);
+        borderCellsToCheck[index++] = initialIndex.xyz + uint3(X_EXTENSION, y, Z_EXTENSION);
+        borderCellsToCheck[index++] = initialIndex.xyz + uint3(-1, y, Z_EXTENSION);
     }
 }
 
@@ -334,15 +345,26 @@ void UpdateGeneration(uint3 initialIndex)
     }
 }
 
-[numthreads(2,1,2)]
+void UpdateBorders()
+{
+    int limit = X_EXTENSION * (Y_EXTENSION) * Z_EXTENSION + 4 * (Y_EXTENSION);
+    for(int i = 0; i < limit; i++)
+    {
+        CheckNeighbours(borderCellsToCheck[i].x, borderCellsToCheck[i].y, borderCellsToCheck[i].z, true);
+    }
+}
+
+[numthreads(1,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     uint3 initialIndex;
-    initialIndex.x = id.x * X_EXTENSION + id.x + offset.x;
-    initialIndex.y = id.y * Y_EXTENSION + id.y + offset.y;
-    initialIndex.z = id.z * Z_EXTENSION + id.z + offset.z;
+    initialIndex.x = id.x * X_EXTENSION + id.x + dispatchOffset.x + chunkOffset.x * chunkSize;
+    initialIndex.y = id.y * Y_EXTENSION + id.y + dispatchOffset.y;
+    initialIndex.z = id.z * Z_EXTENSION + id.z + dispatchOffset.z + chunkOffset.z * chunkSize;
     seed += initialIndex.x * 34 + initialIndex.y * 76 + initialIndex.z;
     GetCellsToCheck(initialIndex);
-    RestartCells();
+    GetBorderCellsToCheck(initialIndex);
+    UpdateBorders();
     UpdateGeneration(initialIndex);
+    UpdateBorders();
 }
