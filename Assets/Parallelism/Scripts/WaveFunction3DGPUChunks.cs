@@ -43,6 +43,7 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
     private int chunkSize = 4;
     private int actualChunk = 0;
     private List<Vector3Int> chunkOffsets;
+    int a = 1;
 
     // Structs for the shader
     public unsafe struct Cell3DStruct
@@ -90,7 +91,7 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
     {
         if(Input.GetKeyDown(KeyCode.Space))
         {
-            if(actualChunk < chunkOffsets.Count) PrepareChunkDispatch(chunkOffsets[++actualChunk]);
+            //if(actualChunk < chunkOffsets.Count) PrepareChunkDispatch(chunkOffsets[++actualChunk]);
         }
     }
 
@@ -172,8 +173,9 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
             Vector3[] offsets = new Vector3[] {new Vector3(0, layer, 0), new Vector3(2, layer, 0), new Vector3(0, layer, 2), new Vector3(2, layer, 2)};
             shader.SetInt("seed", UnityEngine.Random.Range(0, int.MaxValue));
             shader.SetVector("dispatchOffset", offsets[offset]);
-            shader.Dispatch(shader.FindKernel("CSMain"), Mathf.CeilToInt((float)dimensionsX / 10), 1, Mathf.CeilToInt((float)dimensionsZ / 10));
-            offset++;
+            if(chunkSize > 4) shader.Dispatch(shader.FindKernel("CSMain"), Mathf.CeilToInt((float)dimensionsX / 10), 1, Mathf.CeilToInt((float)dimensionsZ / 10));
+            else shader.Dispatch(shader.FindKernel("CSMain"), 1, 1, 1);
+            if(chunkSize > 4) offset++;
             if (offset < offsets.Length && chunkSize > 4)
             {
                 AsyncGPUReadbackRequest request = AsyncGPUReadback.Request(stateBuffer, GPUCallback);
@@ -182,45 +184,39 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
             {
                 int[] state = new int[1];
                 stateBuffer.GetData(state);
-                if (state[0] == 0 && layer < dimensionsY - 1)
+                if (state[0] == 0 && layer < dimensionsY - 1) //No errors, still layers to process
                 {
                     layer++;
                     offset = 0;
                     stateBuffer.SetData(new int[1] { 0 });
-                    AsyncGPUReadback.Request(stateBuffer, _ => DispatchLayer());
+                    outputBuffer.GetData(output.Item1);
+                    AsyncGPUReadback.Request(outputBuffer, _ => DispatchLayer());
                 }
                 else if (state[0] != 0)
                 {
                     offset = 0;
                     stateBuffer.SetData(new int[1] { 0 });
-                    //AsyncGPUReadback.Request(stateBuffer, _ => DispatchLayer(++attempts));
-                    if(attempts < 1000)
+                    if(attempts < 100)
                     {
-                        //outputBuffer.GetData(output.Item1);
-                        //GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output.Item1, output.Item2);
-                        //InstantiateChunk();
-                        AsyncGPUReadback.Request(stateBuffer, _ => DispatchLayer(++attempts));
+                        outputBuffer.SetData(output.Item1);
+                        AsyncGPUReadback.Request(outputBuffer, _ => DispatchLayer(++attempts));
                     }
                     else
                     {
-                        Debug.Log("Failed to generate chunk: after 30 attempts.");
-                        outputBuffer.GetData(output.Item1);
-                        GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output.Item1, output.Item2);
-                        InstantiateChunk();
-                        ReleaseMemory();
+                        AsyncGPUReadback.Request(stateBuffer, _ => PrepareChunkDispatch(chunkOffsets[--actualChunk]));
                     }
                 }
                 else
                 {
                     outputBuffer.GetData(output.Item1);
                     GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output.Item1, output.Item2);
-                    // InstantiateChunk();
-                    // if(actualChunk < chunkOffsets.Count - 1)
-                    // {
-                    //     InstantiateChunk();
-                    //     PrepareChunkDispatch(chunkOffsets[++actualChunk]);
-                    // }
-                    // else
+                    InstantiateChunk();
+                    if(actualChunk < chunkOffsets.Count - 1)
+                    {
+                        InstantiateChunk();
+                        PrepareChunkDispatch(chunkOffsets[++actualChunk]);
+                    }
+                    else
                     {
                         InstantiateChunk();
                         ReleaseMemory();

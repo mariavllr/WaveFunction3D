@@ -256,11 +256,7 @@ bool CollapseCell(int cellToCollapseIndex)
     int max = 0;
     for(max = 0; max < MAX_NEIGHBOURS; max++)
     {
-        if(output[cellToCollapseIndex].tileOptions[max] == -1)
-        {
-            if(max > 1) max--;
-            break;
-        }
+        if(output[cellToCollapseIndex].tileOptions[max] == -1) break;
     }
 
     int temp = output[cellToCollapseIndex].tileOptions[seed % max];
