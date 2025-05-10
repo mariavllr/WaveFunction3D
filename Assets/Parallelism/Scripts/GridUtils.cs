@@ -17,10 +17,13 @@ public class GridUtils : MonoBehaviour
     {
         // Clamp to matrix bounds
         if(startCoords.x < 0) subGridDimensions.x = subGridDimensions.x + startCoords.x;
+        if(startCoords.y < 0) subGridDimensions.y = subGridDimensions.y + startCoords.y;
         if(startCoords.z < 0) subGridDimensions.z = subGridDimensions.z + startCoords.z;
         startCoords.x = Mathf.Max(0, startCoords.x);
+        startCoords.y = Mathf.Max(0, startCoords.y);
         startCoords.z = Mathf.Max(0, startCoords.z);
         subGridDimensions.x = Mathf.Min(subGridDimensions.x, ogGridDimensions.x - startCoords.x);
+        subGridDimensions.y = Mathf.Min(subGridDimensions.y, ogGridDimensions.y - startCoords.y);
         subGridDimensions.z = Mathf.Min(subGridDimensions.z, ogGridDimensions.z - startCoords.z);
 
         // Extract the subgrid

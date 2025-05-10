@@ -365,4 +365,5 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     GetWorkignAreaCells(initialIndex);
     UpdateWorkingArea();
     UpdateGeneration(initialIndex);
+    UpdateWorkingArea();
 }

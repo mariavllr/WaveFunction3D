@@ -5,8 +5,6 @@ using Debug = UnityEngine.Debug;
 using System.Diagnostics;
 using System;
 using UnityEngine.Rendering;
-using Unity.Mathematics;
-using Unity.VisualScripting;
 
 public class WaveFunction3DGPUChunks : MonoBehaviour
 {
@@ -113,16 +111,20 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         CreateSolidFloor(gridComponentsStructs);
         CreateEmptyCeiling(gridComponentsStructs);
 
-        Vector2Int iterations = new Vector2Int(0, 0);
+        Vector3Int iterations = new Vector3Int(0, 0, 0);
         iterations.x = Mathf.CeilToInt((float)dimensionsX / (chunkSize + 1));
-        iterations.y = Mathf.CeilToInt((float)dimensionsZ / (chunkSize + 1));
+        iterations.y = Mathf.CeilToInt((float)(dimensionsY - 2) / 2);
+        iterations.z = Mathf.CeilToInt((float)dimensionsZ / (chunkSize + 1));
         chunkOffsets = new List<Vector3Int>();
 
-        for(int i = -1; i < iterations.y; i++)
+        for(int y = 0; y < iterations.y; y++)
         {
-            for(int j = -1; j < iterations.x; j++)
+            for(int z = -1; z < iterations.z; z++)
             {
-                chunkOffsets.Add(new Vector3Int(j, 0, i) * chunkSize);
+                for(int x = -1; x < iterations.x; x++)
+                {
+                    chunkOffsets.Add(new Vector3Int(x * chunkSize, y * 2, z * chunkSize));
+                }
             }
         }
         // Dispatch a the middle chunk of a 3x3 subgrid
@@ -132,7 +134,7 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
     private void PrepareChunkDispatch(Vector3Int subGridCoords)
     {
         Debug.Log("Dispatching chunk: " + subGridCoords);
-        clampedSubGridSize = new Vector3Int(wishSubGridSize, dimensionsY, wishSubGridSize);
+        clampedSubGridSize = new Vector3Int(wishSubGridSize, chunkSize, wishSubGridSize);
         output = GridUtils.ExtractSubGrid(subGridCoords, ref clampedSubGridSize, gridComponentsStructs, new Vector3Int(dimensionsX, dimensionsY, dimensionsZ));
 
         tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)), ComputeBufferType.Structured);
@@ -143,7 +145,7 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         tileObjectsBuffer.SetData(tileObjectsStructs);
         outputBuffer.SetData(output.Item1);
 
-        Vector3 chunkSubGridCoords = new Vector3(1, 0, 1);
+        Vector3 chunkSubGridCoords = new Vector3(1, subGridCoords.y, 1);
         if(subGridCoords.x == -chunkSize) chunkSubGridCoords.x = 0;
         if(subGridCoords.z == -chunkSize) chunkSubGridCoords.z = 0;
         DispatchChunk(chunkSubGridCoords);
@@ -157,13 +159,14 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         shader.SetBuffer(kernel, "state", stateBuffer);
         shader.SetInt("MAX_NEIGHBOURS", MAX_NEIGHBOURS); // REVISAR QUE ESTO NO SE PUEDE HACER
         shader.SetInt("gridDimensionsX", clampedSubGridSize.x);
-        shader.SetInt("gridDimensionsY", clampedSubGridSize.y);
+        shader.SetInt("gridDimensionsY", 3);
         shader.SetInt("gridDimensionsZ", clampedSubGridSize.z);
         shader.SetVector("chunkOffset", chunkOffset); //To make sure that we generate the middle chunk of the 3x3 subGrid
         shader.SetInt("chunkSize", chunkSize);
 
         int offset = 0;
         int layer = 1;
+        layer = 1;
         DispatchLayer();
 
         void DispatchLayer(int attempts = 0)
@@ -184,7 +187,7 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
             {
                 int[] state = new int[1];
                 stateBuffer.GetData(state);
-                if (state[0] == 0 && layer < dimensionsY - 1) //No errors, still layers to process
+                if (state[0] == 0 && layer > 0 && layer < 3) //No errors, still layers to process
                 {
                     layer++;
                     offset = 0;

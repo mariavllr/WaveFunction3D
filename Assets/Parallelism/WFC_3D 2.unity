@@ -510,9 +510,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shader: {fileID: 7200000, guid: 8d48452b361f16c43a5d023e5c2f2c41, type: 3}
   cellSize: 2
-  dimensionsX: 32
-  dimensionsZ: 32
-  dimensionsY: 4
+  dimensionsX: 16
+  dimensionsZ: 16
+  dimensionsY: 8
   floorTile: {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
   emptyTile: {fileID: 4187426750720118590, guid: 85d911cca2c83ba40b7e12900bb75209, type: 3}
   grassTile: {fileID: -7542057271563045512, guid: 8c49b53a0492bc44c88e4e8cfa49c688, type: 3}
