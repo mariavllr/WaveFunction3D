@@ -335,17 +335,6 @@ void UpdateWorkingArea()
     int limit = (X_EXTENSION + 2) * (Y_EXTENSION + 2) * (Z_EXTENSION + 2);
     int i;
     int index = 0;
-    for(i = 0; i < limit; i++)
-    {
-        index = workingAreaCells[i].x + (workingAreaCells[i].z * gridDimensionsX) + (workingAreaCells[i].y * gridDimensionsX * gridDimensionsZ);
-        if(output[index].colapsed == 1) continue;
-        output[index].colapsed = 0;
-        output[index].entropy = MAX_NEIGHBOURS + 1;
-        for(int j = 0; j < MAX_NEIGHBOURS; j++)
-        {
-            output[index].tileOptions[j] = j;
-        }
-    }
 
     for(i = 0; i < limit; i++)
     {

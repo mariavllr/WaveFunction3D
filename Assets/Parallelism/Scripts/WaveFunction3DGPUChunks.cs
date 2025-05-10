@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
-using System.Diagnostics;
 using System;
 using UnityEngine.Rendering;
 
@@ -25,10 +24,6 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
     [SerializeField] private List<Cell3D2> gridComponents;   // A list with all the cells inside the grid
     [SerializeField] private Cell3D2 cellObj;                // They can be collapsed or not. Tiles are their children.
 
-    // Events
-    public delegate void OnRegenerate();
-    public static event OnRegenerate onRegenerate;
-    Stopwatch stopwatch;
     private Tile3DStruct[] tileObjectsStructs;
     private Cell3DStruct[] gridComponentsStructs;
     private Tuple<Cell3DStruct[], int[]> output;
@@ -41,7 +36,6 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
     private int chunkSize = 4;
     private int actualChunk = 0;
     private List<Vector3Int> chunkOffsets;
-    int a = 1;
 
     // Structs for the shader
     public unsafe struct Cell3DStruct
@@ -79,20 +73,15 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         public fixed int aboveNeighbors[MAX_NEIGHBOURS];
         public fixed int belowNeighbours[MAX_NEIGHBOURS];
     };
-
     unsafe void Start()
     {
         StartGeneration();
     }
 
-    private void Update()
-    {
-        if(Input.GetKeyDown(KeyCode.Space))
-        {
-            //if(actualChunk < chunkOffsets.Count) PrepareChunkDispatch(chunkOffsets[++actualChunk]);
-        }
-    }
-
+    /// <summary>
+    /// Starts the generation of the map
+    /// It creates the tile variations, the grid and the structs needed for the shader
+    /// </summary>
     private void StartGeneration()
     {
         ClearNeighbours(ref tileObjects);
@@ -100,9 +89,6 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         DefineNeighbourTiles(ref tileObjects, ref tileObjects);
 
         gridComponents = new List<Cell3D2>();
-        stopwatch = new Stopwatch();
-
-        stopwatch.Start();
         InitializeGrid();
 
         // Create the structs
@@ -127,10 +113,14 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
                 }
             }
         }
-        // Dispatch a the middle chunk of a 3x3 subgrid
+
         PrepareChunkDispatch(chunkOffsets[actualChunk]);
     }
 
+    /// <summary>
+    /// Prepares the dispatch of a chunk, copying the area need to process that chunk
+    /// </summary>
+    /// <param name="subGridCoords"></param> Coordinates of the area to be processed in the original grid
     private void PrepareChunkDispatch(Vector3Int subGridCoords)
     {
         Debug.Log("Dispatching chunk: " + subGridCoords);
@@ -151,104 +141,91 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         DispatchChunk(chunkSubGridCoords);
     }
 
+    /// <summary>
+    /// Dispatches the chunk to the GPU
+    /// The chunk is a 3x3 subgrid of the original grid, with the middle chunk being the one that is processed.
+    /// </summary>
+    /// <param name="chunkOffset"></param> Offset of the chunk in the original grid
     private void DispatchChunk(Vector3 chunkOffset)
     {
         // Data to buffers
         shader.SetBuffer(kernel, "tileObjects", tileObjectsBuffer);
         shader.SetBuffer(kernel, "output", outputBuffer);
         shader.SetBuffer(kernel, "state", stateBuffer);
-        shader.SetInt("MAX_NEIGHBOURS", MAX_NEIGHBOURS); // REVISAR QUE ESTO NO SE PUEDE HACER
         shader.SetInt("gridDimensionsX", clampedSubGridSize.x);
         shader.SetInt("gridDimensionsY", 3);
         shader.SetInt("gridDimensionsZ", clampedSubGridSize.z);
-        shader.SetVector("chunkOffset", chunkOffset); //To make sure that we generate the middle chunk of the 3x3 subGrid
+        shader.SetVector("chunkOffset", chunkOffset); // To make sure that we generate the middle chunk of the 3x3 subGrid
         shader.SetInt("chunkSize", chunkSize);
 
-        int offset = 0;
         int layer = 1;
         layer = 1;
         DispatchLayer();
 
         void DispatchLayer(int attempts = 0)
         {
-            Action<AsyncGPUReadbackRequest> GPUCallback = new Action<AsyncGPUReadbackRequest>((stateBuffer) => { DispatchLayer(); });
-
-            Vector3[] offsets = new Vector3[] {new Vector3(0, layer, 0), new Vector3(2, layer, 0), new Vector3(0, layer, 2), new Vector3(2, layer, 2)};
             shader.SetInt("seed", UnityEngine.Random.Range(0, int.MaxValue));
-            shader.SetVector("dispatchOffset", offsets[offset]);
-            if(chunkSize > 4) shader.Dispatch(shader.FindKernel("CSMain"), Mathf.CeilToInt((float)dimensionsX / 10), 1, Mathf.CeilToInt((float)dimensionsZ / 10));
-            else shader.Dispatch(shader.FindKernel("CSMain"), 1, 1, 1);
-            if(chunkSize > 4) offset++;
-            if (offset < offsets.Length && chunkSize > 4)
+            shader.SetVector("dispatchOffset", new Vector3(0, layer, 0));
+            shader.Dispatch(shader.FindKernel("CSMain"), 1, 1, 1);
+
+            int[] state = new int[1];
+            stateBuffer.GetData(state);
+            if (state[0] == 0 && layer > 0 && layer < 3) //No errors, still layers to process
             {
-                AsyncGPUReadbackRequest request = AsyncGPUReadback.Request(stateBuffer, GPUCallback);
+                layer++;
+                stateBuffer.SetData(new int[1] { 0 });
+                outputBuffer.GetData(output.Item1);
+                AsyncGPUReadback.Request(outputBuffer, _ => DispatchLayer());
             }
-            else
+            else if (state[0] != 0)
             {
-                int[] state = new int[1];
-                stateBuffer.GetData(state);
-                if (state[0] == 0 && layer > 0 && layer < 3) //No errors, still layers to process
+                stateBuffer.SetData(new int[1] { 0 });
+                if(attempts < 100)
                 {
-                    layer++;
-                    offset = 0;
-                    stateBuffer.SetData(new int[1] { 0 });
-                    outputBuffer.GetData(output.Item1);
-                    AsyncGPUReadback.Request(outputBuffer, _ => DispatchLayer());
-                }
-                else if (state[0] != 0)
-                {
-                    offset = 0;
-                    stateBuffer.SetData(new int[1] { 0 });
-                    if(attempts < 100)
-                    {
-                        outputBuffer.SetData(output.Item1);
-                        AsyncGPUReadback.Request(outputBuffer, _ => DispatchLayer(++attempts));
-                    }
-                    else
-                    {
-                        AsyncGPUReadback.Request(stateBuffer, _ => PrepareChunkDispatch(chunkOffsets[--actualChunk]));
-                    }
+                    outputBuffer.SetData(output.Item1);
+                    AsyncGPUReadback.Request(outputBuffer, _ => DispatchLayer(++attempts));
                 }
                 else
                 {
-                    outputBuffer.GetData(output.Item1);
-                    GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output.Item1, output.Item2);
+                    AsyncGPUReadback.Request(stateBuffer, _ => PrepareChunkDispatch(chunkOffsets[--actualChunk]));
+                }
+            }
+            else
+            {
+                outputBuffer.GetData(output.Item1);
+                GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output.Item1, output.Item2);
+                if(actualChunk < chunkOffsets.Count - 1)
+                {
                     InstantiateChunk();
-                    if(actualChunk < chunkOffsets.Count - 1)
-                    {
-                        InstantiateChunk();
-                        PrepareChunkDispatch(chunkOffsets[++actualChunk]);
-                    }
-                    else
-                    {
-                        InstantiateChunk();
-                        ReleaseMemory();
-                    }
+                    PrepareChunkDispatch(chunkOffsets[++actualChunk]);
+                }
+                else
+                {
+                    InstantiateChunk();
+                    ReleaseMemory();
                 }
             }
         }
     }
-    private unsafe void InstantiateChunk()
-    {
-        stopwatch.Stop();
-        Debug.Log("Time elapsed: " + stopwatch.ElapsedMilliseconds + "ms");
 
+    private unsafe void InstantiateChunk() //TODO
+    {
         // Recreate the grid based on the data received by the shader
         for (int i = 0; i < gridComponentsStructs.Length; i++)
         {
-            // if(gridComponentsStructs[i].colapsed == 0) continue; // Testing
+            if(gridComponents[i].collapsed) continue; // Testing
             Cell3D2 cell = gridComponents[i];
             cell.name = "Cell " + i;
             cell.collapsed = gridComponentsStructs[i].colapsed == 1;
-            //cell.RecreateCell(tileObjects[gridComponentsStructs[i].tileOptions[0]]);
+            cell.RecreateCell(tileObjects[gridComponentsStructs[i].tileOptions[0]]);
 
             // Uncomment this to recreate the cell with all the possible tiles
-            List<Tile3D2> newOptions = new List<Tile3D2>();
-            for (int j = 0; j < MAX_NEIGHBOURS; j++)
-            {
-                if (gridComponentsStructs[i].tileOptions[j] != -1) newOptions.Add(tileObjects[gridComponentsStructs[i].tileOptions[j]]);
-            }
-            cell.RecreateCell(newOptions.ToArray());
+            // List<Tile3D2> newOptions = new List<Tile3D2>();
+            // for (int j = 0; j < MAX_NEIGHBOURS; j++)
+            // {
+            //     if (gridComponentsStructs[i].tileOptions[j] != -1) newOptions.Add(tileObjects[gridComponentsStructs[i].tileOptions[j]]);
+            // }
+            // cell.RecreateCell(newOptions.ToArray());
 
             if (cell.transform.childCount != 0)
             {
@@ -269,6 +246,10 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
             instantiatedTile.gameObject.SetActive(true);
         }
     }
+
+    /// <summary>
+    /// Releases the memory used by the buffers
+    /// </summary>
     private void ReleaseMemory()
     {
         tileObjectsBuffer.Release();
@@ -432,7 +413,6 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         tileRotated.excludedNeighboursDown = originalTile.excludedNeighboursLeft;
     }
 
-
     /// <summary>
     /// Defines the neighbour tiles of each tile in the array
     /// </summary>
@@ -512,7 +492,7 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
     }
 
     /// <summary>
-    /// Creates the grid full of cells
+    /// Creates the grid structure, filled with cells
     /// </summary>
     void InitializeGrid()
     {
@@ -600,8 +580,7 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
 
         for (int i = 0; i < tileObjects.Length; i++)
         {
-            // Initially all the tiles are possible,
-            // so the indexes are the same as the array indexes
+            // Initially all the tiles are possible, so the indexes are the same as the array indexes
             tileObjectIndexes[i] = i;
         }
 
@@ -621,6 +600,10 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         return cell3DStructs;
     }
 
+    /// <summary>
+    /// Creates a solid floor of tiles to avoid the generation holes in the first layer
+    /// </summary>
+    /// <param name="cell3DStructs"></param>
     unsafe void CreateSolidFloor(Cell3DStruct[] cell3DStructs)
     {
         int y = 0;
@@ -640,6 +623,10 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Creates the a ceiling of empty tiles to avoid the generation unfinished layers
+    /// </summary>
+    /// <param name="cell3DStructs"></param>
     unsafe void CreateEmptyCeiling(Cell3DStruct[] cell3DStructs)
     {
         int y = dimensionsY-1;
@@ -657,127 +644,5 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
                 cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, emptyTile);
             }
         }
-    }
-    public unsafe void Regenerate() // TODO
-    {
-        if (onRegenerate != null)
-        {
-            onRegenerate();
-        }
-
-        // Clear the grid
-        for (int i = gameObject.transform.childCount - 1; i >= 0; i--)
-        {
-            Destroy(gameObject.transform.GetChild(i).gameObject);
-        }
-
-        ClearNeighbours(ref tileObjects);
-        CreateRemainingCells(ref tileObjects);
-        DefineNeighbourTiles(ref tileObjects, ref tileObjects);
-
-        gridComponents = new List<Cell3D2>();
-        stopwatch = new Stopwatch();
-
-        stopwatch.Start();
-        InitializeGrid();
-
-        // Create the structs
-        Tile3DStruct[] tileObjectsStructs = CreateTile3DStructs();
-        Cell3DStruct[] gridComponentsStructs = CreateCell3DStructs();
-        CreateSolidFloor(gridComponentsStructs);
-        CreateEmptyCeiling(gridComponentsStructs);
-
-        // Initialize buffers
-        ComputeBuffer gridComponentsBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
-        ComputeBuffer tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)));
-        ComputeBuffer outputBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
-
-        // Set data
-        gridComponentsBuffer.SetData(gridComponentsStructs);
-        outputBuffer.SetData(gridComponentsStructs);
-        tileObjectsBuffer.SetData(tileObjectsStructs);
-
-        // Data to buffers
-        shader.SetBuffer(0, "gridComponents", gridComponentsBuffer);
-        shader.SetBuffer(0, "tileObjects", tileObjectsBuffer);
-        shader.SetBuffer(0, "output", outputBuffer);
-        shader.SetInt("MAX_NEIGHBOURS", MAX_NEIGHBOURS);
-        shader.SetInt("gridDimensionsX", dimensionsX);
-        shader.SetInt("gridDimensionsY", dimensionsY);
-        shader.SetInt("gridDimensionsZ", dimensionsZ);
-        shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
-        shader.SetInt("emptyTile", Array.IndexOf(tileObjects, emptyTile));
-        shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());//DateTime.Now.Ticks.GetHashCode());
-        shader.SetVector("offset", new Vector3(0, 1, 0));
-
-        // Dispatch 1/5 of the grid
-        shader.Dispatch(0, dimensionsX / 2, 1, dimensionsZ / 2);
-
-        // // Dispatch 2/5 of the grid
-        // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 2);
-        // shader.SetVector("offset", new Vector3(-1, 1, -1));
-        // shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
-
-        // // Dispatch 3/5 of the grid
-        // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 3);
-        // shader.SetVector("offset", new Vector3(1, 1, -1));
-        // shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
-
-        // // Dispatch 4/5 of the grid
-        // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 4);
-        // shader.SetVector("offset", new Vector3(-1, 1, 1));
-        // shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
-
-        // // Dispatch 5/5 of the grid
-        // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 5);
-        // shader.SetVector("offset", new Vector3(1, 1, 1));
-        // shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
-
-        // Get data
-        Cell3DStruct[] output = new Cell3DStruct[gridComponentsStructs.Length];
-        outputBuffer.GetData(output);
-
-        // Recreate the grid based on the data received by the shader
-        for (int i = 0; i < output.Length; i++)
-        {
-            //if(output[i].colapsed == 0) continue; // Testing
-            Cell3D2 cell = gridComponents[i];
-            cell.name = "Cell " + i;
-            cell.collapsed = output[i].colapsed == 1;
-            //cell.RecreateCell(tileObjects[output[i].tileOptions[0]]);
-
-            // Uncomment this to recreate the cell with all the possible tiles
-
-            List<Tile3D2> newOptions = new List<Tile3D2>();
-            for (int j = 0; j < MAX_NEIGHBOURS; j++)
-            {
-                if (output[i].tileOptions[j] != -1) newOptions.Add(tileObjects[output[i].tileOptions[j]]);
-            }
-            cell.RecreateCell(newOptions.ToArray());
-
-            if (cell.transform.childCount != 0)
-            {
-                foreach (Transform child in cell.transform)
-                {
-                    Destroy(child.gameObject);
-                }
-            }
-
-            Tile3D2 instantiatedTile = Instantiate(cell.tileOptions[0], cell.transform.position, Quaternion.identity, cell.transform);
-            if (instantiatedTile.rotation != Vector3.zero)
-            {
-                instantiatedTile.gameObject.transform.Rotate(cell.tileOptions[0].rotation, Space.Self);
-            }
-
-            instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
-            instantiatedTile.gameObject.SetActive(true);
-        }
-
-        // Release memory buffers to avoid leaks
-        gridComponentsBuffer.Release();
-        tileObjectsBuffer.Release();
-        outputBuffer.Release();
-        stopwatch.Stop();
-        Debug.Log("Time elapsed: " + stopwatch.ElapsedMilliseconds + "ms");
     }
 }
