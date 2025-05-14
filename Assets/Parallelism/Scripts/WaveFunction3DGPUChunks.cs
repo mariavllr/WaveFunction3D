@@ -15,9 +15,9 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
     [Header("Map generation")]
     [SerializeField] int cellSize;
     [SerializeField] private int dimensionsX, dimensionsZ, dimensionsY;
-    [SerializeField] Tile3D2 floorTile;                     // Tile for the floor
+    [SerializeField] Tile3D2 solidTile;                     // Tile for the floor
     [SerializeField] Tile3D2 emptyTile;                     // Tile for the ceiling
-    [SerializeField] Tile3D2 grassTile;                     // Tile for the grass
+    [SerializeField] GameObject emptyPrefab;
     [SerializeField] private Tile3D2[] tileObjects;         // All the tiles that can be used to generate the map
 
     [Header("Grid")]
@@ -121,7 +121,7 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
     /// Prepares the dispatch of a chunk, copying the area need to process that chunk
     /// </summary>
     /// <param name="subGridCoords"></param> Coordinates of the area to be processed in the original grid
-    private void PrepareChunkDispatch(Vector3Int subGridCoords)
+    private void PrepareChunkDispatch(Vector3Int subGridCoords, bool clear = false)
     {
         Debug.Log("Dispatching chunk: " + subGridCoords);
         clampedSubGridSize = new Vector3Int(wishSubGridSize, chunkSize, wishSubGridSize);
@@ -130,7 +130,8 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)), ComputeBufferType.Structured);
         outputBuffer = new ComputeBuffer(output.Item1.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)), ComputeBufferType.Structured);
         stateBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Counter);
-        kernel = shader.FindKernel("CSMain");
+        if(!clear) kernel = shader.FindKernel("CSMain");
+        else kernel = shader.FindKernel("ClearChunk");
 
         tileObjectsBuffer.SetData(tileObjectsStructs);
         outputBuffer.SetData(output.Item1);
@@ -162,7 +163,7 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
         layer = 1;
         DispatchLayer();
 
-        void DispatchLayer(int attempts = 0)
+        void DispatchLayer(int attempts = 0, bool clear = false)
         {
             shader.SetInt("seed", UnityEngine.Random.Range(0, int.MaxValue));
             shader.SetVector("dispatchOffset", new Vector3(0, layer, 0));
@@ -187,7 +188,7 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
                 }
                 else
                 {
-                    AsyncGPUReadback.Request(stateBuffer, _ => PrepareChunkDispatch(chunkOffsets[--actualChunk]));
+                    AsyncGPUReadback.Request(stateBuffer, _ => PrepareChunkDispatch(chunkOffsets[--actualChunk], true));
                 }
             }
             else
@@ -196,54 +197,125 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
                 GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output.Item1, output.Item2);
                 if(actualChunk < chunkOffsets.Count - 1)
                 {
-                    InstantiateChunk();
+                    InstantiateChunk(chunkOffsets[actualChunk]);
                     PrepareChunkDispatch(chunkOffsets[++actualChunk]);
                 }
                 else
                 {
-                    InstantiateChunk();
                     ReleaseMemory();
+                    InstantiateChunk(chunkOffsets[actualChunk]);
+                    ClearGeneration();
                 }
             }
         }
     }
 
-    private unsafe void InstantiateChunk() //TODO
+    /// <summary>
+    /// Instantiates the chunk in the scene
+    /// </summary>
+    /// <param name="subGridCoords"></param> Coordinates of the chunk in the original grid
+    private unsafe void InstantiateChunk(Vector3Int subGridCoords)
     {
-        // Recreate the grid based on the data received by the shader
-        for (int i = 0; i < gridComponentsStructs.Length; i++)
+        subGridCoords += new Vector3Int(chunkSize, 0, chunkSize);
+        clampedSubGridSize = new Vector3Int(chunkSize, chunkSize, chunkSize);
+        Tuple<Cell3DStruct[], int[]> output = GridUtils.ExtractSubGrid(subGridCoords, ref clampedSubGridSize, gridComponentsStructs, new Vector3Int(dimensionsX, dimensionsY, dimensionsZ));
+        GameObject Chunk = Instantiate(emptyPrefab, new Vector3((subGridCoords.x + 1) * cellSize, (subGridCoords.y + 1) * cellSize, subGridCoords.z * cellSize), Quaternion.identity);
+        Chunk.transform.parent = gameObject.transform;
+        Chunk.name = subGridCoords.x + "," + subGridCoords.y + "," + subGridCoords.z;
+        for (int i = 0; i < output.Item1.Length; i++)
         {
-            if(gridComponents[i].collapsed) continue; // Testing
-            Cell3D2 cell = gridComponents[i];
-            cell.name = "Cell " + i;
-            cell.collapsed = gridComponentsStructs[i].colapsed == 1;
-            cell.RecreateCell(tileObjects[gridComponentsStructs[i].tileOptions[0]]);
-
-            // Uncomment this to recreate the cell with all the possible tiles
-            // List<Tile3D2> newOptions = new List<Tile3D2>();
-            // for (int j = 0; j < MAX_NEIGHBOURS; j++)
-            // {
-            //     if (gridComponentsStructs[i].tileOptions[j] != -1) newOptions.Add(tileObjects[gridComponentsStructs[i].tileOptions[j]]);
-            // }
-            // cell.RecreateCell(newOptions.ToArray());
-
-            if (cell.transform.childCount != 0)
+            if(output.Item1[i].colapsed == 1)
             {
-                foreach (Transform child in cell.transform)
+                if(output.Item1[i].tileOptions[0] == Array.IndexOf(tileObjects, solidTile)
+                || output.Item1[i].tileOptions[0] == Array.IndexOf(tileObjects, emptyTile))
                 {
-                    Destroy(child.gameObject);
+                    if(gridComponents[output.Item2[i]] != null) Destroy(gridComponents[output.Item2[i]].gameObject);
+                    gridComponents[output.Item2[i]] = null;
+                }
+                else
+                {
+                    Cell3D2 cell = gridComponents[output.Item2[i]];
+                    cell.transform.parent = Chunk.transform;
+                    cell.name = "Cell " + output.Item2[i];
+                    cell.collapsed = output.Item1[i].colapsed == 1;
+                    cell.RecreateCell(tileObjects[output.Item1[i].tileOptions[0]]);
+                    if (cell.transform.childCount != 0)
+                    {
+                        foreach (Transform child in cell.transform)
+                        {
+                            Destroy(child.gameObject);
+                        }
+                    }
+                    Tile3D2 instantiatedTile = Instantiate(tileObjects[output.Item1[i].tileOptions[0]], cell.transform.position, Quaternion.identity, cell.transform);
+                    if (instantiatedTile.rotation != Vector3.zero)
+                    {
+                        instantiatedTile.gameObject.transform.Rotate(tileObjects[output.Item1[i].tileOptions[0]].rotation, Space.Self);
+                    }
+                    instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
+                    instantiatedTile.gameObject.SetActive(true);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clears the hirarchy of chunk to avoid having too many objects in the scene and present a user friendly view
+    /// </summary>
+    private void ClearGeneration()
+    {
+        string primaryChunkName, secondaryChunkName;
+        string[] primaryCoordinates, secondaryChunkCoordinates;
+        int primaryChunkX, primaryChunkY, primaryChunkZ, secondaryChunkX, secondaryChunkY, secondaryChunkZ;
+
+        foreach(Transform chunk in gameObject.transform)
+        {
+            primaryChunkName = chunk.name;
+            primaryCoordinates = primaryChunkName.Split(',');
+            if(primaryCoordinates.Length != 3) continue;
+            primaryChunkX = int.Parse(primaryCoordinates[0]);
+            primaryChunkY = int.Parse(primaryCoordinates[1]);
+            primaryChunkZ = int.Parse(primaryCoordinates[2]);
+
+            foreach(Transform secondaryChunk in gameObject.transform)
+            {
+                secondaryChunkName = secondaryChunk.name;
+                secondaryChunkCoordinates = secondaryChunkName.Split(',');
+                if(secondaryChunkCoordinates.Length != 3) continue;
+                secondaryChunkX = int.Parse(secondaryChunkCoordinates[0]);
+                secondaryChunkY = int.Parse(secondaryChunkCoordinates[1]);
+                secondaryChunkZ = int.Parse(secondaryChunkCoordinates[2]);
+                if(primaryChunkX == secondaryChunkX && primaryChunkY != secondaryChunkY && primaryChunkZ == secondaryChunkZ && secondaryChunk.childCount != 0)
+                {
+                    for (int i = secondaryChunk.childCount - 1; i >= 0; i--)
+                    {
+                        Transform child = secondaryChunk.GetChild(i);
+                        child.parent = chunk;
+                    }
                 }
             }
 
-            if(!cell.collapsed) continue; // Only instantiate the tiles that are not collapsed
-            Tile3D2 instantiatedTile = Instantiate(cell.tileOptions[0], cell.transform.position, Quaternion.identity, cell.transform);
-            if (instantiatedTile.rotation != Vector3.zero)
+            for(int i = chunk.childCount - 1; i >= 0; i--)
             {
-                instantiatedTile.gameObject.transform.Rotate(cell.tileOptions[0].rotation, Space.Self);
+                Transform child = chunk.GetChild(i);
+                child.GetChild(0).parent = chunk;
+                Destroy(child.gameObject);
             }
+        }
 
-            instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
-            instantiatedTile.gameObject.SetActive(true);
+        Vector2Int chunkCoordinates = new Vector2Int(0, 0);
+        foreach(Transform chunk in gameObject.transform)
+        {
+            if(chunk.transform.childCount == 0) Destroy(chunk.gameObject);
+            else
+            {
+                chunk.name = "Chunk " + "(" + chunkCoordinates.x + "," + chunkCoordinates.y + ")";
+                if(chunkCoordinates.x % (dimensionsX / chunkSize - 1) == 0 && chunkCoordinates.x != 0)
+                {
+                    chunkCoordinates.x = 0;
+                    chunkCoordinates.y++;
+                }
+                else chunkCoordinates.x++;
+            }
         }
     }
 
@@ -618,7 +690,7 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
                 {
                     cell3DStructs[index].tileOptions[i] = -1;
                 }
-                cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, floorTile);
+                cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, solidTile);
             }
         }
     }

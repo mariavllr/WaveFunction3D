@@ -1,5 +1,6 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
+#pragma kernel ClearChunk
 #pragma enable_d3d11_debug_symbols
 
 /*
@@ -355,4 +356,27 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     UpdateWorkingArea();
     UpdateGeneration(initialIndex);
     UpdateWorkingArea();
+}
+
+[numthreads(1,1,1)]
+void ClearChunk (uint3 id: SV_DispatchThreadID)
+{
+    uint3 initialIndex;
+    initialIndex.x = id.x * X_EXTENSION + id.x + dispatchOffset.x + chunkOffset.x * chunkSize;
+    initialIndex.y = id.y * Y_EXTENSION + id.y + dispatchOffset.y;
+    initialIndex.z = id.z * Z_EXTENSION + id.z + dispatchOffset.z + chunkOffset.z * chunkSize;
+    GetCellsToCheck(initialIndex);
+    uint index = 0;
+    for(uint i = 0; i < X_EXTENSION * Y_EXTENSION * Z_EXTENSION; i++)
+    {
+        if (cellsToCheck[i].x >= 0 && cellsToCheck[i].x < gridDimensionsX
+            && cellsToCheck[i].y >= 0 && cellsToCheck[i].y < gridDimensionsY
+            && cellsToCheck[i].z >= 0 && cellsToCheck[i].z < gridDimensionsZ)
+        {
+            index = cellsToCheck[i].x + (cellsToCheck[i].z * gridDimensionsX) + (cellsToCheck[i].y * gridDimensionsX * gridDimensionsZ);
+            output[index].colapsed = 0;
+            output[index].entropy = MAX_NEIGHBOURS;
+            for(int j = 0; j < MAX_NEIGHBOURS; j++) output[index].tileOptions[j] = j;
+        }
+    }
 }
