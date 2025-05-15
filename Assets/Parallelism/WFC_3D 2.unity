@@ -512,8 +512,8 @@ MonoBehaviour:
   cellSize: 2
   dimensionsX: 16
   dimensionsZ: 16
-  dimensionsY: 4
-  solidTile: {fileID: 0}
+  dimensionsY: 8
+  solidTile: {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
   emptyTile: {fileID: 4187426750720118590, guid: 85d911cca2c83ba40b7e12900bb75209, type: 3}
   emptyPrefab: {fileID: 3967584849540067409, guid: d8e01d1981e59424b85d42fbc6b302bd, type: 3}
   tileObjects:

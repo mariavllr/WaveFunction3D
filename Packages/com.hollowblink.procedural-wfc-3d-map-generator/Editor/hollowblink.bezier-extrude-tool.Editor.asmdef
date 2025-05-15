@@ -1,0 +1,16 @@
+{
+    "name": "hollowblink.procedural-wfc-3d-map-generator.Editor",
+    "rootNamespace": "hollowblink.bezier-extrude-tool.Editor",
+    "references": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

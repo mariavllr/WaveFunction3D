@@ -11,7 +11,11 @@ public class WFC_Generation_Editor : EditorWindow
     [SerializeField] private RadioButtonGroup m_GenerationStrategy;
     [SerializeField] private DropdownField m_TilesetDropdown;
     [SerializeField] private DropdownField m_MapDropdown;
-    [SerializeField] private Vector3Field m_MapSizeField;
+    [SerializeField] private VisualElement m_MapSizeSliderContainer;
+    [SerializeField] private SliderInt m_MapSizeX;
+    [SerializeField] private SliderInt m_MapSizeY;
+    [SerializeField] private SliderInt m_MapSizeZ;
+    [SerializeField] private Vector3IntField m_MapSizeField;
     [SerializeField] private VisualElement m_VisualElementWarning;
     [SerializeField] private ProgressBar m_ProgressBar;
     [SerializeField] private Button m_GenerateButton;
@@ -29,7 +33,7 @@ public class WFC_Generation_Editor : EditorWindow
     public static void ShowWindow()
     {
         WFC_Generation_Editor window = GetWindow<WFC_Generation_Editor>();
-        window.titleContent = new GUIContent("WFC Map Generatior");
+        window.titleContent = new GUIContent("WFC Map Generator");
     }
 
     private void CreateGUI()
@@ -63,9 +67,25 @@ public class WFC_Generation_Editor : EditorWindow
             m_MapDropdown.value = m_MapDropdown.choices[^1];
         }
 
+        // Load data for the map size sliders
+        m_MapSizeSliderContainer = rootVisualElement.Q<VisualElement>("mapDimensionsSliderContainer");
+        m_MapSizeX = rootVisualElement.Q<SliderInt>("mapDimensionsX");
+        m_MapSizeY = rootVisualElement.Q<SliderInt>("mapDimensionsY");
+        m_MapSizeZ = rootVisualElement.Q<SliderInt>("mapDimensionsZ");
+        if(m_MapSizeX != null) m_MapSizeX.RegisterValueChangedCallback(evt => SetMapSize(evt, 'x'));
+        if(m_MapSizeY != null) m_MapSizeY.RegisterValueChangedCallback(evt => SetMapSize(evt, 'y'));
+        if(m_MapSizeZ != null) m_MapSizeZ.RegisterValueChangedCallback(evt => SetMapSize(evt, 'z'));
+        if(m_MapSizeSliderContainer != null && !m_UseChunks) m_MapSizeSliderContainer.style.display = DisplayStyle.Flex;
+        else if(m_MapSizeSliderContainer != null && m_UseChunks) m_MapSizeSliderContainer.style.display = DisplayStyle.None;
+
         // Load data for the map size field
-        m_MapSizeField = rootVisualElement.Q<Vector3Field>("mapDimensions");
-        m_MapSizeField?.RegisterValueChangedCallback(SetMapSize);
+        m_MapSizeField = rootVisualElement.Q<Vector3IntField>("mapDimensions");
+        if(m_MapSizeField != null)
+        {
+            m_MapSizeField?.RegisterValueChangedCallback(SetMapSize);
+            if (m_UseChunks) m_MapSizeField.style.display = DisplayStyle.Flex;
+            else m_MapSizeField.style.display = DisplayStyle.None;
+        }
 
         // Load data to show or hide the warning label
         m_VisualElementWarning = rootVisualElement.Q<VisualElement>("generationWarning");
@@ -129,17 +149,34 @@ public class WFC_Generation_Editor : EditorWindow
     private void SetGenerationStrategy(ChangeEvent<int> evt)
     {
         m_UseChunks = evt.newValue == 0;
+        if (m_MapSizeSliderContainer != null)
+        {
+            if (m_UseChunks) m_MapSizeSliderContainer.style.display = DisplayStyle.None;
+            else m_MapSizeSliderContainer.style.display = DisplayStyle.Flex;
+        }
+        if (m_MapSizeField != null)
+        {
+            if (m_UseChunks) m_MapSizeField.style.display = DisplayStyle.Flex;
+            else m_MapSizeField.style.display = DisplayStyle.None;
+        }
         Debug.Log($"Generation strategy set to: {(m_UseChunks ? "Chunks" : "Parallel")}"); // Debug log for testing
     }
 
-    private void SetMapSize(ChangeEvent<Vector3> evt)
+    private void SetMapSize(ChangeEvent<Vector3Int> evt)
     {
-        m_MapSize = new Vector3Int(Mathf.RoundToInt(evt.newValue.x), Mathf.RoundToInt(evt.newValue.y), Mathf.RoundToInt(evt.newValue.z));
+        m_MapSize = new Vector3Int(evt.newValue.x, evt.newValue.y, evt.newValue.z);
         if(m_MapSize.x < 1) m_MapSize.x = 1;
         if(m_MapSize.y < 1) m_MapSize.y = 1;
         if(m_MapSize.z < 1) m_MapSize.z = 1;
         if(m_MapSize != null) m_MapSizeField.value = m_MapSize;
         Debug.Log($"Map size set to: {m_MapSize}"); // Debug log for testing
+    }
+
+    private void SetMapSize(ChangeEvent<int> evt, char coordinate)
+    {
+        if(coordinate == 'x') m_MapSize.x = evt.newValue;
+        else if(coordinate == 'y') m_MapSize.y = evt.newValue;
+        else if(coordinate == 'z') m_MapSize.z = evt.newValue;
     }
 
     private void StartGeneration(ClickEvent evt)

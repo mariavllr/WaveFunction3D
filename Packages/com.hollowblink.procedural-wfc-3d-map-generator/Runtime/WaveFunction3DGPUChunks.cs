@@ -294,12 +294,17 @@ public class WaveFunction3DGPUChunks : MonoBehaviour
                 }
             }
 
+            List<GameObject> trash = new List<GameObject>();
             for(int i = chunk.childCount - 1; i >= 0; i--)
             {
                 Transform child = chunk.GetChild(i);
-                child.GetChild(0).parent = chunk;
-                Destroy(child.gameObject);
+                if(child.childCount != 0)
+                {
+                    child.GetChild(0).parent = chunk;
+                    trash.Add(child.gameObject);
+                }
             }
+            foreach(GameObject obj in trash) Destroy(obj);
         }
 
         Vector2Int chunkCoordinates = new Vector2Int(0, 0);
