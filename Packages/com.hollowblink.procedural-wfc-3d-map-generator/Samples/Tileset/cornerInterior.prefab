@@ -108,27 +108,15 @@ MonoBehaviour:
   rotation: {x: 0, y: 0, z: 0}
   scale: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
-  upNeighbours:
-  - {fileID: 5376119154660965731, guid: 31679c91f49e20748b1f096c5ae4caca, type: 3}
-  - {fileID: 0}
-  rightNeighbours:
-  - {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
-  downNeighbours:
-  - {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
-  leftNeighbours:
-  - {fileID: 0}
-  - {fileID: 0}
-  aboveNeighbours:
-  - {fileID: 1474986422897661062, guid: e6af77cbe7e3c0246b9ad585be09ecf6, type: 3}
-  belowNeighbours:
-  - {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
+  upNeighbours: []
+  rightNeighbours: []
+  downNeighbours: []
+  leftNeighbours: []
+  aboveNeighbours: []
+  belowNeighbours: []
   excludedNeighboursUp: []
-  excludedNeighboursRight:
-  - wall
-  - cornerInterior
-  excludedNeighboursDown:
-  - wall
-  - cornerInterior
+  excludedNeighboursRight: []
+  excludedNeighboursDown: []
   excludedNeighboursLeft: []
   upSocket:
     socket_name: 4

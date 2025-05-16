@@ -1,63 +1,66 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using Cell3DStruct = WaveFunction3DGPUChunks.Cell3DStruct;
+using Cell3DStruct = WFC3DMapGenerator.WaveFunction3DGPUChunks.Cell3DStruct;
 
-public class GridUtils : MonoBehaviour
+namespace WFC3DMapGenerator
 {
-    /// <summary>
-    /// Extracts a subgrid from the original grid based on the start coordinates and dimensions of the subgrid.
-    /// </summary>
-    /// <param name="startCoords"></param> Initial coordinates of the subgrid in the original grid.
-    /// <param name="subGridDimensions"></param> Dimensions of the subgrid to be extracted.
-    /// <param name="ogGrid"></param> The original grid from which the subgrid will be extracted.
-    /// <param name="ogGridDimensions"></param> Dimensions of the original grid.
-    /// <returns></returns> Returns a tuple containing the extracted subgrid and the indices of the original grid that correspond to the subgrid.
-    public static Tuple<Cell3DStruct[], int[]> ExtractSubGrid(Vector3Int startCoords, ref Vector3Int subGridDimensions, Cell3DStruct[] ogGrid, Vector3Int ogGridDimensions)
+    public class GridUtils : MonoBehaviour
     {
-        // Clamp to matrix bounds
-        if(startCoords.x < 0) subGridDimensions.x = subGridDimensions.x + startCoords.x;
-        if(startCoords.y < 0) subGridDimensions.y = subGridDimensions.y + startCoords.y;
-        if(startCoords.z < 0) subGridDimensions.z = subGridDimensions.z + startCoords.z;
-        startCoords.x = Mathf.Max(0, startCoords.x);
-        startCoords.y = Mathf.Max(0, startCoords.y);
-        startCoords.z = Mathf.Max(0, startCoords.z);
-        subGridDimensions.x = Mathf.Min(subGridDimensions.x, ogGridDimensions.x - startCoords.x);
-        subGridDimensions.y = Mathf.Min(subGridDimensions.y, ogGridDimensions.y - startCoords.y);
-        subGridDimensions.z = Mathf.Min(subGridDimensions.z, ogGridDimensions.z - startCoords.z);
-
-        // Extract the subgrid
-        List<Cell3DStruct> subGrid = new List<Cell3DStruct>();
-        List<int> subGridIndices = new List<int>();
-        for (int y = startCoords.y; y < startCoords.y + subGridDimensions.y; y++)
+        /// <summary>
+        /// Extracts a subgrid from the original grid based on the start coordinates and dimensions of the subgrid.
+        /// </summary>
+        /// <param name="startCoords"></param> Initial coordinates of the subgrid in the original grid.
+        /// <param name="subGridDimensions"></param> Dimensions of the subgrid to be extracted.
+        /// <param name="ogGrid"></param> The original grid from which the subgrid will be extracted.
+        /// <param name="ogGridDimensions"></param> Dimensions of the original grid.
+        /// <returns></returns> Returns a tuple containing the extracted subgrid and the indices of the original grid that correspond to the subgrid.
+        public static Tuple<Cell3DStruct[], int[]> ExtractSubGrid(Vector3Int startCoords, ref Vector3Int subGridDimensions, Cell3DStruct[] ogGrid, Vector3Int ogGridDimensions)
         {
-            for (int z = startCoords.z; z < startCoords.z + subGridDimensions.z; z++)
+            // Clamp to matrix bounds
+            if (startCoords.x < 0) subGridDimensions.x = subGridDimensions.x + startCoords.x;
+            if (startCoords.y < 0) subGridDimensions.y = subGridDimensions.y + startCoords.y;
+            if (startCoords.z < 0) subGridDimensions.z = subGridDimensions.z + startCoords.z;
+            startCoords.x = Mathf.Max(0, startCoords.x);
+            startCoords.y = Mathf.Max(0, startCoords.y);
+            startCoords.z = Mathf.Max(0, startCoords.z);
+            subGridDimensions.x = Mathf.Min(subGridDimensions.x, ogGridDimensions.x - startCoords.x);
+            subGridDimensions.y = Mathf.Min(subGridDimensions.y, ogGridDimensions.y - startCoords.y);
+            subGridDimensions.z = Mathf.Min(subGridDimensions.z, ogGridDimensions.z - startCoords.z);
+
+            // Extract the subgrid
+            List<Cell3DStruct> subGrid = new List<Cell3DStruct>();
+            List<int> subGridIndices = new List<int>();
+            for (int y = startCoords.y; y < startCoords.y + subGridDimensions.y; y++)
             {
-                for (int x = startCoords.x; x < startCoords.x + subGridDimensions.x; x++)
+                for (int z = startCoords.z; z < startCoords.z + subGridDimensions.z; z++)
                 {
-                    subGrid.Add(ogGrid[x + z * ogGridDimensions.x + y * ogGridDimensions.x * ogGridDimensions.z]);
-                    subGridIndices.Add(x + z * ogGridDimensions.x + y * ogGridDimensions.x * ogGridDimensions.z);
+                    for (int x = startCoords.x; x < startCoords.x + subGridDimensions.x; x++)
+                    {
+                        subGrid.Add(ogGrid[x + z * ogGridDimensions.x + y * ogGridDimensions.x * ogGridDimensions.z]);
+                        subGridIndices.Add(x + z * ogGridDimensions.x + y * ogGridDimensions.x * ogGridDimensions.z);
+                    }
                 }
             }
+            return new Tuple<Cell3DStruct[], int[]>(subGrid.ToArray(), subGridIndices.ToArray());
         }
-        return new Tuple<Cell3DStruct[], int[]>(subGrid.ToArray(), subGridIndices.ToArray());
-    }
 
-    public static int GetIndexFromCoords(Vector3Int coords, Vector3Int gridDimensions)
-    {
-        // Clamp to matrix bounds
-        coords.x = Mathf.Max(0, coords.x);
-        coords.y = Mathf.Max(0, coords.y);
-        coords.z = Mathf.Max(0, coords.z);
-        coords.x = Mathf.Min(coords.x, gridDimensions.x - 1);
-        coords.y = Mathf.Min(coords.y, gridDimensions.y - 1);
-        coords.z = Mathf.Min(coords.z, gridDimensions.z - 1);
+        public static int GetIndexFromCoords(Vector3Int coords, Vector3Int gridDimensions)
+        {
+            // Clamp to matrix bounds
+            coords.x = Mathf.Max(0, coords.x);
+            coords.y = Mathf.Max(0, coords.y);
+            coords.z = Mathf.Max(0, coords.z);
+            coords.x = Mathf.Min(coords.x, gridDimensions.x - 1);
+            coords.y = Mathf.Min(coords.y, gridDimensions.y - 1);
+            coords.z = Mathf.Min(coords.z, gridDimensions.z - 1);
 
-        return coords.x + coords.z * gridDimensions.x + coords.y * gridDimensions.x * gridDimensions.z;
-    }
+            return coords.x + coords.z * gridDimensions.x + coords.y * gridDimensions.x * gridDimensions.z;
+        }
 
-    public static void CombineGridWithSubgrid(Cell3DStruct[] grid, Cell3DStruct[] subGrid, int[] subGridIndices)
-    {
-        for (int i = 0; i < subGrid.Length; i++) grid[subGridIndices[i]] = subGrid[i];
+        public static void CombineGridWithSubgrid(Cell3DStruct[] grid, Cell3DStruct[] subGrid, int[] subGridIndices)
+        {
+            for (int i = 0; i < subGrid.Length; i++) grid[subGridIndices[i]] = subGrid[i];
+        }
     }
 }

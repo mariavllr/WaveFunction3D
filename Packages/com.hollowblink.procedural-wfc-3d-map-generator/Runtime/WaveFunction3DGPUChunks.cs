@@ -5,720 +5,723 @@ using Debug = UnityEngine.Debug;
 using System;
 using UnityEngine.Rendering;
 
-public class WaveFunction3DGPUChunks : MonoBehaviour
+namespace WFC3DMapGenerator
 {
-    [SerializeField] public const int MAX_NEIGHBOURS = 44;
-
-    [Header("Shader")]
-    [SerializeField] private ComputeShader shader;
-
-    [Header("Map generation")]
-    [SerializeField] int cellSize;
-    [SerializeField] private int dimensionsX, dimensionsZ, dimensionsY;
-    [SerializeField] Tile3D2 solidTile;                     // Tile for the floor
-    [SerializeField] Tile3D2 emptyTile;                     // Tile for the ceiling
-    [SerializeField] GameObject emptyPrefab;
-    [SerializeField] private Tile3D2[] tileObjects;         // All the tiles that can be used to generate the map
-
-    [Header("Grid")]
-    [SerializeField] private List<Cell3D2> gridComponents;   // A list with all the cells inside the grid
-    [SerializeField] private Cell3D2 cellObj;                // They can be collapsed or not. Tiles are their children.
-
-    private Tile3DStruct[] tileObjectsStructs;
-    private Cell3DStruct[] gridComponentsStructs;
-    private Tuple<Cell3DStruct[], int[]> output;
-    private ComputeBuffer tileObjectsBuffer;
-    private ComputeBuffer outputBuffer;
-    private ComputeBuffer stateBuffer;
-    private int kernel;
-    private int wishSubGridSize = 12;
-    private Vector3Int clampedSubGridSize;
-    private int chunkSize = 4;
-    private int actualChunk = 0;
-    private List<Vector3Int> chunkOffsets;
-
-    // Structs for the shader
-    public unsafe struct Cell3DStruct
+    public class WaveFunction3DGPUChunks : MonoBehaviour
     {
-        public uint colapsed;
-        // Number of tiles that can be placed in the cell
-        // (array lenghts are fixed we can't use .lenght)
-        public uint entropy;
-        /* Possible tiles
-        |-------------------------------------------------------------------------------|
-        | The possible tiles are stored in a uint array, each uint containing the index |
-        | of a tile in the tileObjects array.                                           |
-        |-------------------------------------------------------------------------------|
-        */
-        public fixed int tileOptions[MAX_NEIGHBOURS];
-    };
-    public unsafe struct Tile3DStruct
-    {
-        /*
-        |-------------------------------------------------------------------------------|
-        | In order to be able to send data to the buffer, all the data within the struct|
-        | must be blitable, that means that the size in memory for c# is exactly the    |
-        | the same as in HLSL, for uint arrays we only need to ensure that they have    |
-        | the a fixed size.                                                             |
-        |-------------------------------------------------------------------------------|
-        */
-        public int probability;
-        public Vector3 rotation;
+        private const int CHUNK_SIZE = 4;
+        private const int MAX_NEIGHBOURS = 44;
 
-        // Neighbours (these are the indexes of the tiles in the tileObjects array)
-        public fixed int upNeighbours[MAX_NEIGHBOURS];
-        public fixed int rightNeighbours[MAX_NEIGHBOURS];
-        public fixed int downNeighbours[MAX_NEIGHBOURS];
-        public fixed int leftNeighbours[MAX_NEIGHBOURS];
-        public fixed int aboveNeighbors[MAX_NEIGHBOURS];
-        public fixed int belowNeighbours[MAX_NEIGHBOURS];
-    };
-    unsafe void Start()
-    {
-        StartGeneration();
-    }
+        [Header("Shader")]
+        [SerializeField] private ComputeShader shader;
 
-    /// <summary>
-    /// Starts the generation of the map
-    /// It creates the tile variations, the grid and the structs needed for the shader
-    /// </summary>
-    private void StartGeneration()
-    {
-        ClearNeighbours(ref tileObjects);
-        CreateRemainingCells(ref tileObjects);
-        DefineNeighbourTiles(ref tileObjects, ref tileObjects);
+        [Header("Map generation")]
+        [SerializeField] int cellSize;
+        [SerializeField] private int dimensionsX, dimensionsZ, dimensionsY;
+        [SerializeField] Tile3D solidTile;                     // Tile for the floor
+        [SerializeField] Tile3D emptyTile;                     // Tile for the ceiling
+        [SerializeField] GameObject emptyPrefab;
+        [SerializeField] private Tile3D[] tileObjects;         // All the tiles that can be used to generate the map
 
-        gridComponents = new List<Cell3D2>();
-        InitializeGrid();
+        [Header("Grid")]
+        [SerializeField] private List<Cell3D> gridComponents;   // A list with all the cells inside the grid
+        [SerializeField] private Cell3D cellObj;                // They can be collapsed or not. Tiles are their children.
 
-        // Create the structs
-        tileObjectsStructs = CreateTile3DStructs();
-        gridComponentsStructs = CreateCell3DStructs();
-        CreateSolidFloor(gridComponentsStructs);
-        CreateEmptyCeiling(gridComponentsStructs);
+        private Tile3DStruct[] tileObjectsStructs;
+        private Cell3DStruct[] gridComponentsStructs;
+        private Tuple<Cell3DStruct[], int[]> output;
+        private ComputeBuffer tileObjectsBuffer;
+        private ComputeBuffer outputBuffer;
+        private ComputeBuffer stateBuffer;
+        private int kernel;
+        private int wishSubGridSize = 12;
+        private Vector3Int clampedSubGridSize;
+        private int actualChunk = 0;
+        private List<Vector3Int> chunkOffsets;
 
-        Vector3Int iterations = new Vector3Int(0, 0, 0);
-        iterations.x = Mathf.CeilToInt((float)dimensionsX / (chunkSize + 1));
-        iterations.y = Mathf.CeilToInt((float)(dimensionsY - 2) / 2);
-        iterations.z = Mathf.CeilToInt((float)dimensionsZ / (chunkSize + 1));
-        chunkOffsets = new List<Vector3Int>();
-
-        for(int y = 0; y < iterations.y; y++)
+        // Structs for the shader
+        public unsafe struct Cell3DStruct
         {
-            for(int z = -1; z < iterations.z; z++)
-            {
-                for(int x = -1; x < iterations.x; x++)
-                {
-                    chunkOffsets.Add(new Vector3Int(x * chunkSize, y * 2, z * chunkSize));
-                }
-            }
+            public int colapsed;
+            // Number of tiles that can be placed in the cell
+            // (array lenghts are fixed we can't use .lenght)
+            public int entropy;
+            /* Possible tiles
+            |-------------------------------------------------------------------------------|
+            | The possible tiles are stored in a uint array, each uint containing the index |
+            | of a tile in the tileObjects array.                                           |
+            |-------------------------------------------------------------------------------|
+            */
+            public fixed int tileOptions[MAX_NEIGHBOURS];
+        };
+        public unsafe struct Tile3DStruct
+        {
+            /*
+            |-------------------------------------------------------------------------------|
+            | In order to be able to send data to the buffer, all the data within the struct|
+            | must be blitable, that means that the size in memory for c# is exactly the    |
+            | the same as in HLSL, for uint arrays we only need to ensure that they have    |
+            | the a fixed size.                                                             |
+            |-------------------------------------------------------------------------------|
+            */
+            public int probability;
+            public Vector3 rotation;
+
+            // Neighbours (these are the indexes of the tiles in the tileObjects array)
+            public fixed int upNeighbours[MAX_NEIGHBOURS];
+            public fixed int rightNeighbours[MAX_NEIGHBOURS];
+            public fixed int downNeighbours[MAX_NEIGHBOURS];
+            public fixed int leftNeighbours[MAX_NEIGHBOURS];
+            public fixed int aboveNeighbors[MAX_NEIGHBOURS];
+            public fixed int belowNeighbours[MAX_NEIGHBOURS];
+        };
+        unsafe void Start()
+        {
+            StartGeneration();
         }
 
-        PrepareChunkDispatch(chunkOffsets[actualChunk]);
-    }
-
-    /// <summary>
-    /// Prepares the dispatch of a chunk, copying the area need to process that chunk
-    /// </summary>
-    /// <param name="subGridCoords"></param> Coordinates of the area to be processed in the original grid
-    private void PrepareChunkDispatch(Vector3Int subGridCoords, bool clear = false)
-    {
-        Debug.Log("Dispatching chunk: " + subGridCoords);
-        clampedSubGridSize = new Vector3Int(wishSubGridSize, chunkSize, wishSubGridSize);
-        output = GridUtils.ExtractSubGrid(subGridCoords, ref clampedSubGridSize, gridComponentsStructs, new Vector3Int(dimensionsX, dimensionsY, dimensionsZ));
-
-        tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)), ComputeBufferType.Structured);
-        outputBuffer = new ComputeBuffer(output.Item1.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)), ComputeBufferType.Structured);
-        stateBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Counter);
-        if(!clear) kernel = shader.FindKernel("CSMain");
-        else kernel = shader.FindKernel("ClearChunk");
-
-        tileObjectsBuffer.SetData(tileObjectsStructs);
-        outputBuffer.SetData(output.Item1);
-
-        Vector3 chunkSubGridCoords = new Vector3(1, subGridCoords.y, 1);
-        if(subGridCoords.x == -chunkSize) chunkSubGridCoords.x = 0;
-        if(subGridCoords.z == -chunkSize) chunkSubGridCoords.z = 0;
-        DispatchChunk(chunkSubGridCoords);
-    }
-
-    /// <summary>
-    /// Dispatches the chunk to the GPU
-    /// The chunk is a 3x3 subgrid of the original grid, with the middle chunk being the one that is processed.
-    /// </summary>
-    /// <param name="chunkOffset"></param> Offset of the chunk in the original grid
-    private void DispatchChunk(Vector3 chunkOffset)
-    {
-        // Data to buffers
-        shader.SetBuffer(kernel, "tileObjects", tileObjectsBuffer);
-        shader.SetBuffer(kernel, "output", outputBuffer);
-        shader.SetBuffer(kernel, "state", stateBuffer);
-        shader.SetInt("gridDimensionsX", clampedSubGridSize.x);
-        shader.SetInt("gridDimensionsY", 3);
-        shader.SetInt("gridDimensionsZ", clampedSubGridSize.z);
-        shader.SetVector("chunkOffset", chunkOffset); // To make sure that we generate the middle chunk of the 3x3 subGrid
-        shader.SetInt("chunkSize", chunkSize);
-
-        int layer = 1;
-        layer = 1;
-        DispatchLayer();
-
-        void DispatchLayer(int attempts = 0, bool clear = false)
+        /// <summary>
+        /// Starts the generation of the map
+        /// It creates the tile variations, the grid and the structs needed for the shader
+        /// </summary>
+        private void StartGeneration()
         {
-            shader.SetInt("seed", UnityEngine.Random.Range(0, int.MaxValue));
-            shader.SetVector("dispatchOffset", new Vector3(0, layer, 0));
-            shader.Dispatch(shader.FindKernel("CSMain"), 1, 1, 1);
+            ClearNeighbours(ref tileObjects);
+            CreateRemainingCells(ref tileObjects);
+            DefineNeighbourTiles(ref tileObjects, ref tileObjects);
 
-            int[] state = new int[1];
-            stateBuffer.GetData(state);
-            if (state[0] == 0 && layer > 0 && layer < 3) //No errors, still layers to process
-            {
-                layer++;
-                stateBuffer.SetData(new int[1] { 0 });
-                outputBuffer.GetData(output.Item1);
-                AsyncGPUReadback.Request(outputBuffer, _ => DispatchLayer());
-            }
-            else if (state[0] != 0)
-            {
-                stateBuffer.SetData(new int[1] { 0 });
-                if(attempts < 100)
-                {
-                    outputBuffer.SetData(output.Item1);
-                    AsyncGPUReadback.Request(outputBuffer, _ => DispatchLayer(++attempts));
-                }
-                else
-                {
-                    AsyncGPUReadback.Request(stateBuffer, _ => PrepareChunkDispatch(chunkOffsets[--actualChunk], true));
-                }
-            }
-            else
-            {
-                outputBuffer.GetData(output.Item1);
-                GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output.Item1, output.Item2);
-                if(actualChunk < chunkOffsets.Count - 1)
-                {
-                    InstantiateChunk(chunkOffsets[actualChunk]);
-                    PrepareChunkDispatch(chunkOffsets[++actualChunk]);
-                }
-                else
-                {
-                    ReleaseMemory();
-                    InstantiateChunk(chunkOffsets[actualChunk]);
-                    ClearGeneration();
-                }
-            }
-        }
-    }
+            gridComponents = new List<Cell3D>();
+            InitializeGrid();
 
-    /// <summary>
-    /// Instantiates the chunk in the scene
-    /// </summary>
-    /// <param name="subGridCoords"></param> Coordinates of the chunk in the original grid
-    private unsafe void InstantiateChunk(Vector3Int subGridCoords)
-    {
-        subGridCoords += new Vector3Int(chunkSize, 0, chunkSize);
-        clampedSubGridSize = new Vector3Int(chunkSize, chunkSize, chunkSize);
-        Tuple<Cell3DStruct[], int[]> output = GridUtils.ExtractSubGrid(subGridCoords, ref clampedSubGridSize, gridComponentsStructs, new Vector3Int(dimensionsX, dimensionsY, dimensionsZ));
-        GameObject Chunk = Instantiate(emptyPrefab, new Vector3((subGridCoords.x + 1) * cellSize, (subGridCoords.y + 1) * cellSize, subGridCoords.z * cellSize), Quaternion.identity);
-        Chunk.transform.parent = gameObject.transform;
-        Chunk.name = subGridCoords.x + "," + subGridCoords.y + "," + subGridCoords.z;
-        for (int i = 0; i < output.Item1.Length; i++)
-        {
-            if(output.Item1[i].colapsed == 1)
+            // Create the structs
+            tileObjectsStructs = CreateTile3DStructs();
+            gridComponentsStructs = CreateCell3DStructs();
+            CreateSolidFloor(gridComponentsStructs);
+            CreateEmptyCeiling(gridComponentsStructs);
+
+            Vector3Int iterations = new Vector3Int(0, 0, 0);
+            iterations.x = Mathf.CeilToInt((float)dimensionsX / (CHUNK_SIZE + 1));
+            iterations.y = Mathf.CeilToInt((float)(dimensionsY - 2) / 2);
+            iterations.z = Mathf.CeilToInt((float)dimensionsZ / (CHUNK_SIZE + 1));
+            chunkOffsets = new List<Vector3Int>();
+
+            for (int y = 0; y < iterations.y; y++)
             {
-                if(output.Item1[i].tileOptions[0] == Array.IndexOf(tileObjects, solidTile)
-                || output.Item1[i].tileOptions[0] == Array.IndexOf(tileObjects, emptyTile))
+                for (int z = -1; z < iterations.z; z++)
                 {
-                    if(gridComponents[output.Item2[i]] != null) Destroy(gridComponents[output.Item2[i]].gameObject);
-                    gridComponents[output.Item2[i]] = null;
-                }
-                else
-                {
-                    Cell3D2 cell = gridComponents[output.Item2[i]];
-                    cell.transform.parent = Chunk.transform;
-                    cell.name = "Cell " + output.Item2[i];
-                    cell.collapsed = output.Item1[i].colapsed == 1;
-                    cell.RecreateCell(tileObjects[output.Item1[i].tileOptions[0]]);
-                    if (cell.transform.childCount != 0)
+                    for (int x = -1; x < iterations.x; x++)
                     {
-                        foreach (Transform child in cell.transform)
+                        chunkOffsets.Add(new Vector3Int(x * CHUNK_SIZE, y * 2, z * CHUNK_SIZE));
+                    }
+                }
+            }
+
+            PrepareChunkDispatch(chunkOffsets[actualChunk]);
+        }
+
+        /// <summary>
+        /// Prepares the dispatch of a chunk, copying the area need to process that chunk
+        /// </summary>
+        /// <param name="subGridCoords"></param> Coordinates of the area to be processed in the original grid
+        private void PrepareChunkDispatch(Vector3Int subGridCoords, bool clear = false)
+        {
+            Debug.Log("Dispatching chunk: " + subGridCoords);
+            clampedSubGridSize = new Vector3Int(wishSubGridSize, CHUNK_SIZE, wishSubGridSize);
+            output = GridUtils.ExtractSubGrid(subGridCoords, ref clampedSubGridSize, gridComponentsStructs, new Vector3Int(dimensionsX, dimensionsY, dimensionsZ));
+
+            tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)), ComputeBufferType.Structured);
+            outputBuffer = new ComputeBuffer(output.Item1.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)), ComputeBufferType.Structured);
+            stateBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Counter);
+            if (!clear) kernel = shader.FindKernel("CSMain");
+            else kernel = shader.FindKernel("ClearChunk");
+
+            tileObjectsBuffer.SetData(tileObjectsStructs);
+            outputBuffer.SetData(output.Item1);
+
+            Vector3 chunkSubGridCoords = new Vector3(1, subGridCoords.y, 1);
+            if (subGridCoords.x == -CHUNK_SIZE) chunkSubGridCoords.x = 0;
+            if (subGridCoords.z == -CHUNK_SIZE) chunkSubGridCoords.z = 0;
+            DispatchChunk(chunkSubGridCoords);
+        }
+
+        /// <summary>
+        /// Dispatches the chunk to the GPU
+        /// The chunk is a 3x3 subgrid of the original grid, with the middle chunk being the one that is processed.
+        /// </summary>
+        /// <param name="chunkOffset"></param> Offset of the chunk in the original grid
+        private void DispatchChunk(Vector3 chunkOffset)
+        {
+            // Data to buffers
+            shader.SetBuffer(kernel, "tileObjects", tileObjectsBuffer);
+            shader.SetBuffer(kernel, "output", outputBuffer);
+            shader.SetBuffer(kernel, "state", stateBuffer);
+            shader.SetInt("gridDimensionsX", clampedSubGridSize.x);
+            shader.SetInt("gridDimensionsY", 3);
+            shader.SetInt("gridDimensionsZ", clampedSubGridSize.z);
+            shader.SetVector("chunkOffset", chunkOffset); // To make sure that we generate the middle chunk of the 3x3 subGrid
+            shader.SetInt("chunkSize", CHUNK_SIZE);
+
+            int layer = 1;
+            layer = 1;
+            DispatchLayer();
+
+            void DispatchLayer(int attempts = 0, bool clear = false)
+            {
+                shader.SetInt("seed", UnityEngine.Random.Range(0, int.MaxValue));
+                shader.SetVector("dispatchOffset", new Vector3(0, layer, 0));
+                shader.Dispatch(shader.FindKernel("CSMain"), 1, 1, 1);
+
+                int[] state = new int[1];
+                stateBuffer.GetData(state);
+                if (state[0] == 0 && layer > 0 && layer < 3) //No errors, still layers to process
+                {
+                    layer++;
+                    stateBuffer.SetData(new int[1] { 0 });
+                    outputBuffer.GetData(output.Item1);
+                    AsyncGPUReadback.Request(outputBuffer, _ => DispatchLayer());
+                }
+                else if (state[0] != 0)
+                {
+                    stateBuffer.SetData(new int[1] { 0 });
+                    if (attempts < 100)
+                    {
+                        outputBuffer.SetData(output.Item1);
+                        AsyncGPUReadback.Request(outputBuffer, _ => DispatchLayer(++attempts));
+                    }
+                    else
+                    {
+                        AsyncGPUReadback.Request(stateBuffer, _ => PrepareChunkDispatch(chunkOffsets[--actualChunk], true));
+                    }
+                }
+                else
+                {
+                    outputBuffer.GetData(output.Item1);
+                    GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output.Item1, output.Item2);
+                    if (actualChunk < chunkOffsets.Count - 1)
+                    {
+                        InstantiateChunk(chunkOffsets[actualChunk]);
+                        PrepareChunkDispatch(chunkOffsets[++actualChunk]);
+                    }
+                    else
+                    {
+                        ReleaseMemory();
+                        InstantiateChunk(chunkOffsets[actualChunk]);
+                        ClearGeneration();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Instantiates the chunk in the scene
+        /// </summary>
+        /// <param name="subGridCoords"></param> Coordinates of the chunk in the original grid
+        private unsafe void InstantiateChunk(Vector3Int subGridCoords)
+        {
+            subGridCoords += new Vector3Int(CHUNK_SIZE, 0, CHUNK_SIZE);
+            clampedSubGridSize = new Vector3Int(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE);
+            Tuple<Cell3DStruct[], int[]> output = GridUtils.ExtractSubGrid(subGridCoords, ref clampedSubGridSize, gridComponentsStructs, new Vector3Int(dimensionsX, dimensionsY, dimensionsZ));
+            GameObject Chunk = Instantiate(emptyPrefab, new Vector3((subGridCoords.x + 1) * cellSize, (subGridCoords.y + 1) * cellSize, subGridCoords.z * cellSize), Quaternion.identity);
+            Chunk.transform.parent = gameObject.transform;
+            Chunk.name = subGridCoords.x + "," + subGridCoords.y + "," + subGridCoords.z;
+            for (int i = 0; i < output.Item1.Length; i++)
+            {
+                if (output.Item1[i].colapsed == 1)
+                {
+                    if (output.Item1[i].tileOptions[0] == Array.IndexOf(tileObjects, solidTile)
+                    || output.Item1[i].tileOptions[0] == Array.IndexOf(tileObjects, emptyTile))
+                    {
+                        if (gridComponents[output.Item2[i]] != null) Destroy(gridComponents[output.Item2[i]].gameObject);
+                        gridComponents[output.Item2[i]] = null;
+                    }
+                    else
+                    {
+                        Cell3D cell = gridComponents[output.Item2[i]];
+                        cell.transform.parent = Chunk.transform;
+                        cell.name = "Cell " + output.Item2[i];
+                        cell.collapsed = output.Item1[i].colapsed == 1;
+                        cell.RecreateCell(tileObjects[output.Item1[i].tileOptions[0]]);
+                        if (cell.transform.childCount != 0)
                         {
-                            Destroy(child.gameObject);
+                            foreach (Transform child in cell.transform)
+                            {
+                                Destroy(child.gameObject);
+                            }
+                        }
+                        Tile3D instantiatedTile = Instantiate(tileObjects[output.Item1[i].tileOptions[0]], cell.transform.position, Quaternion.identity, cell.transform);
+                        if (instantiatedTile.rotation != Vector3.zero)
+                        {
+                            instantiatedTile.gameObject.transform.Rotate(tileObjects[output.Item1[i].tileOptions[0]].rotation, Space.Self);
+                        }
+                        instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
+                        instantiatedTile.gameObject.SetActive(true);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Clears the hirarchy of chunk to avoid having too many objects in the scene and present a user friendly view
+        /// </summary>
+        private void ClearGeneration()
+        {
+            string primaryChunkName, secondaryChunkName;
+            string[] primaryCoordinates, secondaryChunkCoordinates;
+            int primaryChunkX, primaryChunkY, primaryChunkZ, secondaryChunkX, secondaryChunkY, secondaryChunkZ;
+
+            foreach (Transform chunk in gameObject.transform)
+            {
+                primaryChunkName = chunk.name;
+                primaryCoordinates = primaryChunkName.Split(',');
+                if (primaryCoordinates.Length != 3) continue;
+                primaryChunkX = int.Parse(primaryCoordinates[0]);
+                primaryChunkY = int.Parse(primaryCoordinates[1]);
+                primaryChunkZ = int.Parse(primaryCoordinates[2]);
+
+                foreach (Transform secondaryChunk in gameObject.transform)
+                {
+                    secondaryChunkName = secondaryChunk.name;
+                    secondaryChunkCoordinates = secondaryChunkName.Split(',');
+                    if (secondaryChunkCoordinates.Length != 3) continue;
+                    secondaryChunkX = int.Parse(secondaryChunkCoordinates[0]);
+                    secondaryChunkY = int.Parse(secondaryChunkCoordinates[1]);
+                    secondaryChunkZ = int.Parse(secondaryChunkCoordinates[2]);
+                    if (primaryChunkX == secondaryChunkX && primaryChunkY != secondaryChunkY && primaryChunkZ == secondaryChunkZ && secondaryChunk.childCount != 0)
+                    {
+                        for (int i = secondaryChunk.childCount - 1; i >= 0; i--)
+                        {
+                            Transform child = secondaryChunk.GetChild(i);
+                            child.parent = chunk;
                         }
                     }
-                    Tile3D2 instantiatedTile = Instantiate(tileObjects[output.Item1[i].tileOptions[0]], cell.transform.position, Quaternion.identity, cell.transform);
-                    if (instantiatedTile.rotation != Vector3.zero)
-                    {
-                        instantiatedTile.gameObject.transform.Rotate(tileObjects[output.Item1[i].tileOptions[0]].rotation, Space.Self);
-                    }
-                    instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
-                    instantiatedTile.gameObject.SetActive(true);
                 }
-            }
-        }
-    }
 
-    /// <summary>
-    /// Clears the hirarchy of chunk to avoid having too many objects in the scene and present a user friendly view
-    /// </summary>
-    private void ClearGeneration()
-    {
-        string primaryChunkName, secondaryChunkName;
-        string[] primaryCoordinates, secondaryChunkCoordinates;
-        int primaryChunkX, primaryChunkY, primaryChunkZ, secondaryChunkX, secondaryChunkY, secondaryChunkZ;
-
-        foreach(Transform chunk in gameObject.transform)
-        {
-            primaryChunkName = chunk.name;
-            primaryCoordinates = primaryChunkName.Split(',');
-            if(primaryCoordinates.Length != 3) continue;
-            primaryChunkX = int.Parse(primaryCoordinates[0]);
-            primaryChunkY = int.Parse(primaryCoordinates[1]);
-            primaryChunkZ = int.Parse(primaryCoordinates[2]);
-
-            foreach(Transform secondaryChunk in gameObject.transform)
-            {
-                secondaryChunkName = secondaryChunk.name;
-                secondaryChunkCoordinates = secondaryChunkName.Split(',');
-                if(secondaryChunkCoordinates.Length != 3) continue;
-                secondaryChunkX = int.Parse(secondaryChunkCoordinates[0]);
-                secondaryChunkY = int.Parse(secondaryChunkCoordinates[1]);
-                secondaryChunkZ = int.Parse(secondaryChunkCoordinates[2]);
-                if(primaryChunkX == secondaryChunkX && primaryChunkY != secondaryChunkY && primaryChunkZ == secondaryChunkZ && secondaryChunk.childCount != 0)
+                List<GameObject> trash = new List<GameObject>();
+                for (int i = chunk.childCount - 1; i >= 0; i--)
                 {
-                    for (int i = secondaryChunk.childCount - 1; i >= 0; i--)
+                    Transform child = chunk.GetChild(i);
+                    if (child.childCount != 0)
                     {
-                        Transform child = secondaryChunk.GetChild(i);
-                        child.parent = chunk;
+                        child.GetChild(0).parent = chunk;
+                        trash.Add(child.gameObject);
                     }
                 }
+                foreach (GameObject obj in trash) Destroy(obj);
             }
 
-            List<GameObject> trash = new List<GameObject>();
-            for(int i = chunk.childCount - 1; i >= 0; i--)
+            Vector2Int chunkCoordinates = new Vector2Int(0, 0);
+            foreach (Transform chunk in gameObject.transform)
             {
-                Transform child = chunk.GetChild(i);
-                if(child.childCount != 0)
+                if (chunk.transform.childCount == 0) Destroy(chunk.gameObject);
+                else
                 {
-                    child.GetChild(0).parent = chunk;
-                    trash.Add(child.gameObject);
+                    chunk.name = "Chunk " + "(" + chunkCoordinates.x + "," + chunkCoordinates.y + ")";
+                    if (chunkCoordinates.x % (dimensionsX / CHUNK_SIZE - 1) == 0 && chunkCoordinates.x != 0)
+                    {
+                        chunkCoordinates.x = 0;
+                        chunkCoordinates.y++;
+                    }
+                    else chunkCoordinates.x++;
                 }
-            }
-            foreach(GameObject obj in trash) Destroy(obj);
-        }
-
-        Vector2Int chunkCoordinates = new Vector2Int(0, 0);
-        foreach(Transform chunk in gameObject.transform)
-        {
-            if(chunk.transform.childCount == 0) Destroy(chunk.gameObject);
-            else
-            {
-                chunk.name = "Chunk " + "(" + chunkCoordinates.x + "," + chunkCoordinates.y + ")";
-                if(chunkCoordinates.x % (dimensionsX / chunkSize - 1) == 0 && chunkCoordinates.x != 0)
-                {
-                    chunkCoordinates.x = 0;
-                    chunkCoordinates.y++;
-                }
-                else chunkCoordinates.x++;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Releases the memory used by the buffers
-    /// </summary>
-    private void ReleaseMemory()
-    {
-        tileObjectsBuffer.Release();
-        outputBuffer.Release();
-        stateBuffer.Release();
-    }
-
-    /// <summary>
-    /// Clears all the tiles' neighbours
-    /// </summary>
-    /// <param name="tiLeArray"></param> Array of tiles that need to be cleared
-    private void ClearNeighbours(ref Tile3D2[] tileArray)
-    {
-        foreach (Tile3D2 tile in tileArray)
-        {
-            tile.upNeighbours.Clear();
-            tile.rightNeighbours.Clear();
-            tile.downNeighbours.Clear();
-            tile.leftNeighbours.Clear();
-            tile.aboveNeighbours.Clear();
-            tile.belowNeighbours.Clear();
-        }
-    }
-
-    /// <summary>
-    /// Generates a new tile variation based on a given tile
-    /// </summary>
-    /// <param name="tile"></param> Tile to be used as base
-    /// <param name="nameVariation"></param> Suffix added to the new tile variation
-    private Tile3D2 CreateNewTileVariation(Tile3D2 tile, string nameVariation)
-    {
-        string name = tile.gameObject.name + nameVariation;
-        GameObject newTile = new GameObject(name);
-        newTile.gameObject.tag = tile.gameObject.tag;
-        newTile.SetActive(false);
-        newTile.hideFlags = HideFlags.HideInHierarchy;
-
-        MeshFilter meshFilter = newTile.AddComponent<MeshFilter>();
-        meshFilter.sharedMesh = tile.gameObject.GetComponent<MeshFilter>().sharedMesh;
-        MeshRenderer meshRenderer = newTile.AddComponent<MeshRenderer>();
-        meshRenderer.sharedMaterials = tile.gameObject.GetComponent<MeshRenderer>().sharedMaterials;
-
-        Tile3D2 tileRotated = newTile.AddComponent<Tile3D2>();
-        tileRotated.tileType = tile.tileType;
-        tileRotated.probability = tile.probability;
-        tileRotated.positionOffset = tile.positionOffset;
-
-        return tileRotated;
-    }
-
-    /// <summary>
-    /// Generates the tile variations needed to get the full set of possible tiles
-    /// based of the initial set of tiles
-    /// </summary>
-    /// <param name="tileArray"></param> Array of all pre-existing tiles
-    private void CreateRemainingCells(ref Tile3D2[] tileArray)
-    {
-        List<Tile3D2> newTiles = new List<Tile3D2>();
-        foreach (Tile3D2 tile in tileArray)
-        {
-            // Clockwise by default
-            if (tile.rotateRight)
-            {
-                Tile3D2 tileRotated = CreateNewTileVariation(tile, "_RotateRight");
-                RotateBorders90(tile, tileRotated);
-                tileRotated.rotation = new Vector3(0f, 90f, 0f);
-                newTiles.Add(tileRotated);
-            }
-
-            if (tile.rotate180)
-            {
-                Tile3D2 tileRotated = CreateNewTileVariation(tile, "_Rotate180");
-                RotateBorders180(tile, tileRotated);
-                tileRotated.rotation = new Vector3(0f, 180f, 0f);
-                newTiles.Add(tileRotated);
-            }
-
-            if (tile.rotateLeft)
-            {
-                Tile3D2 tileRotated = CreateNewTileVariation(tile, "_RotateLeft");
-                RotateBorders270(tile, tileRotated);
-                tileRotated.rotation = new Vector3(0f, 270f, 0f);
-                newTiles.Add(tileRotated);
             }
         }
 
-        if (newTiles.Count != 0)
+        /// <summary>
+        /// Releases the memory used by the buffers
+        /// </summary>
+        private void ReleaseMemory()
         {
-            Tile3D2[] aux = tileArray.Concat(newTiles.ToArray()).ToArray();
-            tileArray = aux;
+            tileObjectsBuffer.Release();
+            outputBuffer.Release();
+            stateBuffer.Release();
         }
-    }
 
-    /// <summary>
-    /// Updates the sockets and excluded neighbours of a tile that has been rotated 90 degrees
-    /// </summary>
-    /// <param name="originalTile"></param> Non-rotated tile
-    /// <param name="tileRotated"></param> Rotated tile
-    private void RotateBorders90(Tile3D2 originalTile, Tile3D2 tileRotated)
-    {
-        tileRotated.rightSocket = originalTile.upSocket;
-        tileRotated.leftSocket = originalTile.downSocket;
-        tileRotated.upSocket = originalTile.leftSocket;
-        tileRotated.downSocket = originalTile.rightSocket;
-
-        tileRotated.aboveSocket = originalTile.aboveSocket;
-        tileRotated.aboveSocket.rotationIndex = 90;
-        tileRotated.belowSocket = originalTile.belowSocket;
-        tileRotated.belowSocket.rotationIndex = 90;
-
-        //excluded neighbours
-        tileRotated.excludedNeighboursRight = originalTile.excludedNeighboursUp;
-        tileRotated.excludedNeighboursLeft = originalTile.excludedNeighboursDown;
-        tileRotated.excludedNeighboursUp = originalTile.excludedNeighboursLeft;
-        tileRotated.excludedNeighboursDown = originalTile.excludedNeighboursRight;
-    }
-
-    /// <summary>
-    /// Updates the sockets and excluded neighbours of a tile that has been rotated 180 degrees
-    /// </summary>
-    /// <param name="originalTile"></param> Non-rotated tile
-    /// <param name="tileRotated"></param> Rotated tile
-    private void RotateBorders180(Tile3D2 originalTile, Tile3D2 tileRotated)
-    {
-        tileRotated.rightSocket = originalTile.leftSocket;
-        tileRotated.leftSocket = originalTile.rightSocket;
-        tileRotated.upSocket = originalTile.downSocket;
-        tileRotated.downSocket = originalTile.upSocket;
-        tileRotated.aboveSocket = originalTile.aboveSocket;
-        tileRotated.aboveSocket.rotationIndex = 180;
-        tileRotated.belowSocket = originalTile.belowSocket;
-        tileRotated.belowSocket.rotationIndex = 180;
-
-        //excluded neighbours
-        tileRotated.excludedNeighboursLeft = originalTile.excludedNeighboursRight;
-        tileRotated.excludedNeighboursRight = originalTile.excludedNeighboursLeft;
-        tileRotated.excludedNeighboursUp = originalTile.excludedNeighboursDown;
-        tileRotated.excludedNeighboursDown = originalTile.excludedNeighboursUp;
-    }
-
-    /// <summary>
-    /// Updates the sockets and excluded neighbours of a tile that has been rotated 270 degrees
-    /// </summary>
-    /// <param name="originalTile"></param> Non-rotated tile
-    /// <param name="tileRotated"></param> Rotated tile
-    private void RotateBorders270(Tile3D2 originalTile, Tile3D2 tileRotated)
-    {
-        tileRotated.rightSocket = originalTile.downSocket;
-        tileRotated.leftSocket = originalTile.upSocket;
-        tileRotated.upSocket = originalTile.rightSocket;
-        tileRotated.downSocket = originalTile.leftSocket;
-        tileRotated.aboveSocket = originalTile.aboveSocket;
-        tileRotated.aboveSocket.rotationIndex = 270;
-        tileRotated.belowSocket = originalTile.belowSocket;
-        tileRotated.belowSocket.rotationIndex = 270;
-
-        //excluded neighbours
-        tileRotated.excludedNeighboursRight = originalTile.excludedNeighboursDown;
-        tileRotated.excludedNeighboursLeft = originalTile.excludedNeighboursUp;
-        tileRotated.excludedNeighboursUp = originalTile.excludedNeighboursRight;
-        tileRotated.excludedNeighboursDown = originalTile.excludedNeighboursLeft;
-    }
-
-    /// <summary>
-    /// Defines the neighbour tiles of each tile in the array
-    /// </summary>
-    /// <param name="tileArray"></param> Array of tiles
-    /// <param name="otherTileArray"></param> Array of tiles to compare with
-    public void DefineNeighbourTiles(ref Tile3D2[] tileArray, ref Tile3D2[] otherTileArray)
-    {
-        foreach (Tile3D2 tile in tileArray)
+        /// <summary>
+        /// Clears all the tiles' neighbours
+        /// </summary>
+        /// <param name="tiLeArray"></param> Array of tiles that need to be cleared
+        private void ClearNeighbours(ref Tile3D[] tileArray)
         {
-            foreach (Tile3D2 otherTile in otherTileArray)
+            foreach (Tile3D tile in tileArray)
             {
-                // HORIZONTAL FACES: Same socket and be symmetric OR one flip and the other not
-                // It also checks f the excluded list of each face does not include the other tile, and vice versa
+                tile.upNeighbours.Clear();
+                tile.rightNeighbours.Clear();
+                tile.downNeighbours.Clear();
+                tile.leftNeighbours.Clear();
+                tile.aboveNeighbours.Clear();
+                tile.belowNeighbours.Clear();
+            }
+        }
 
-                // Up neighbours
-                if (otherTile.downSocket.socket_name == tile.upSocket.socket_name
-                    && !tile.excludedNeighboursUp.Contains(otherTile.tileType)
-                    && !otherTile.excludedNeighboursDown.Contains(tile.tileType))
+        /// <summary>
+        /// Generates a new tile variation based on a given tile
+        /// </summary>
+        /// <param name="tile"></param> Tile to be used as base
+        /// <param name="nameVariation"></param> Suffix added to the new tile variation
+        private Tile3D CreateNewTileVariation(Tile3D tile, string nameVariation)
+        {
+            string name = tile.gameObject.name + nameVariation;
+            GameObject newTile = new GameObject(name);
+            newTile.gameObject.tag = tile.gameObject.tag;
+            newTile.SetActive(false);
+            newTile.hideFlags = HideFlags.HideInHierarchy;
+
+            MeshFilter meshFilter = newTile.AddComponent<MeshFilter>();
+            meshFilter.sharedMesh = tile.gameObject.GetComponent<MeshFilter>().sharedMesh;
+            MeshRenderer meshRenderer = newTile.AddComponent<MeshRenderer>();
+            meshRenderer.sharedMaterials = tile.gameObject.GetComponent<MeshRenderer>().sharedMaterials;
+
+            Tile3D tileRotated = newTile.AddComponent<Tile3D>();
+            tileRotated.tileType = tile.tileType;
+            tileRotated.probability = tile.probability;
+            tileRotated.positionOffset = tile.positionOffset;
+
+            return tileRotated;
+        }
+
+        /// <summary>
+        /// Generates the tile variations needed to get the full set of possible tiles
+        /// based of the initial set of tiles
+        /// </summary>
+        /// <param name="tileArray"></param> Array of all pre-existing tiles
+        private void CreateRemainingCells(ref Tile3D[] tileArray)
+        {
+            List<Tile3D> newTiles = new List<Tile3D>();
+            foreach (Tile3D tile in tileArray)
+            {
+                // Clockwise by default
+                if (tile.rotateRight)
                 {
-                    if (tile.upSocket.isSymmetric || otherTile.downSocket.isSymmetric
-                    || (otherTile.downSocket.isFlipped && !tile.upSocket.isFlipped)
-                    || (!otherTile.downSocket.isFlipped && tile.upSocket.isFlipped))
-                    tile.upNeighbours.Add(otherTile);
-                }
-                // Down neighbours
-                if (otherTile.upSocket.socket_name == tile.downSocket.socket_name
-                    && !tile.excludedNeighboursDown.Contains(otherTile.tileType)
-                    && !otherTile.excludedNeighboursUp.Contains(tile.tileType))
-                {
-                    if (otherTile.upSocket.isSymmetric || tile.downSocket.isSymmetric
-                    || (otherTile.upSocket.isFlipped && !tile.downSocket.isFlipped)
-                    || (!otherTile.upSocket.isFlipped && tile.downSocket.isFlipped))
-                    tile.downNeighbours.Add(otherTile);
-                }
-                // Right neighbours
-                if (otherTile.leftSocket.socket_name == tile.rightSocket.socket_name
-                    && !tile.excludedNeighboursRight.Contains(otherTile.tileType)
-                    && !otherTile.excludedNeighboursLeft.Contains(tile.tileType))
-                {
-                    if (otherTile.leftSocket.isSymmetric || tile.rightSocket.isSymmetric
-                    || (otherTile.leftSocket.isFlipped && !tile.rightSocket.isFlipped)
-                    || (!otherTile.leftSocket.isFlipped && tile.rightSocket.isFlipped))
-                    tile.rightNeighbours.Add(otherTile);
-                }
-                // Left neighbours
-                if (otherTile.rightSocket.socket_name == tile.leftSocket.socket_name
-                    && !tile.excludedNeighboursLeft.Contains(otherTile.tileType)
-                    && !otherTile.excludedNeighboursRight.Contains(tile.tileType))
-                {
-                    if (otherTile.rightSocket.isSymmetric || tile.leftSocket.isSymmetric
-                        || (otherTile.rightSocket.isFlipped && !tile.leftSocket.isFlipped)
-                        || (!otherTile.rightSocket.isFlipped && tile.leftSocket.isFlipped))
-                    tile.leftNeighbours.Add(otherTile);
+                    Tile3D tileRotated = CreateNewTileVariation(tile, "_RotateRight");
+                    RotateBorders90(tile, tileRotated);
+                    tileRotated.rotation = new Vector3(0f, 90f, 0f);
+                    newTiles.Add(tileRotated);
                 }
 
-                // VERTICAL FACES: both faces must have invariable rotation or the same rotation index
-
-                // Below neighbours
-                if (otherTile.belowSocket.socket_name == tile.aboveSocket.socket_name)
+                if (tile.rotate180)
                 {
-                    if((otherTile.belowSocket.rotationallyInvariant
-                        && tile.aboveSocket.rotationallyInvariant)
-                        || (otherTile.belowSocket.rotationIndex == tile.aboveSocket.rotationIndex))
-                    tile.aboveNeighbours.Add(otherTile);
+                    Tile3D tileRotated = CreateNewTileVariation(tile, "_Rotate180");
+                    RotateBorders180(tile, tileRotated);
+                    tileRotated.rotation = new Vector3(0f, 180f, 0f);
+                    newTiles.Add(tileRotated);
                 }
 
-                // Above neighbours
-                if (otherTile.aboveSocket.socket_name == tile.belowSocket.socket_name)
+                if (tile.rotateLeft)
                 {
-                    if ((otherTile.aboveSocket.rotationallyInvariant
-                        && tile.belowSocket.rotationallyInvariant)
-                        || (otherTile.aboveSocket.rotationIndex == tile.belowSocket.rotationIndex))
-                    tile.belowNeighbours.Add(otherTile);
+                    Tile3D tileRotated = CreateNewTileVariation(tile, "_RotateLeft");
+                    RotateBorders270(tile, tileRotated);
+                    tileRotated.rotation = new Vector3(0f, 270f, 0f);
+                    newTiles.Add(tileRotated);
+                }
+            }
+
+            if (newTiles.Count != 0)
+            {
+                Tile3D[] aux = tileArray.Concat(newTiles.ToArray()).ToArray();
+                tileArray = aux;
+            }
+        }
+
+        /// <summary>
+        /// Updates the sockets and excluded neighbours of a tile that has been rotated 90 degrees
+        /// </summary>
+        /// <param name="originalTile"></param> Non-rotated tile
+        /// <param name="tileRotated"></param> Rotated tile
+        private void RotateBorders90(Tile3D originalTile, Tile3D tileRotated)
+        {
+            tileRotated.rightSocket = originalTile.upSocket;
+            tileRotated.leftSocket = originalTile.downSocket;
+            tileRotated.upSocket = originalTile.leftSocket;
+            tileRotated.downSocket = originalTile.rightSocket;
+
+            tileRotated.aboveSocket = originalTile.aboveSocket;
+            tileRotated.aboveSocket.rotationIndex = 90;
+            tileRotated.belowSocket = originalTile.belowSocket;
+            tileRotated.belowSocket.rotationIndex = 90;
+
+            //excluded neighbours
+            tileRotated.excludedNeighboursRight = originalTile.excludedNeighboursUp;
+            tileRotated.excludedNeighboursLeft = originalTile.excludedNeighboursDown;
+            tileRotated.excludedNeighboursUp = originalTile.excludedNeighboursLeft;
+            tileRotated.excludedNeighboursDown = originalTile.excludedNeighboursRight;
+        }
+
+        /// <summary>
+        /// Updates the sockets and excluded neighbours of a tile that has been rotated 180 degrees
+        /// </summary>
+        /// <param name="originalTile"></param> Non-rotated tile
+        /// <param name="tileRotated"></param> Rotated tile
+        private void RotateBorders180(Tile3D originalTile, Tile3D tileRotated)
+        {
+            tileRotated.rightSocket = originalTile.leftSocket;
+            tileRotated.leftSocket = originalTile.rightSocket;
+            tileRotated.upSocket = originalTile.downSocket;
+            tileRotated.downSocket = originalTile.upSocket;
+            tileRotated.aboveSocket = originalTile.aboveSocket;
+            tileRotated.aboveSocket.rotationIndex = 180;
+            tileRotated.belowSocket = originalTile.belowSocket;
+            tileRotated.belowSocket.rotationIndex = 180;
+
+            //excluded neighbours
+            tileRotated.excludedNeighboursLeft = originalTile.excludedNeighboursRight;
+            tileRotated.excludedNeighboursRight = originalTile.excludedNeighboursLeft;
+            tileRotated.excludedNeighboursUp = originalTile.excludedNeighboursDown;
+            tileRotated.excludedNeighboursDown = originalTile.excludedNeighboursUp;
+        }
+
+        /// <summary>
+        /// Updates the sockets and excluded neighbours of a tile that has been rotated 270 degrees
+        /// </summary>
+        /// <param name="originalTile"></param> Non-rotated tile
+        /// <param name="tileRotated"></param> Rotated tile
+        private void RotateBorders270(Tile3D originalTile, Tile3D tileRotated)
+        {
+            tileRotated.rightSocket = originalTile.downSocket;
+            tileRotated.leftSocket = originalTile.upSocket;
+            tileRotated.upSocket = originalTile.rightSocket;
+            tileRotated.downSocket = originalTile.leftSocket;
+            tileRotated.aboveSocket = originalTile.aboveSocket;
+            tileRotated.aboveSocket.rotationIndex = 270;
+            tileRotated.belowSocket = originalTile.belowSocket;
+            tileRotated.belowSocket.rotationIndex = 270;
+
+            //excluded neighbours
+            tileRotated.excludedNeighboursRight = originalTile.excludedNeighboursDown;
+            tileRotated.excludedNeighboursLeft = originalTile.excludedNeighboursUp;
+            tileRotated.excludedNeighboursUp = originalTile.excludedNeighboursRight;
+            tileRotated.excludedNeighboursDown = originalTile.excludedNeighboursLeft;
+        }
+
+        /// <summary>
+        /// Defines the neighbour tiles of each tile in the array
+        /// </summary>
+        /// <param name="tileArray"></param> Array of tiles
+        /// <param name="otherTileArray"></param> Array of tiles to compare with
+        public void DefineNeighbourTiles(ref Tile3D[] tileArray, ref Tile3D[] otherTileArray)
+        {
+            foreach (Tile3D tile in tileArray)
+            {
+                foreach (Tile3D otherTile in otherTileArray)
+                {
+                    // HORIZONTAL FACES: Same socket and be symmetric OR one flip and the other not
+                    // It also checks f the excluded list of each face does not include the other tile, and vice versa
+
+                    // Up neighbours
+                    if (otherTile.downSocket.socket_name == tile.upSocket.socket_name
+                        && !tile.excludedNeighboursUp.Contains(otherTile.tileType)
+                        && !otherTile.excludedNeighboursDown.Contains(tile.tileType))
+                    {
+                        if (tile.upSocket.isSymmetric || otherTile.downSocket.isSymmetric
+                        || (otherTile.downSocket.isFlipped && !tile.upSocket.isFlipped)
+                        || (!otherTile.downSocket.isFlipped && tile.upSocket.isFlipped))
+                            tile.upNeighbours.Add(otherTile);
+                    }
+                    // Down neighbours
+                    if (otherTile.upSocket.socket_name == tile.downSocket.socket_name
+                        && !tile.excludedNeighboursDown.Contains(otherTile.tileType)
+                        && !otherTile.excludedNeighboursUp.Contains(tile.tileType))
+                    {
+                        if (otherTile.upSocket.isSymmetric || tile.downSocket.isSymmetric
+                        || (otherTile.upSocket.isFlipped && !tile.downSocket.isFlipped)
+                        || (!otherTile.upSocket.isFlipped && tile.downSocket.isFlipped))
+                            tile.downNeighbours.Add(otherTile);
+                    }
+                    // Right neighbours
+                    if (otherTile.leftSocket.socket_name == tile.rightSocket.socket_name
+                        && !tile.excludedNeighboursRight.Contains(otherTile.tileType)
+                        && !otherTile.excludedNeighboursLeft.Contains(tile.tileType))
+                    {
+                        if (otherTile.leftSocket.isSymmetric || tile.rightSocket.isSymmetric
+                        || (otherTile.leftSocket.isFlipped && !tile.rightSocket.isFlipped)
+                        || (!otherTile.leftSocket.isFlipped && tile.rightSocket.isFlipped))
+                            tile.rightNeighbours.Add(otherTile);
+                    }
+                    // Left neighbours
+                    if (otherTile.rightSocket.socket_name == tile.leftSocket.socket_name
+                        && !tile.excludedNeighboursLeft.Contains(otherTile.tileType)
+                        && !otherTile.excludedNeighboursRight.Contains(tile.tileType))
+                    {
+                        if (otherTile.rightSocket.isSymmetric || tile.leftSocket.isSymmetric
+                            || (otherTile.rightSocket.isFlipped && !tile.leftSocket.isFlipped)
+                            || (!otherTile.rightSocket.isFlipped && tile.leftSocket.isFlipped))
+                            tile.leftNeighbours.Add(otherTile);
+                    }
+
+                    // VERTICAL FACES: both faces must have invariable rotation or the same rotation index
+
+                    // Below neighbours
+                    if (otherTile.belowSocket.socket_name == tile.aboveSocket.socket_name)
+                    {
+                        if ((otherTile.belowSocket.rotationallyInvariant
+                            && tile.aboveSocket.rotationallyInvariant)
+                            || (otherTile.belowSocket.rotationIndex == tile.aboveSocket.rotationIndex))
+                            tile.aboveNeighbours.Add(otherTile);
+                    }
+
+                    // Above neighbours
+                    if (otherTile.aboveSocket.socket_name == tile.belowSocket.socket_name)
+                    {
+                        if ((otherTile.aboveSocket.rotationallyInvariant
+                            && tile.belowSocket.rotationallyInvariant)
+                            || (otherTile.aboveSocket.rotationIndex == tile.belowSocket.rotationIndex))
+                            tile.belowNeighbours.Add(otherTile);
+                    }
                 }
             }
         }
-    }
 
-    /// <summary>
-    /// Creates the grid structure, filled with cells
-    /// </summary>
-    void InitializeGrid()
-    {
-        for (int y = 0; y < dimensionsY; y++)
+        /// <summary>
+        /// Creates the grid structure, filled with cells
+        /// </summary>
+        void InitializeGrid()
         {
+            for (int y = 0; y < dimensionsY; y++)
+            {
+                for (int z = 0; z < dimensionsZ; z++)
+                {
+                    for (int x = 0; x < dimensionsX; x++)
+                    {
+                        Cell3D newCell = Instantiate(cellObj, new Vector3(x * cellSize, y * cellSize, z * cellSize), Quaternion.identity, gameObject.transform);
+                        newCell.CreateCell(false, tileObjects, x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ));
+                        gridComponents.Add(newCell);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates the Tile3DStructs needed for the shader
+        /// </summary>
+        /// <returns></returns> Array of Tile3DStructs
+        unsafe private Tile3DStruct[] CreateTile3DStructs()
+        {
+            Tile3DStruct[] tileStructs = new Tile3DStruct[tileObjects.Length];
+
+            for (int i = 0; i < tileObjects.Length; i++)
+            {
+                Tile3DStruct tileStruct = new Tile3DStruct();
+                tileStruct.probability = tileObjects[i].probability;
+                tileStruct.rotation = tileObjects[i].rotation;
+
+                // Initialize neighbours
+                for (int j = 0; j < MAX_NEIGHBOURS; j++)
+                {
+                    tileStruct.upNeighbours[j] = -1;
+                    tileStruct.rightNeighbours[j] = -1;
+                    tileStruct.downNeighbours[j] = -1;
+                    tileStruct.leftNeighbours[j] = -1;
+                    tileStruct.aboveNeighbors[j] = -1;
+                    tileStruct.belowNeighbours[j] = -1;
+                }
+
+                // Copy neighbours (transforming them to indexes)
+                for (int j = 0; j < tileObjects[i].upNeighbours.Count; j++)
+                {
+                    tileStruct.upNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].upNeighbours[j]);
+                }
+                //... and so on for the rest of the neighbours
+                for (int j = 0; j < tileObjects[i].rightNeighbours.Count; j++)
+                {
+                    tileStruct.rightNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].rightNeighbours[j]);
+                }
+
+                for (int j = 0; j < tileObjects[i].downNeighbours.Count; j++)
+                {
+                    tileStruct.downNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].downNeighbours[j]);
+                }
+
+                for (int j = 0; j < tileObjects[i].leftNeighbours.Count; j++)
+                {
+                    tileStruct.leftNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].leftNeighbours[j]);
+                }
+
+                for (int j = 0; j < tileObjects[i].aboveNeighbours.Count; j++)
+                {
+                    tileStruct.aboveNeighbors[j] = Array.IndexOf(tileObjects, tileObjects[i].aboveNeighbours[j]);
+                }
+
+                for (int j = 0; j < tileObjects[i].belowNeighbours.Count; j++)
+                {
+                    tileStruct.belowNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].belowNeighbours[j]);
+                }
+                tileStructs[i] = tileStruct;
+            }
+            return tileStructs;
+        }
+
+        /// <summary>
+        /// Creates the Cell3DStructs needed for the shader
+        /// </summary>
+        /// <returns></returns>
+        unsafe Cell3DStruct[] CreateCell3DStructs()
+        {
+            int[] tileObjectIndexes = new int[tileObjects.Length];
+
+            for (int i = 0; i < tileObjects.Length; i++)
+            {
+                // Initially all the tiles are possible, so the indexes are the same as the array indexes
+                tileObjectIndexes[i] = i;
+            }
+
+            Cell3DStruct[] cell3DStructs = new Cell3DStruct[gridComponents.Count];
+
+            for (int i = 0; i < gridComponents.Count; i++)
+            {
+                Cell3DStruct cellStruct = new Cell3DStruct();
+                cellStruct.colapsed = gridComponents[i].collapsed ? 1 : 0;
+                for (int j = 0; j < tileObjectIndexes.Length; j++)
+                {
+                    cellStruct.tileOptions[j] = tileObjectIndexes[j];
+                }
+                cellStruct.entropy = MAX_NEIGHBOURS;
+                cell3DStructs[i] = cellStruct;
+            }
+            return cell3DStructs;
+        }
+
+        /// <summary>
+        /// Creates a solid floor of tiles to avoid the generation holes in the first layer
+        /// </summary>
+        /// <param name="cell3DStructs"></param>
+        unsafe void CreateSolidFloor(Cell3DStruct[] cell3DStructs)
+        {
+            int y = 0;
             for (int z = 0; z < dimensionsZ; z++)
             {
                 for (int x = 0; x < dimensionsX; x++)
                 {
-                    Cell3D2 newCell = Instantiate(cellObj, new Vector3(x*cellSize, y * cellSize, z*cellSize), Quaternion.identity, gameObject.transform);
-                    newCell.CreateCell(false, tileObjects, x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ));
-                    gridComponents.Add(newCell);
+                    int index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
+                    cell3DStructs[index].colapsed = 1;
+                    cell3DStructs[index].entropy = 1;
+                    for (int i = 1; i < MAX_NEIGHBOURS; i++)
+                    {
+                        cell3DStructs[index].tileOptions[i] = -1;
+                    }
+                    cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, solidTile);
                 }
             }
         }
-    }
 
-    /// <summary>
-    /// Creates the Tile3DStructs needed for the shader
-    /// </summary>
-    /// <returns></returns> Array of Tile3DStructs
-    unsafe private Tile3DStruct[] CreateTile3DStructs()
-    {
-        Tile3DStruct[] tileStructs = new Tile3DStruct[tileObjects.Length];
-
-        for(int i = 0; i < tileObjects.Length; i++)
+        /// <summary>
+        /// Creates the a ceiling of empty tiles to avoid the generation unfinished layers
+        /// </summary>
+        /// <param name="cell3DStructs"></param>
+        unsafe void CreateEmptyCeiling(Cell3DStruct[] cell3DStructs)
         {
-            Tile3DStruct tileStruct = new Tile3DStruct();
-            tileStruct.probability = tileObjects[i].probability;
-            tileStruct.rotation = tileObjects[i].rotation;
-
-            // Initialize neighbours
-            for (int j = 0; j < MAX_NEIGHBOURS; j++)
+            int y = dimensionsY - 1;
+            for (int z = 0; z < dimensionsZ; z++)
             {
-                tileStruct.upNeighbours[j] = -1;
-                tileStruct.rightNeighbours[j] = -1;
-                tileStruct.downNeighbours[j] = -1;
-                tileStruct.leftNeighbours[j] = -1;
-                tileStruct.aboveNeighbors[j] = -1;
-                tileStruct.belowNeighbours[j] = -1;
-            }
-
-            // Copy neighbours (transforming them to indexes)
-            for (int j = 0; j < tileObjects[i].upNeighbours.Count; j++)
-            {
-                tileStruct.upNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].upNeighbours[j]);
-            }
-            //... and so on for the rest of the neighbours
-            for (int j = 0; j < tileObjects[i].rightNeighbours.Count; j++)
-            {
-                tileStruct.rightNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].rightNeighbours[j]);
-            }
-
-            for (int j = 0; j < tileObjects[i].downNeighbours.Count; j++)
-            {
-                tileStruct.downNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].downNeighbours[j]);
-            }
-
-            for (int j = 0; j < tileObjects[i].leftNeighbours.Count; j++)
-            {
-                tileStruct.leftNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].leftNeighbours[j]);
-            }
-
-            for (int j = 0; j < tileObjects[i].aboveNeighbours.Count; j++)
-            {
-                tileStruct.aboveNeighbors[j] = Array.IndexOf(tileObjects, tileObjects[i].aboveNeighbours[j]);
-            }
-
-            for (int j = 0; j < tileObjects[i].belowNeighbours.Count; j++)
-            {
-                tileStruct.belowNeighbours[j] = Array.IndexOf(tileObjects, tileObjects[i].belowNeighbours[j]);
-            }
-            tileStructs[i] = tileStruct;
-        }
-        return tileStructs;
-    }
-
-    /// <summary>
-    /// Creates the Cell3DStructs needed for the shader
-    /// </summary>
-    /// <returns></returns>
-    unsafe Cell3DStruct[] CreateCell3DStructs()
-    {
-        int[] tileObjectIndexes = new int[tileObjects.Length];
-
-        for (int i = 0; i < tileObjects.Length; i++)
-        {
-            // Initially all the tiles are possible, so the indexes are the same as the array indexes
-            tileObjectIndexes[i] = i;
-        }
-
-        Cell3DStruct[] cell3DStructs = new Cell3DStruct[gridComponents.Count];
-
-        for(int i = 0; i < gridComponents.Count; i++)
-        {
-            Cell3DStruct cellStruct = new Cell3DStruct();
-            cellStruct.colapsed = gridComponents[i].collapsed? (uint) 1 : (uint) 0;
-            for (int j = 0; j < tileObjectIndexes.Length; j++)
-            {
-                cellStruct.tileOptions[j] = tileObjectIndexes[j];
-            }
-            cellStruct.entropy = MAX_NEIGHBOURS;
-            cell3DStructs[i] = cellStruct;
-        }
-        return cell3DStructs;
-    }
-
-    /// <summary>
-    /// Creates a solid floor of tiles to avoid the generation holes in the first layer
-    /// </summary>
-    /// <param name="cell3DStructs"></param>
-    unsafe void CreateSolidFloor(Cell3DStruct[] cell3DStructs)
-    {
-        int y = 0;
-        for (int z = 0; z < dimensionsZ; z++)
-        {
-            for (int x = 0; x < dimensionsX; x++)
-            {
-                int index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
-                cell3DStructs[index].colapsed = 1;
-                cell3DStructs[index].entropy = 1;
-                for(int i = 1; i < MAX_NEIGHBOURS; i++)
+                for (int x = 0; x < dimensionsX; x++)
                 {
-                    cell3DStructs[index].tileOptions[i] = -1;
+                    int index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
+                    cell3DStructs[index].colapsed = 1;
+                    cell3DStructs[index].entropy = 1;
+                    for (int i = 1; i < MAX_NEIGHBOURS; i++)
+                    {
+                        cell3DStructs[index].tileOptions[i] = -1;
+                    }
+                    cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, emptyTile);
                 }
-                cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, solidTile);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Creates the a ceiling of empty tiles to avoid the generation unfinished layers
-    /// </summary>
-    /// <param name="cell3DStructs"></param>
-    unsafe void CreateEmptyCeiling(Cell3DStruct[] cell3DStructs)
-    {
-        int y = dimensionsY-1;
-        for (int z = 0; z < dimensionsZ; z++)
-        {
-            for (int x = 0; x < dimensionsX; x++)
-            {
-                int index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
-                cell3DStructs[index].colapsed = 1;
-                cell3DStructs[index].entropy = 1;
-                for(int i = 1; i < MAX_NEIGHBOURS; i++)
-                {
-                    cell3DStructs[index].tileOptions[i] = -1;
-                }
-                cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, emptyTile);
             }
         }
     }

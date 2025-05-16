@@ -1,7 +1,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Tileset : ScriptableObject
+namespace WFC3DMapGenerator
 {
-    [SerializeField] public List<Tile3D2> tiles;
+    [CreateAssetMenu(fileName = "Tileset", menuName = "WFC3DMapGenerator/Tileset", order = 1)]
+    public class Tileset : ScriptableObject
+    {
+        [SerializeField] public List<Tile3D> tiles;
+    }
 }

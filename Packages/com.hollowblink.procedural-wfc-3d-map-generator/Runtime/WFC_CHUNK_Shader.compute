@@ -1,7 +1,6 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 #pragma kernel ClearChunk
-#pragma enable_d3d11_debug_symbols
 
 /*
 |-------------------------------------------------------------------------------|
@@ -13,13 +12,14 @@
 #define X_EXTENSION 4
 #define Y_EXTENSION 1
 #define Z_EXTENSION 4
+#define CHUNK_SIZE 4
 
 struct Cell3DStruct
 {
-    uint colapsed;
+    int colapsed;
     // Number of tiles that can be placed in the cell
     // (array lenghts are fixed we can't use .lenght)
-    uint entropy;
+    int entropy;
     /* Possible tiles
     |-------------------------------------------------------------------------------|
     | The possible tiles are stored in a uint array, each uint containing the index |
@@ -44,11 +44,10 @@ struct Tile3DStruct
 };
 
 // Values from de C# code
-uint gridDimensionsX, gridDimensionsY, gridDimensionsZ;
+int gridDimensionsX, gridDimensionsY, gridDimensionsZ;
 uint seed;
-uint3 dispatchOffset;
-uint3 chunkOffset;
-int chunkSize;
+int3 dispatchOffset;
+int3 chunkOffset;
 
 // Save the cell with less entropy
 int minEntropy;
@@ -78,17 +77,16 @@ bool ArrayContains(int array[MAX_NEIGHBOURS], int value)
 {
     for (int i = 0; i < MAX_NEIGHBOURS; i++)
     {
-        if (array[i] == -1 || array[i] > value) return false;
-        else if (array[i] == value) return true;
+        if (array[i] == value) return true;
     }
     return false;
 }
 
 // Check the neighbours of a cell
-void CheckNeighbours(uint x, uint y, uint z, bool isBorder = false)
+void CheckNeighbours(int x, int y, int z)
 {
-    uint up, down, left, right, above, below;
-    uint index = x + (z * gridDimensionsX) + (y * gridDimensionsX * gridDimensionsZ);
+    int up, down, left, right, above, below;
+    int index = x + (z * gridDimensionsX) + (y * gridDimensionsX * gridDimensionsZ);
     right = (x + 1) + (z * gridDimensionsX) + (y * gridDimensionsX * gridDimensionsZ);
     left = (x - 1) + (z * gridDimensionsX) + (y * gridDimensionsX * gridDimensionsZ);
     up = x + ((z + 1) * gridDimensionsX) + (y * gridDimensionsX * gridDimensionsZ);
@@ -98,7 +96,6 @@ void CheckNeighbours(uint x, uint y, uint z, bool isBorder = false)
 
     if(output[index].colapsed == 1) return;
     if(x < 0 || x >= gridDimensionsX || y < 0 || y >= gridDimensionsY || z < 0 || z >= gridDimensionsZ) return;
-    if(!isBorder && (x >= (chunkSize + chunkOffset.x * chunkSize) || z >= (chunkSize + chunkOffset.z * chunkSize))) return;
 
     /* Adaptation of the get neighbours method in the C# code
     |-------------------------------------------------------------------------------|
@@ -242,18 +239,18 @@ void CheckNeighbours(uint x, uint y, uint z, bool isBorder = false)
     }
 
     // We assign the new options to the cell
-    for (int i = 0; i < MAX_NEIGHBOURS; i++) {
+    for (i = 0; i < MAX_NEIGHBOURS; i++) {
         output[index].tileOptions[i] = validOptions[i];
     }
     output[index].entropy = validOptionsIndex;
-    if(validOptionsIndex <= minEntropy && !isBorder)
+    if(validOptionsIndex <= minEntropy)
     {
         minEntropy = validOptionsIndex;
         minEntropyIndex = index;
     }
 }
 
-bool CollapseCell(int cellToCollapseIndex)
+bool CollapseCell(uint cellToCollapseIndex)
 {
 
     if(output[cellToCollapseIndex].tileOptions[0] == -1) return false;
@@ -277,13 +274,15 @@ bool CollapseCell(int cellToCollapseIndex)
     return true;
 }
 
-void GetCellsToCheck(uint3 initialIndex)
+void GetCellsToCheck(int3 initialIndex)
 {
-    [unroll(1)]
+    [unroll]
     for(int y = 0; y < Y_EXTENSION; y++)
     {
+        [unroll]
         for(int z = 0; z < Z_EXTENSION; z++)
         {
+            [unroll]
             for(int x = 0; x < X_EXTENSION; x++)
             {
                 cellsToCheck[x + (z * X_EXTENSION) + (y * X_EXTENSION * Y_EXTENSION)] = initialIndex.xyz + int3(x, y, z);
@@ -292,7 +291,7 @@ void GetCellsToCheck(uint3 initialIndex)
     }
 }
 
-void GetWorkignAreaCells(uint3 initialIndex)
+void GetWorkignAreaCells(int3 initialIndex)
 {
     for(int y = 0; y < (Y_EXTENSION + 2); y++)
     {
@@ -306,9 +305,9 @@ void GetWorkignAreaCells(uint3 initialIndex)
     }
 }
 
-void UpdateGeneration(uint3 initialIndex)
+void UpdateGeneration(int3 initialIndex)
 {
-    uint iterations = 0;
+    int iterations = 0;
     while (iterations < X_EXTENSION * Y_EXTENSION * Z_EXTENSION)
     {
         minEntropy = MAX_NEIGHBOURS + 1;
@@ -339,17 +338,17 @@ void UpdateWorkingArea()
 
     for(i = 0; i < limit; i++)
     {
-        CheckNeighbours(workingAreaCells[i].x, workingAreaCells[i].y, workingAreaCells[i].z, true);
+        CheckNeighbours(workingAreaCells[i].x, workingAreaCells[i].y, workingAreaCells[i].z);
     }
 }
 
 [numthreads(1,1,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void CSMain (int3 id : SV_DispatchThreadID)
 {
-    uint3 initialIndex;
-    initialIndex.x = id.x * X_EXTENSION + id.x + dispatchOffset.x + chunkOffset.x * chunkSize;
+    int3 initialIndex;
+    initialIndex.x = id.x * X_EXTENSION + id.x + dispatchOffset.x + chunkOffset.x * CHUNK_SIZE;
     initialIndex.y = id.y * Y_EXTENSION + id.y + dispatchOffset.y;
-    initialIndex.z = id.z * Z_EXTENSION + id.z + dispatchOffset.z + chunkOffset.z * chunkSize;
+    initialIndex.z = id.z * Z_EXTENSION + id.z + dispatchOffset.z + chunkOffset.z * CHUNK_SIZE;
     seed += initialIndex.x * 34 + initialIndex.y * 76 + initialIndex.z;
     GetCellsToCheck(initialIndex);
     GetWorkignAreaCells(initialIndex);
@@ -359,15 +358,16 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 }
 
 [numthreads(1,1,1)]
-void ClearChunk (uint3 id: SV_DispatchThreadID)
+void ClearChunk (int3 id: SV_DispatchThreadID)
 {
-    uint3 initialIndex;
-    initialIndex.x = id.x * X_EXTENSION + id.x + dispatchOffset.x + chunkOffset.x * chunkSize;
+    int3 initialIndex;
+    initialIndex.x = id.x * X_EXTENSION + id.x + dispatchOffset.x + chunkOffset.x * CHUNK_SIZE;
     initialIndex.y = id.y * Y_EXTENSION + id.y + dispatchOffset.y;
-    initialIndex.z = id.z * Z_EXTENSION + id.z + dispatchOffset.z + chunkOffset.z * chunkSize;
+    initialIndex.z = id.z * Z_EXTENSION + id.z + dispatchOffset.z + chunkOffset.z * CHUNK_SIZE;
     GetCellsToCheck(initialIndex);
-    uint index = 0;
-    for(uint i = 0; i < X_EXTENSION * Y_EXTENSION * Z_EXTENSION; i++)
+    int index = 0;
+
+    for(int i = 0; i < X_EXTENSION * Y_EXTENSION * Z_EXTENSION; i++)
     {
         if (cellsToCheck[i].x >= 0 && cellsToCheck[i].x < gridDimensionsX
             && cellsToCheck[i].y >= 0 && cellsToCheck[i].y < gridDimensionsY

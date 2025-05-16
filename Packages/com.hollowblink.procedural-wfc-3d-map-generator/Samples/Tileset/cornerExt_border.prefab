@@ -118,7 +118,6 @@ MonoBehaviour:
   excludedNeighboursRight: []
   excludedNeighboursDown: []
   excludedNeighboursLeft: []
-  excludeInTopLayer: 0
   upSocket:
     socket_name: 8
     horizontalFace: 1

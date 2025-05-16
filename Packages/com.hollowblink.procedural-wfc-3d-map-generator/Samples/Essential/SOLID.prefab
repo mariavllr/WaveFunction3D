@@ -101,7 +101,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tileType: 
-  probability: 1
+  probability: 0
   rotateRight: 0
   rotate180: 0
   rotateLeft: 0
