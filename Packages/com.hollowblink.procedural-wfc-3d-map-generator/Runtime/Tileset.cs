@@ -7,5 +7,7 @@ namespace WFC3DMapGenerator
     public class Tileset : ScriptableObject
     {
         [SerializeField] public List<Tile3D> tiles;
+        [SerializeField] public int tileSize;
+        [HideInInspector] [SerializeField] public int tileCount;
     }
 }

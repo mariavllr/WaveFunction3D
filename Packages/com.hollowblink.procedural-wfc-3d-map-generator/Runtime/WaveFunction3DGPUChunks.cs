@@ -4,80 +4,101 @@ using UnityEngine;
 using Debug = UnityEngine.Debug;
 using System;
 using UnityEngine.Rendering;
+using Tile3DStruct = WFC3DMapGenerator.WFCStructs.Tile3DStruct;
+using Cell3DStruct = WFC3DMapGenerator.WFCStructs.Cell3DStruct;
+using GLTF.Schema;
+using System.ComponentModel;
 
 namespace WFC3DMapGenerator
 {
+    [ExecuteInEditMode]
     public class WaveFunction3DGPUChunks : MonoBehaviour
     {
+        // Constants (must not be changed)
         private const int CHUNK_SIZE = 4;
         private const int MAX_NEIGHBOURS = 44;
+        private const int WISH_SUBGRID_SIZE = 12;
 
-        [Header("Shader")]
+        // Map generation parameters
+        private int cellSize;
+        private int dimensionsX, dimensionsZ, dimensionsY;
+
+        // Shader used for the generation
         [SerializeField] private ComputeShader shader;
+        private int kernel;
 
-        [Header("Map generation")]
-        [SerializeField] int cellSize;
-        [SerializeField] private int dimensionsX, dimensionsZ, dimensionsY;
-        [SerializeField] Tile3D solidTile;                     // Tile for the floor
-        [SerializeField] Tile3D emptyTile;                     // Tile for the ceiling
-        [SerializeField] GameObject emptyPrefab;
-        [SerializeField] private Tile3D[] tileObjects;         // All the tiles that can be used to generate the map
+        // Essential tiles needed for any map
+        [SerializeField] private Tile3D solidTile;
+        [SerializeField] private Tile3D emptyTile;
+        [SerializeField] private GameObject emptyPrefab;
+        [SerializeField] private Cell3D cellObj;
 
-        [Header("Grid")]
-        [SerializeField] private List<Cell3D> gridComponents;   // A list with all the cells inside the grid
-        [SerializeField] private Cell3D cellObj;                // They can be collapsed or not. Tiles are their children.
+        // Data structures (c# only objects)
+        private Tile3D[] tileObjects;
+        private List<Cell3D> gridComponents;
 
+        // Data structures (structs)
         private Tile3DStruct[] tileObjectsStructs;
         private Cell3DStruct[] gridComponentsStructs;
-        private Tuple<Cell3DStruct[], int[]> output;
+        private Tuple<Cell3DStruct[], int[]> subGrid;
+
+        // Data structures (buffers)
         private ComputeBuffer tileObjectsBuffer;
         private ComputeBuffer outputBuffer;
         private ComputeBuffer stateBuffer;
-        private int kernel;
-        private int wishSubGridSize = 12;
-        private Vector3Int clampedSubGridSize;
-        private int actualChunk = 0;
+
+        // Generation aux variables
         private List<Vector3Int> chunkOffsets;
+        private Vector3Int clampedSubGridSize;
+        private int actualChunk;
+        private bool stopGeneration;
+        private bool finished = true;
 
-        // Structs for the shader
-        public unsafe struct Cell3DStruct
+        /// <summary>
+        /// Initializes the map generation based on the given parameters
+        /// </summary>
+        /// <param name="mapDimensions"></param> Dimensions of the map to be generated
+        /// <param name="cellSize"></param> Size of each cell in the map (tiles ares boxes so the size is the same for all faces)
+        /// <param name="tiles"></param> Array of tiles to be used in the map
+        public unsafe void Initialize(Vector3Int mapDimensions, int cellSize, Tile3D[] tiles)
         {
-            public int colapsed;
-            // Number of tiles that can be placed in the cell
-            // (array lenghts are fixed we can't use .lenght)
-            public int entropy;
-            /* Possible tiles
-            |-------------------------------------------------------------------------------|
-            | The possible tiles are stored in a uint array, each uint containing the index |
-            | of a tile in the tileObjects array.                                           |
-            |-------------------------------------------------------------------------------|
-            */
-            public fixed int tileOptions[MAX_NEIGHBOURS];
-        };
-        public unsafe struct Tile3DStruct
-        {
-            /*
-            |-------------------------------------------------------------------------------|
-            | In order to be able to send data to the buffer, all the data within the struct|
-            | must be blitable, that means that the size in memory for c# is exactly the    |
-            | the same as in HLSL, for uint arrays we only need to ensure that they have    |
-            | the a fixed size.                                                             |
-            |-------------------------------------------------------------------------------|
-            */
-            public int probability;
-            public Vector3 rotation;
-
-            // Neighbours (these are the indexes of the tiles in the tileObjects array)
-            public fixed int upNeighbours[MAX_NEIGHBOURS];
-            public fixed int rightNeighbours[MAX_NEIGHBOURS];
-            public fixed int downNeighbours[MAX_NEIGHBOURS];
-            public fixed int leftNeighbours[MAX_NEIGHBOURS];
-            public fixed int aboveNeighbors[MAX_NEIGHBOURS];
-            public fixed int belowNeighbours[MAX_NEIGHBOURS];
-        };
-        unsafe void Start()
-        {
+            dimensionsX = mapDimensions.x;
+            dimensionsY = mapDimensions.y;
+            dimensionsZ = mapDimensions.z;
+            this.cellSize = cellSize;
+            tileObjects = tiles;
+            actualChunk = 0;
+            stopGeneration = false;
+            finished = false;
+            ClearHierarchy();
             StartGeneration();
+        }
+
+        /// <summary>
+        /// Updates the progress of the map generation
+        /// </summary>
+        /// <returns></returns> Progress of the map generation
+        public int GetProgress()
+        {
+            if (chunkOffsets == null || chunkOffsets.Count == 0) return 0;
+            return (int) ((float) actualChunk / (float) (chunkOffsets.Count - 1) * 100f);
+        }
+
+        /// <summary>
+        /// Checks if the map generation is finished
+        /// </summary>
+        /// <returns></returns> True if the map generation is finished, false otherwise
+        public bool IsFinished()
+        {
+            return finished;
+        }
+
+        /// <summary>
+        /// Stops the generation of the map
+        /// </summary>
+        public void StopGeneration()
+        {
+            stopGeneration = true;
         }
 
         /// <summary>
@@ -126,17 +147,17 @@ namespace WFC3DMapGenerator
         private void PrepareChunkDispatch(Vector3Int subGridCoords, bool clear = false)
         {
             Debug.Log("Dispatching chunk: " + subGridCoords);
-            clampedSubGridSize = new Vector3Int(wishSubGridSize, CHUNK_SIZE, wishSubGridSize);
-            output = GridUtils.ExtractSubGrid(subGridCoords, ref clampedSubGridSize, gridComponentsStructs, new Vector3Int(dimensionsX, dimensionsY, dimensionsZ));
+            clampedSubGridSize = new Vector3Int(WISH_SUBGRID_SIZE, CHUNK_SIZE, WISH_SUBGRID_SIZE);
+            subGrid = GridUtils.ExtractSubGrid(subGridCoords, ref clampedSubGridSize, gridComponentsStructs, new Vector3Int(dimensionsX, dimensionsY, dimensionsZ));
 
             tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)), ComputeBufferType.Structured);
-            outputBuffer = new ComputeBuffer(output.Item1.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)), ComputeBufferType.Structured);
+            outputBuffer = new ComputeBuffer(subGrid.Item1.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)), ComputeBufferType.Structured);
             stateBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Counter);
             if (!clear) kernel = shader.FindKernel("CSMain");
             else kernel = shader.FindKernel("ClearChunk");
 
             tileObjectsBuffer.SetData(tileObjectsStructs);
-            outputBuffer.SetData(output.Item1);
+            outputBuffer.SetData(subGrid.Item1);
 
             Vector3 chunkSubGridCoords = new Vector3(1, subGridCoords.y, 1);
             if (subGridCoords.x == -CHUNK_SIZE) chunkSubGridCoords.x = 0;
@@ -167,6 +188,13 @@ namespace WFC3DMapGenerator
 
             void DispatchLayer(int attempts = 0, bool clear = false)
             {
+                if (stopGeneration)
+                {
+                    ClearHierarchy();
+                    ReleaseMemory();
+                    return;
+                }
+
                 shader.SetInt("seed", UnityEngine.Random.Range(0, int.MaxValue));
                 shader.SetVector("dispatchOffset", new Vector3(0, layer, 0));
                 shader.Dispatch(shader.FindKernel("CSMain"), 1, 1, 1);
@@ -177,7 +205,7 @@ namespace WFC3DMapGenerator
                 {
                     layer++;
                     stateBuffer.SetData(new int[1] { 0 });
-                    outputBuffer.GetData(output.Item1);
+                    outputBuffer.GetData(subGrid.Item1);
                     AsyncGPUReadback.Request(outputBuffer, _ => DispatchLayer());
                 }
                 else if (state[0] != 0)
@@ -185,7 +213,7 @@ namespace WFC3DMapGenerator
                     stateBuffer.SetData(new int[1] { 0 });
                     if (attempts < 100)
                     {
-                        outputBuffer.SetData(output.Item1);
+                        outputBuffer.SetData(subGrid.Item1);
                         AsyncGPUReadback.Request(outputBuffer, _ => DispatchLayer(++attempts));
                     }
                     else
@@ -195,8 +223,8 @@ namespace WFC3DMapGenerator
                 }
                 else
                 {
-                    outputBuffer.GetData(output.Item1);
-                    GridUtils.CombineGridWithSubgrid(gridComponentsStructs, output.Item1, output.Item2);
+                    outputBuffer.GetData(subGrid.Item1);
+                    GridUtils.CombineGridWithSubgrid(gridComponentsStructs, subGrid.Item1, subGrid.Item2);
                     if (actualChunk < chunkOffsets.Count - 1)
                     {
                         InstantiateChunk(chunkOffsets[actualChunk]);
@@ -204,9 +232,9 @@ namespace WFC3DMapGenerator
                     }
                     else
                     {
-                        ReleaseMemory();
                         InstantiateChunk(chunkOffsets[actualChunk]);
                         ClearGeneration();
+                        ReleaseMemory();
                     }
                 }
             }
@@ -231,7 +259,7 @@ namespace WFC3DMapGenerator
                     if (output.Item1[i].tileOptions[0] == Array.IndexOf(tileObjects, solidTile)
                     || output.Item1[i].tileOptions[0] == Array.IndexOf(tileObjects, emptyTile))
                     {
-                        if (gridComponents[output.Item2[i]] != null) Destroy(gridComponents[output.Item2[i]].gameObject);
+                        if (gridComponents[output.Item2[i]] != null) DestroyImmediate(gridComponents[output.Item2[i]].gameObject);
                         gridComponents[output.Item2[i]] = null;
                     }
                     else
@@ -243,9 +271,10 @@ namespace WFC3DMapGenerator
                         cell.RecreateCell(tileObjects[output.Item1[i].tileOptions[0]]);
                         if (cell.transform.childCount != 0)
                         {
-                            foreach (Transform child in cell.transform)
+                            for(int j = cell.transform.childCount - 1; j >= 0; j--)
                             {
-                                Destroy(child.gameObject);
+                                Transform child = cell.transform.GetChild(j);
+                                DestroyImmediate(child.gameObject);
                             }
                         }
                         Tile3D instantiatedTile = Instantiate(tileObjects[output.Item1[i].tileOptions[0]], cell.transform.position, Quaternion.identity, cell.transform);
@@ -306,23 +335,39 @@ namespace WFC3DMapGenerator
                         trash.Add(child.gameObject);
                     }
                 }
-                foreach (GameObject obj in trash) Destroy(obj);
+                foreach (GameObject obj in trash) DestroyImmediate(obj);
+            }
+
+            for (int i = gameObject.transform.childCount - 1; i >= 0; i--)
+            {
+                Transform chunk = gameObject.transform.GetChild(i);
+                if (chunk.transform.childCount == 0) DestroyImmediate(chunk.gameObject);
             }
 
             Vector2Int chunkCoordinates = new Vector2Int(0, 0);
-            foreach (Transform chunk in gameObject.transform)
+            int chunksInX = Mathf.CeilToInt((float)dimensionsX / CHUNK_SIZE);
+            for (int i = 0; i < gameObject.transform.childCount; i++)
             {
-                if (chunk.transform.childCount == 0) Destroy(chunk.gameObject);
-                else
+                Transform chunk = gameObject.transform.GetChild(i);
+                chunk.name = chunkCoordinates.x + "," + chunkCoordinates.y;
+                chunkCoordinates.x++;
+                if (chunkCoordinates.x >= chunksInX)
                 {
-                    chunk.name = "Chunk " + "(" + chunkCoordinates.x + "," + chunkCoordinates.y + ")";
-                    if (chunkCoordinates.x % (dimensionsX / CHUNK_SIZE - 1) == 0 && chunkCoordinates.x != 0)
-                    {
-                        chunkCoordinates.x = 0;
-                        chunkCoordinates.y++;
-                    }
-                    else chunkCoordinates.x++;
+                    chunkCoordinates.x = 0;
+                    chunkCoordinates.y++;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Clears the hierarchy of the game object
+        /// </summary>
+        private void ClearHierarchy()
+        {
+            for(int i = gameObject.transform.childCount - 1; i >= 0; i--)
+            {
+                Transform child = gameObject.transform.GetChild(i);
+                DestroyImmediate(child.gameObject);
             }
         }
 
@@ -334,6 +379,7 @@ namespace WFC3DMapGenerator
             tileObjectsBuffer.Release();
             outputBuffer.Release();
             stateBuffer.Release();
+            finished = true;
         }
 
         /// <summary>

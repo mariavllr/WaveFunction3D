@@ -1,96 +1,98 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using Debug = UnityEngine.Debug;
-using System.Diagnostics;
 using System;
+using Cell3DStruct = WFC3DMapGenerator.WFCStructs.Cell3DStruct;
+using Tile3DStruct = WFC3DMapGenerator.WFCStructs.Tile3DStruct;
 
 namespace WFC3DMapGenerator
 {
+    [ExecuteInEditMode]
     public class WaveFunction3DGPU : MonoBehaviour
     {
-        [SerializeField] public const int MAX_NEIGHBOURS = 44;
+        // Constants (must not be changed)
+        public const int MAX_NEIGHBOURS = 44;
 
-        [Header("Shader")]
+        // Map generation parameters
+        private int cellSize;
+        private int dimensionsX, dimensionsZ, dimensionsY;
+
+        // Shader used for the generation
         [SerializeField] private ComputeShader shader;
+        private int kernel;
 
-        [Header("Map generation")]
-        [SerializeField] int cellSize;
-        [SerializeField] private int dimensionsX, dimensionsZ, dimensionsY;
-        [SerializeField] Tile3D floorTile;                     // Tile for the floor
-        [SerializeField] Tile3D emptyTile;                     // Tile for the ceiling
-        [SerializeField] Tile3D grassTile;                     // Tile for the grass
-        [SerializeField] private Tile3D[] tileObjects;         // All the tiles that can be used to generate the map
+        // Essential tiles needed for any map
+        [SerializeField] Tile3D solidTile;
+        [SerializeField] Tile3D emptyTile;
+        [SerializeField] private Cell3D cellObj;
 
-        [Header("Grid")]
-        [SerializeField] private List<Cell3D> gridComponents;   // A list with all the cells inside the grid
-        [SerializeField] private Cell3D cellObj;                // They can be collapsed or not. Tiles are their children.
+        // Data structures (c# only objects)
+        private Tile3D[] tileObjects;
+        private List<Cell3D> gridComponents;
 
-        // Events
-        public delegate void OnRegenerate();
-        public static event OnRegenerate onRegenerate;
-        Stopwatch stopwatch;
+        // Data structures (structs)
+        private Tile3DStruct[] tileObjectsStructs;
+        private Cell3DStruct[] gridComponentsStructs;
 
-        // Structs for the shader
-        unsafe struct Cell3DStruct
+        // Data structures (buffers)
+        private ComputeBuffer tileObjectsBuffer;
+        private ComputeBuffer outputBuffer;
+        private ComputeBuffer stateBuffer;
+
+        // Generation aux variables
+        private bool stopGeneration;
+        private bool finished = true;
+
+        /// <summary>
+        /// Initializes the map generation
+        /// </summary>
+        /// <param name="mapDimensions"></param> Dimensions of the map
+        /// <param name="cellSize"></param> Size of each cell
+        /// <param name="tiles"></param> Array of tiles to be used
+        public unsafe void Initialize(Vector3Int mapDimensions, int cellSize, Tile3D[] tiles)
         {
-            public uint colapsed;
-            // Number of tiles that can be placed in the cell
-            // (array lenghts are fixed we can't use .lenght)
-            public uint entropy;
-            /* Possible tiles
-            |-------------------------------------------------------------------------------|
-            | The possible tiles are stored in a uint array, each uint containing the index |
-            | of a tile in the tileObjects array.                                           |
-            |-------------------------------------------------------------------------------|
-            */
-            public fixed int tileOptions[MAX_NEIGHBOURS];
-        };
+            dimensionsX = mapDimensions.x;
+            dimensionsY = mapDimensions.y;
+            dimensionsZ = mapDimensions.z;
+            this.cellSize = cellSize;
+            tileObjects = tiles;
+            stopGeneration = false;
+            finished = false;
+            ClearHierarchy();
+            Generate();
+        }
 
-        unsafe struct Tile3DStruct
+        /// <summary>
+        /// Checks if the generation is finished
+        /// </summary>
+        /// <returns></returns> True if the generation is finished, false otherwise
+        public bool IsFinished()
         {
-            /*
-            |-------------------------------------------------------------------------------|
-            | In order to be able to send data to the buffer, all the data within the struct|
-            | must be blitable, that means that the size in memory for c# is exactly the    |
-            | the same as in HLSL, for uint arrays we only need to ensure that they have    |
-            | the a fixed size.                                                             |
-            |-------------------------------------------------------------------------------|
-            */
-            public int probability;
-            public Vector3 rotation;
+            return finished;
+        }
 
-            // Neighbours (these are the indexes of the tiles in the tileObjects array)
-            public fixed int upNeighbours[MAX_NEIGHBOURS];
-            public fixed int rightNeighbours[MAX_NEIGHBOURS];
-            public fixed int downNeighbours[MAX_NEIGHBOURS];
-            public fixed int leftNeighbours[MAX_NEIGHBOURS];
-            public fixed int aboveNeighbors[MAX_NEIGHBOURS];
-            public fixed int belowNeighbours[MAX_NEIGHBOURS];
-        };
-
-        unsafe void Start()
+        /// <summary>
+        /// Generates the map
+        /// </summary>
+        unsafe void Generate()
         {
             ClearNeighbours(ref tileObjects);
             CreateRemainingCells(ref tileObjects);
             DefineNeighbourTiles(ref tileObjects, ref tileObjects);
 
             gridComponents = new List<Cell3D>();
-            stopwatch = new Stopwatch();
-
-            stopwatch.Start();
             InitializeGrid();
 
             // Create the structs
-            Tile3DStruct[] tileObjectsStructs = CreateTile3DStructs();
-            Cell3DStruct[] gridComponentsStructs = CreateCell3DStructs();
+            tileObjectsStructs = CreateTile3DStructs();
+            gridComponentsStructs = CreateCell3DStructs();
             CreateSolidFloor(gridComponentsStructs);
             CreateEmptyCeiling(gridComponentsStructs);
 
             // Initialize buffers
-            ComputeBuffer tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)));
-            ComputeBuffer outputBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
-            ComputeBuffer stateBuffer = new ComputeBuffer(1, sizeof(int));
+            tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)));
+            outputBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
+            stateBuffer = new ComputeBuffer(1, sizeof(int));
 
             // Set data
             tileObjectsBuffer.SetData(tileObjectsStructs);
@@ -108,10 +110,11 @@ namespace WFC3DMapGenerator
             for (int i = 1; i < dimensionsY - 1; i++)
             {
                 // Loop until the grid is fully collapsed without any incomatibilities
+                if (stopGeneration) break;
                 int attempts = 0;
                 int[] incompatibilities = { 1 };
                 Vector3[] offsets = { new Vector3(0, i, 0), new Vector3(2, i, 0), new Vector3(0, i, 2), new Vector3(2, i, 2) };
-                while (incompatibilities[0] != 0 && attempts < 1000)
+                while (incompatibilities[0] != 0 && !stopGeneration)
                 {
                     outputBuffer.SetData(gridComponentsStructs);
                     stateBuffer.SetData(new int[] { 0 });
@@ -122,54 +125,100 @@ namespace WFC3DMapGenerator
                         shader.Dispatch(shader.FindKernel("CSMain"), Mathf.CeilToInt((float)dimensionsX / 10), 1, Mathf.CeilToInt((float)dimensionsZ / 10));
                     }
                     stateBuffer.GetData(incompatibilities);
-                    Debug.Log("Incompatibilities: " + incompatibilities[0]);
                     attempts++;
                 }
                 outputBuffer.GetData(gridComponentsStructs);
             }
+            InstantiateChunk();
+            ClearGeneration();
+            ReleaseMemory();
+        }
 
-            stopwatch.Stop();
-            Debug.Log("Time elapsed: " + stopwatch.ElapsedMilliseconds + "ms");
-
-            // Recreate the grid based on the data received by the shader
+        /// <summary>
+        /// Instantiates the chunk of tiles
+        /// </summary>
+        private unsafe void InstantiateChunk()
+        {
             for (int i = 0; i < gridComponentsStructs.Length; i++)
             {
-                if (gridComponentsStructs[i].colapsed == 0) continue; // Testing
-                Cell3D cell = gridComponents[i];
-                cell.name = "Cell " + i;
-                cell.collapsed = gridComponentsStructs[i].colapsed == 1;
-                cell.RecreateCell(tileObjects[gridComponentsStructs[i].tileOptions[0]]);
-
-                // Uncomment this to recreate the cell with all the possible tiles
-                // List<Tile3D2> newOptions = new List<Tile3D2>();
-                // for (int j = 0; j < MAX_NEIGHBOURS; j++)
-                // {
-                //     if (gridComponentsStructs[i].tileOptions[j] != -1) newOptions.Add(tileObjects[gridComponentsStructs[i].tileOptions[j]]);
-                // }
-                // cell.RecreateCell(newOptions.ToArray());
-
-                if (cell.transform.childCount != 0)
+                if (gridComponentsStructs[i].tileOptions[0] == Array.IndexOf(tileObjects, solidTile)
+                || gridComponentsStructs[i].tileOptions[0] == Array.IndexOf(tileObjects, emptyTile))
                 {
-                    foreach (Transform child in cell.transform)
+                    if (gridComponents[i] != null) DestroyImmediate(gridComponents[i].gameObject);
+                    gridComponents[i] = null;
+                }
+                else
+                {
+                    Cell3D cell = gridComponents[i];
+                    cell.name = "Cell " + i;
+                    cell.collapsed = gridComponentsStructs[i].colapsed == 1;
+                    cell.RecreateCell(tileObjects[gridComponentsStructs[i].tileOptions[0]]);
+                    if (cell.transform.childCount != 0)
                     {
-                        Destroy(child.gameObject);
+                        for(int j = cell.transform.childCount; i >= 0; j--)
+                        {
+                            Transform child = cell.transform.GetChild(j);
+                            DestroyImmediate(child.gameObject);
+                        }
                     }
+                    Tile3D instantiatedTile = Instantiate(cell.tileOptions[0], cell.transform.position, Quaternion.identity, cell.transform);
+                    if (instantiatedTile.rotation != Vector3.zero)
+                    {
+                        instantiatedTile.gameObject.transform.Rotate(cell.tileOptions[0].rotation, Space.Self);
+                    }
+                    instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
+                    instantiatedTile.gameObject.SetActive(true);
                 }
-
-                Tile3D instantiatedTile = Instantiate(cell.tileOptions[0], cell.transform.position, Quaternion.identity, cell.transform);
-                if (instantiatedTile.rotation != Vector3.zero)
-                {
-                    instantiatedTile.gameObject.transform.Rotate(cell.tileOptions[0].rotation, Space.Self);
-                }
-
-                instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
-                instantiatedTile.gameObject.SetActive(true);
             }
+        }
 
-            // Release memory buffers to avoid leaks
+        /// <summary>
+        /// Clears the generated tiles from the hierarchy
+        /// </summary>
+        private void ClearGeneration()
+        {
+            List<GameObject> trash = new List<GameObject>();
+            for (int i = 0; i < gameObject.transform.childCount; i++)
+            {
+                Transform child = gameObject.transform.GetChild(i);
+                if (child.childCount != 0)
+                {
+                    child.GetChild(0).transform.parent = gameObject.transform;
+                    trash.Add(child.gameObject);
+                }
+            }
+            foreach (GameObject obj in trash) DestroyImmediate(obj);
+        }
+
+        /// <summary>
+        /// Clears the hierarchy of the game object
+        /// </summary>
+        private void ClearHierarchy()
+        {
+            for (int i = gameObject.transform.childCount - 1; i >= 0; i--)
+            {
+                Transform child = gameObject.transform.GetChild(i);
+                DestroyImmediate(child.gameObject);
+            }
+        }
+
+        /// <summary>
+        /// Releases the memory used by the buffers
+        /// </summary>
+        private void ReleaseMemory()
+        {
             tileObjectsBuffer.Release();
             outputBuffer.Release();
             stateBuffer.Release();
+            finished = true;
+        }
+
+        /// <summary>
+        /// Stops the generation of the map
+        /// </summary>
+        public void StopGeneration()
+        {
+            stopGeneration = true;
         }
 
         /// <summary>
@@ -506,7 +555,7 @@ namespace WFC3DMapGenerator
             for (int i = 0; i < gridComponents.Count; i++)
             {
                 Cell3DStruct cellStruct = new Cell3DStruct();
-                cellStruct.colapsed = gridComponents[i].collapsed ? (uint)1 : (uint)0;
+                cellStruct.colapsed = gridComponents[i].collapsed ? 1 : 0;
                 for (int j = 0; j < tileObjectIndexes.Length; j++)
                 {
                     cellStruct.tileOptions[j] = tileObjectIndexes[j];
@@ -517,6 +566,10 @@ namespace WFC3DMapGenerator
             return cell3DStructs;
         }
 
+        /// <summary>
+        /// Creates the solid floor of the map
+        /// </summary>
+        /// <param name="cell3DStructs"></param>
         unsafe void CreateSolidFloor(Cell3DStruct[] cell3DStructs)
         {
             int y = 0;
@@ -531,27 +584,15 @@ namespace WFC3DMapGenerator
                     {
                         cell3DStructs[index].tileOptions[i] = -1;
                     }
-                    cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, floorTile);
+                    cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, solidTile);
                 }
             }
-
-            // y = 1;
-            // for (int z = 0; z < dimensionsZ; z++)
-            // {
-            //     for (int x = 0; x < dimensionsX; x++)
-            //     {
-            //         int index = x + (z * dimensionsX) + (y * dimensionsX * dimensionsZ);
-            //         cell3DStructs[index].colapsed = 1;
-            //         cell3DStructs[index].entropy = 1;
-            //         for(int i = 1; i < MAX_NEIGHBOURS; i++)
-            //         {
-            //             cell3DStructs[index].tileOptions[i] = -1;
-            //         }
-            //         cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, grassTile);
-            //     }
-            // }
         }
 
+        /// <summary>
+        /// Creates the ceiling of the map
+        /// </summary>
+        /// <param name="cell3DStructs"></param>
         unsafe void CreateEmptyCeiling(Cell3DStruct[] cell3DStructs)
         {
             int y = dimensionsY - 1;
@@ -569,129 +610,6 @@ namespace WFC3DMapGenerator
                     cell3DStructs[index].tileOptions[0] = Array.IndexOf(tileObjects, emptyTile);
                 }
             }
-        }
-
-        public unsafe void Regenerate() // TODO
-        {
-            if (onRegenerate != null)
-            {
-                onRegenerate();
-            }
-
-            // Clear the grid
-            for (int i = gameObject.transform.childCount - 1; i >= 0; i--)
-            {
-                Destroy(gameObject.transform.GetChild(i).gameObject);
-            }
-
-            ClearNeighbours(ref tileObjects);
-            CreateRemainingCells(ref tileObjects);
-            DefineNeighbourTiles(ref tileObjects, ref tileObjects);
-
-            gridComponents = new List<Cell3D>();
-            stopwatch = new Stopwatch();
-
-            stopwatch.Start();
-            InitializeGrid();
-
-            // Create the structs
-            Tile3DStruct[] tileObjectsStructs = CreateTile3DStructs();
-            Cell3DStruct[] gridComponentsStructs = CreateCell3DStructs();
-            CreateSolidFloor(gridComponentsStructs);
-            CreateEmptyCeiling(gridComponentsStructs);
-
-            // Initialize buffers
-            ComputeBuffer gridComponentsBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
-            ComputeBuffer tileObjectsBuffer = new ComputeBuffer(tileObjectsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Tile3DStruct)));
-            ComputeBuffer outputBuffer = new ComputeBuffer(gridComponentsStructs.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Cell3DStruct)));
-
-            // Set data
-            gridComponentsBuffer.SetData(gridComponentsStructs);
-            outputBuffer.SetData(gridComponentsStructs);
-            tileObjectsBuffer.SetData(tileObjectsStructs);
-
-            // Data to buffers
-            shader.SetBuffer(0, "gridComponents", gridComponentsBuffer);
-            shader.SetBuffer(0, "tileObjects", tileObjectsBuffer);
-            shader.SetBuffer(0, "output", outputBuffer);
-            shader.SetInt("MAX_NEIGHBOURS", MAX_NEIGHBOURS);
-            shader.SetInt("gridDimensionsX", dimensionsX);
-            shader.SetInt("gridDimensionsY", dimensionsY);
-            shader.SetInt("gridDimensionsZ", dimensionsZ);
-            shader.SetInt("floorTile", Array.IndexOf(tileObjects, floorTile));
-            shader.SetInt("emptyTile", Array.IndexOf(tileObjects, emptyTile));
-            shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode());//DateTime.Now.Ticks.GetHashCode());
-            shader.SetVector("offset", new Vector3(0, 1, 0));
-
-            // Dispatch 1/5 of the grid
-            shader.Dispatch(0, dimensionsX / 2, 1, dimensionsZ / 2);
-
-            // // Dispatch 2/5 of the grid
-            // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 2);
-            // shader.SetVector("offset", new Vector3(-1, 1, -1));
-            // shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
-
-            // // Dispatch 3/5 of the grid
-            // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 3);
-            // shader.SetVector("offset", new Vector3(1, 1, -1));
-            // shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
-
-            // // Dispatch 4/5 of the grid
-            // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 4);
-            // shader.SetVector("offset", new Vector3(-1, 1, 1));
-            // shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
-
-            // // Dispatch 5/5 of the grid
-            // shader.SetInt("seed", DateTime.Now.Ticks.GetHashCode() * 5);
-            // shader.SetVector("offset", new Vector3(1, 1, 1));
-            // shader.Dispatch(0, dimensionsX / 4, 1, dimensionsZ / 4);
-
-            // Get data
-            Cell3DStruct[] output = new Cell3DStruct[gridComponentsStructs.Length];
-            outputBuffer.GetData(output);
-
-            // Recreate the grid based on the data received by the shader
-            for (int i = 0; i < output.Length; i++)
-            {
-                //if(output[i].colapsed == 0) continue; // Testing
-                Cell3D cell = gridComponents[i];
-                cell.name = "Cell " + i;
-                cell.collapsed = output[i].colapsed == 1;
-                //cell.RecreateCell(tileObjects[output[i].tileOptions[0]]);
-
-                // Uncomment this to recreate the cell with all the possible tiles
-
-                List<Tile3D> newOptions = new List<Tile3D>();
-                for (int j = 0; j < MAX_NEIGHBOURS; j++)
-                {
-                    if (output[i].tileOptions[j] != -1) newOptions.Add(tileObjects[output[i].tileOptions[j]]);
-                }
-                cell.RecreateCell(newOptions.ToArray());
-
-                if (cell.transform.childCount != 0)
-                {
-                    foreach (Transform child in cell.transform)
-                    {
-                        Destroy(child.gameObject);
-                    }
-                }
-
-                Tile3D instantiatedTile = Instantiate(cell.tileOptions[0], cell.transform.position, Quaternion.identity, cell.transform);
-                if (instantiatedTile.rotation != Vector3.zero)
-                {
-                    instantiatedTile.gameObject.transform.Rotate(cell.tileOptions[0].rotation, Space.Self);
-                }
-
-                instantiatedTile.gameObject.transform.position += instantiatedTile.positionOffset;
-                instantiatedTile.gameObject.SetActive(true);
-            }
-
-            // Release memory buffers to avoid leaks
-            gridComponentsBuffer.Release();
-            tileObjectsBuffer.Release();
-            outputBuffer.Release();
-            stopwatch.Stop();
-            Debug.Log("Time elapsed: " + stopwatch.ElapsedMilliseconds + "ms");
         }
     }
 }

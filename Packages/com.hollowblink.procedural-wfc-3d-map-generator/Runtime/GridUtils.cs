@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using Cell3DStruct = WFC3DMapGenerator.WaveFunction3DGPUChunks.Cell3DStruct;
+using Cell3DStruct = WFC3DMapGenerator.WFCStructs.Cell3DStruct;
 
 namespace WFC3DMapGenerator
 {
