@@ -1,0 +1,6 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <Style src="project://database/Packages/com.hollowblink.procedural-wfc-3d-map-generator/Editor/StyleSheet.uss?fileID=7433441132597879392&amp;guid=f1610f379e71217438029d682f01a4cd&amp;type=3#StyleSheet" />
+    <ui:DropdownField label="Tileset:" name="tilesetDropdown" />
+    <ui:DropdownField label="Tile:" name="tileDropdown" />
+    <uie:ObjectField label="Tile model:" type="UnityEngine.GameObject, UnityEngine.CoreModule" allow-scene-objects="false" name="tileModelField" />
+</ui:UXML>

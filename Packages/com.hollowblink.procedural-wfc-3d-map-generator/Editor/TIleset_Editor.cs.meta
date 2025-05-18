@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 89bdd9d3ae7b4344e888f22649a8685c
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - m_ViewDataDictionary: {instanceID: 0}
+  - m_UXML: {fileID: 9197481963319205126, guid: 715f8daced07ff84e816a653264c3118, type: 3}
+  - m_selectedGameObject: {fileID: 919132149155446097, guid: 5af31b2016640034292c5ae9d133ab12, type: 3}
+  - m_previewGameObject: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
