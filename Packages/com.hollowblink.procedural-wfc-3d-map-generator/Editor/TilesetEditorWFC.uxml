@@ -1,5 +1,8 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
     <Style src="project://database/Packages/com.hollowblink.procedural-wfc-3d-map-generator/Editor/StyleSheet.uss?fileID=7433441132597879392&amp;guid=f1610f379e71217438029d682f01a4cd&amp;type=3#StyleSheet" />
+    <ui:VisualElement name="render3DContainer" style="flex-grow: 1; min-height: auto; max-height: 150px; border-left-color: rgb(95, 95, 95); border-right-color: rgb(95, 95, 95); border-top-color: rgb(95, 95, 95); border-bottom-color: rgb(95, 95, 95); border-top-width: 2px; border-right-width: 2px; border-bottom-width: 2px; border-left-width: 2px; border-top-left-radius: 15px; border-top-right-radius: 15px; border-bottom-right-radius: 15px; border-bottom-left-radius: 15px; margin-top: 5px; margin-right: 5px; margin-bottom: 5px; margin-left: 5px;">
+        <ui:IMGUIContainer name="IMGUIContainer" style="height: 146px;" />
+    </ui:VisualElement>
     <ui:DropdownField label="Tileset:" name="tilesetDropdown" />
     <ui:DropdownField label="Tile:" name="tileDropdown" />
     <uie:ObjectField label="Tile model:" type="UnityEngine.GameObject, UnityEngine.CoreModule" allow-scene-objects="false" name="tileModelField" />
