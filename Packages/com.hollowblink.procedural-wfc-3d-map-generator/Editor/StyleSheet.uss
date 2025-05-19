@@ -93,3 +93,53 @@
     border-bottom-right-radius: 8px;
     border-bottom-left-radius: 8px;
 }
+
+.strategy-selector .unity-radio-button-group__container {
+    flex-direction: row;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    align-self: center;
+    justify-content: flex-start;
+    align-items: auto;
+    align-content: auto;
+}
+
+.custom-toggle {
+    display: flex;
+    flex-direction: row;
+    align-items: auto;
+    justify-content: flex-start;
+    align-content: auto;
+}
+
+.custom-toggle .unity-label {
+    font-size: 12px;
+    display: flex;
+    align-items: auto;
+    align-self: auto;
+    align-content: auto;
+    justify-content: flex-start;
+    flex-shrink: 0;
+    -unity-text-align: middle-center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    -unity-font-style: normal;
+    margin-left: 0;
+    flex-basis: auto;
+    position: relative;
+    right: auto;
+    left: 0;
+    white-space: normal;
+    text-overflow: clip;
+    -unity-text-outline-width: 0;
+    background-color: rgba(0, 0, 0, 0);
+    overflow: visible;
+    visibility: visible;
+    min-width: auto;
+}
