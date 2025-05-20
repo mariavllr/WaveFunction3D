@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -11,95 +13,98 @@ namespace WFC3DMapGenerator
 
         // Preview and main
         [SerializeField] private VisualTreeAsset m_UXML;
-        [SerializeField] private VisualElement m_previewContainer;
-        [SerializeField] private IMGUIContainer m_imguiContainer;
+        [SerializeField] private VisualElement m_PreviewContainer;
+        [SerializeField] private IMGUIContainer m_ImguiContainer;
 
         // Tileset options
-        [SerializeField] private DropdownField m_tilesetDropdown;
-        [SerializeField] private TextField m_tilesetNameField;
-        [SerializeField] private FloatField m_tileSizeField;
+        [SerializeField] private DropdownField m_TilesetDropdown;
+        [SerializeField] private TextField m_TilesetNameField;
+        [SerializeField] private FloatField m_TileSizeField;
 
         // Tile options
-        [SerializeField] private DropdownField m_tileDropdown;
-        [SerializeField] private TextField m_tileNameField;
-        [SerializeField] private TextField m_tileTypeField;
-        [SerializeField] private GameObject m_selectedGameObjectField;
-        [SerializeField] private Toggle m_tileVariation90, m_tileVariation180, m_tileVariation270;
+        [SerializeField] private DropdownField m_TileDropdown;
+        [SerializeField] private TextField m_TileNameField;
+        [SerializeField] private TextField m_TileTypeField;
+        [SerializeField] private ObjectField m_SelectedGameObjectField;
+        [SerializeField] private Toggle m_TileVariation90, m_TileVariation180, m_TileVariation270;
 
         // Transform override
-        [SerializeField] private Vector3Field m_positionField, m_rotationField, m_scaleField;
+        [SerializeField] private Vector3Field m_PositionField, m_RotationField, m_ScaleField;
 
         // Excluded tile types
-        [SerializeField] private Foldout excludedNeighboursFrontFoldout, excludedNeighboursRightFoldout,
-                                         excludedNeighboursLeftFoldout, excludedNeighboursBackFoldout;
-        [SerializeField] private List<Toggle> excludedNeighboursFrontToggles, excludedNeighboursRightToggles,
-                                              excludedNeighboursLeftToggles, excludedNeighboursBackToggles;
+        [SerializeField] private Foldout m_ExcludedNeighboursFrontFoldout, m_ExcludedNeighboursRightFoldout,
+                                         m_ExcludedNeighboursLeftFoldout, m_ExcludedNeighboursBackFoldout;
+        [SerializeField] private List<Toggle> m_ExcludedNeighboursFrontToggles, m_ExcludedNeighboursRightToggles,
+                                              m_ExcludedNeighboursLeftToggles, m_ExcludedNeighboursBackToggles;
 
         // Socket type creation
-        [SerializeField] private TextField m_socketTypeNameField;
-        [SerializeField] private DropdownField m_socketTypeDropdownField;
-        [SerializeField] private Button m_createSocketTypeButton, m_deleteSocketTypeButton;
+        [SerializeField] private TextField m_SocketTypeNameField;
+        [SerializeField] private DropdownField m_SocketTypeDropdownField;
+        [SerializeField] private Button m_CreateSocketTypeButton, m_DeleteSocketTypeButton;
 
         // Socket options
-        [SerializeField] private DropdownField m_socketTypeDropdownFront;
-        [SerializeField] private Toggle m_symetricFrontToggle, m_flippedFrontToggle;
-        [SerializeField] private DropdownField m_socketTypeDropdownRight;
-        [SerializeField] private Toggle m_symetricRightToggle, m_flippedRightToggle;
-        [SerializeField] private DropdownField m_socketTypeDropdownLeft;
-        [SerializeField] private Toggle m_symetricLeftToggle, m_flippedLeftToggle;
-        [SerializeField] private DropdownField m_socketTypeDropdownBack;
-        [SerializeField] private Toggle m_symetricBackToggle, m_flippedBackToggle;
-        [SerializeField] private DropdownField m_socketTypeDropdownTop;
-        [SerializeField] private Toggle m_rotationallyInvariantToggleTop;
-        [SerializeField] private DropdownField m_socketTypeDropdownBottom;
-        [SerializeField] private Toggle m_rotationallyInvariantToggleBottom;
+        [SerializeField] private DropdownField m_SocketTypeDropdownFront;
+        [SerializeField] private Toggle m_SymetricFrontToggle, m_FlippedFrontToggle;
+        [SerializeField] private DropdownField m_SocketTypeDropdownRight;
+        [SerializeField] private Toggle m_SymetricRightToggle, m_FlippedRightToggle;
+        [SerializeField] private DropdownField m_SocketTypeDropdownLeft;
+        [SerializeField] private Toggle m_SymetricLeftToggle, m_FlippedLeftToggle;
+        [SerializeField] private DropdownField m_SocketTypeDropdownBack;
+        [SerializeField] private Toggle m_SymetricBackToggle, m_FlippedBackToggle;
+        [SerializeField] private DropdownField m_SocketTypeDropdownTop;
+        [SerializeField] private Toggle m_RotationallyInvariantToggleTop;
+        [SerializeField] private DropdownField m_SocketTypeDropdownBottom;
+        [SerializeField] private Toggle m_RotationallyInvariantToggleBottom;
 
         // Save button
-        [SerializeField] private Button m_saveButton;
+        [SerializeField] private Button m_SaveButton;
 
         //--------------------------------------------------------------------------------------------------------------------------------------
 
         // Internal variables
 
         // Preview
-        [SerializeField] private PreviewRenderUtility m_previewRenderUtility;
-        [SerializeField] private GameObject m_socketHelper;
-        [SerializeField] private GameObject m_selectedGameObjectInstance;
-        [SerializeField] private GameObject m_socketHelperInstance;
-        [SerializeField] private Bounds m_selectedGameObjectInstanceBounds;
+        [SerializeField] private PreviewRenderUtility m_PreviewRenderUtility;
+        [SerializeField] private GameObject m_SocketHelper;
+        [SerializeField] private GameObject m_SelectedGameObjectInstance;
+        [SerializeField] private GameObject m_SocketHelperInstance;
+        [SerializeField] private Bounds m_SelectedGameObjectInstanceBounds;
         [SerializeField] private Vector2 m_PreviewDir = new Vector2(0, 0);
         [SerializeField] private float m_PreviewDistance = 6f;
 
         // Tileset options
-        [SerializeField] private Tileset[] m_tilesets;
-        [SerializeField] private Tileset m_selectedTileset;
-        [SerializeField] private string m_selectedTilesetName;
-        [SerializeField] private float m_tileSize;
+        [SerializeField] private Tileset[] m_Tilesets;
+        [SerializeField] private Tileset m_SelectedTileset;
+        [SerializeField] private string m_SelectedTilesetName;
+        [SerializeField] private float m_TileSize;
 
         // Tile options
-        [SerializeField] private List<Tile3D> m_tiles;
-        [SerializeField] private Tile3D m_selectedTile;
-        [SerializeField] private string m_selectedTileName;
-        [SerializeField] private string m_selectedTileType;
-        [SerializeField] private GameObject m_selectedGameObject;
-        [SerializeField] private bool rotate90, rotate180, rotate270;
+        [SerializeField] private List<Tile3D> m_Tiles;
+        [SerializeField] private Tile3D m_SelectedTile;
+        [SerializeField] private string m_SelectedTileName;
+        [SerializeField] private string m_SelectedTileType;
+        [SerializeField] private GameObject m_SelectedGameObject;
+        [SerializeField] private bool m_Rotate90, m_Rotate180, m_Rotate270;
 
         // Transform override
-        [SerializeField] private Vector3 m_position, m_rotation, m_scale;
+        [SerializeField] private Vector3 m_Position, m_Rotation, m_Scale;
 
         // Excluded tile types
-        [SerializeField] private List<string> m_excludedNeighboursFront, m_excludedNeighboursRight,
-                                              m_excludedNeighboursLeft, m_excludedNeighboursBack;
+        [SerializeField] private List<string> m_ExcludedNeighboursFront, m_ExcludedNeighboursRight,
+                                              m_ExcludedNeighboursLeft, m_ExcludedNeighboursBack;
 
         // Socket type creation
-        [SerializeField] private string m_socketTypeName;
-        [SerializeField] private List<string> m_socketTypes;
+        [SerializeField] private string m_SocketTypeName;
+        [SerializeField] private List<string> m_SocketTypes;
 
         // Socket options
-        [SerializeField] private string socketTypeFront, socketTypeRight, socketTypeLeft, socketTypeBack, socketTypeTop, socketTypeBottom;
-        [SerializeField] private bool m_symetricFront, m_symetricRight, m_symetricLeft, m_symetricBack;
-        [SerializeField] private bool m_flippedFront, m_flippedRight, m_flippedLeft, m_flippedBack;
-        [SerializeField] private bool m_rotationallyInvariantTop, m_rotationallyInvariantBottom;
+        [SerializeField] private string m_SocketTypeFront, m_SocketTypeRight, m_SocketTypeLeft, m_SocketTypeBack, m_SocketTypeTop, m_SocketTypeBottom;
+        [SerializeField] private bool m_SymetricFront, m_SymetricRight, m_SymetricLeft, m_SymetricBack;
+        [SerializeField] private bool m_FlippedFront, m_FlippedRight, m_FlippedLeft, m_FlippedBack;
+        [SerializeField] private bool m_RotationallyInvariantTop, m_RotationallyInvariantBottom;
+        [SerializeField] private Tile3D m_EmptyTile, m_SolidTile;
+
+        //--------------------------------------------------------------------------------------------------------------------------------------
 
         [MenuItem("Tools/WFC Generation/WFC Tileset Editor")]
         public static void ShowWindow()
@@ -113,48 +118,319 @@ namespace WFC3DMapGenerator
             var root = rootVisualElement;
             m_UXML.CloneTree(root);
 
-            m_previewContainer = root.Q<VisualElement>("render3DContainer");
+            // Tileset dropdown
+            m_TilesetDropdown = root.Q<DropdownField>("tilesetDropdown");
+            if (m_TilesetDropdown != null)
+            {
+                if (!AssetDatabase.IsValidFolder("Assets/Resources/Tilesets")) AssetDatabase.CreateFolder("Assets/Resources", "Tilesets");
+                m_TilesetDropdown.choices = Resources.LoadAll<Tileset>("Tilesets/")
+                        .Select(asset => asset.name)
+                        .ToList();
+                m_TilesetDropdown.choices.Add("New tileset");
 
-            m_previewRenderUtility = new PreviewRenderUtility();
-            m_previewRenderUtility.cameraFieldOfView = 30f;
-            m_previewRenderUtility.ambientColor = Color.gray;
+                m_SelectedTileset = Resources.Load<Tileset>($"Tilesets/{m_TilesetDropdown.choices[0]}");
+                if (m_SelectedTileset != null)
+                {
+                    m_TilesetDropdown.value = m_SelectedTileset.name;
+                    m_SelectedTilesetName = m_SelectedTileset.name;
+                }
+                else
+                {
+                    m_TilesetDropdown.value = "New tileset";
+                    m_SelectedTilesetName = "New tileset";
+                }
 
-            m_selectedGameObjectInstance = Instantiate(m_selectedGameObject);
-            m_selectedGameObjectInstance.hideFlags = HideFlags.HideAndDontSave;
-            m_socketHelperInstance = Instantiate(m_socketHelper);
-            m_socketHelperInstance.hideFlags = HideFlags.HideAndDontSave;
-            m_selectedGameObjectInstanceBounds = GetBounds(m_selectedGameObjectInstance);
-            m_socketHelperInstance.transform.position = m_selectedGameObjectInstanceBounds.center;
-            m_socketHelperInstance.transform.localScale = new Vector3(2.01f, 2.01f, 2.01f); //TODO: let the user decide
-            m_previewRenderUtility.AddSingleGO(m_socketHelperInstance);
-            m_previewRenderUtility.AddSingleGO(m_selectedGameObjectInstance);
+                m_TilesetDropdown.RegisterValueChangedCallback(SelectTileset);
+            }
 
-            m_previewRenderUtility.camera.clearFlags = CameraClearFlags.Color;
-            m_previewRenderUtility.camera.backgroundColor = new Color(0, 0, 0, 0);
-            m_previewRenderUtility.camera.nearClipPlane = 0.1f;
-            m_previewRenderUtility.camera.farClipPlane = 25f;
+            // Tileset name field
+            m_TilesetNameField = root.Q<TextField>("tilesetNameField");
+            if (m_TilesetNameField != null)
+            {
+                m_TilesetNameField.value = m_SelectedTilesetName;
+                m_TilesetNameField.RegisterValueChangedCallback(ChangeTilesetName);
+            }
 
+            // Tile size field
+            m_TileSizeField = root.Q<FloatField>("tileSizeField");
+            if (m_TileSizeField != null)
+            {
+                m_TileSize = m_SelectedTileset.tileSize;
+                m_TileSizeField.value = m_TileSize;
+                m_TileSizeField.RegisterValueChangedCallback(ChangeTileSize);
+            }
 
-            m_imguiContainer = root.Q<IMGUIContainer>("IMGUIContainer");
-            m_imguiContainer.onGUIHandler = DrawPreview;
+            // Tile dropdown
+            m_TileDropdown = root.Q<DropdownField>("tileDropdown");
+            if (m_TileDropdown != null)
+            {
+                m_Tiles = m_SelectedTileset.tiles;
+                m_TileDropdown.choices = m_Tiles
+                    .Where(tile => tile.name != "EMPTY" && tile.name != "SOLID")
+                    .Select(tile => tile.name)
+                    .ToList();
+                m_TileDropdown.choices.Add("New tile");
+                m_TileDropdown.value = m_TileDropdown.choices[0];
+                if (m_TileDropdown.value != "New tile") m_SelectedTile = m_Tiles.FirstOrDefault(tile => tile.name == m_TileDropdown.value);
+                else m_SelectedTile = null;
+                ChangeTile(m_TileDropdown.value, false);
+                m_TileDropdown.RegisterValueChangedCallback(ChangeTile);
+            }
+
+            // Tile name field
+            m_TileNameField = root.Q<TextField>("tileNameField");
+            if (m_TileNameField != null)
+            {
+                m_TileNameField.value = m_SelectedTileName;
+                m_TileNameField.RegisterValueChangedCallback(ChangeTileName);
+            }
+
+            // Tile type field
+            m_TileTypeField = root.Q<TextField>("tileTypeField");
+            if (m_TileTypeField != null)
+            {
+                m_TileTypeField.value = m_SelectedTileType;
+                m_TileTypeField.RegisterValueChangedCallback(ChangeTileType);
+            }
+
+            // Object field
+            m_SelectedGameObjectField = root.Q<ObjectField>("tilePrefabField");
+            if (m_SelectedGameObjectField != null)
+            {
+                m_SelectedGameObjectField.objectType = typeof(GameObject);
+                m_SelectedGameObjectField.value = m_SelectedGameObject;
+                m_SelectedGameObjectField.RegisterValueChangedCallback(ChangeGameObject);
+            }
+
+            // Preiew utility
+            m_PreviewContainer = root.Q<VisualElement>("render3DContainer");
+            m_PreviewRenderUtility = new PreviewRenderUtility();
+            m_PreviewRenderUtility.cameraFieldOfView = 30f;
+            m_PreviewRenderUtility.ambientColor = Color.gray;
+
+            // Instantiate the socket helper and selected game object
+            if (m_SelectedGameObject != null) m_SelectedGameObjectInstance = Instantiate(m_SelectedGameObject);
+            if (m_SelectedGameObject != null) m_SelectedGameObjectInstance.hideFlags = HideFlags.HideAndDontSave;
+            m_SocketHelperInstance = Instantiate(m_SocketHelper);
+            m_SocketHelperInstance.hideFlags = HideFlags.HideAndDontSave;
+
+            // Adjust based on the size of the selected game object
+            if (m_SelectedGameObject != null) m_SelectedGameObjectInstanceBounds = GetBounds(m_SelectedGameObjectInstance);
+            if (m_SelectedGameObject != null) m_SocketHelperInstance.transform.position = m_SelectedGameObjectInstanceBounds.center;
+            else m_SocketHelperInstance.transform.position = Vector3.zero;
+            m_SocketHelperInstance.transform.localScale = new Vector3(2.01f, 2.01f, 2.01f); //TODO: let the user decide
+            m_PreviewRenderUtility.AddSingleGO(m_SocketHelperInstance);
+            if (m_SelectedGameObject != null) m_PreviewRenderUtility.AddSingleGO(m_SelectedGameObjectInstance);
+
+            // Camera settings
+            m_PreviewRenderUtility.camera.clearFlags = CameraClearFlags.Color;
+            m_PreviewRenderUtility.camera.backgroundColor = new Color(0, 0, 0, 0);
+            m_PreviewRenderUtility.camera.nearClipPlane = 0.1f;
+            m_PreviewRenderUtility.camera.farClipPlane = 25f;
+
+            m_ImguiContainer = root.Q<IMGUIContainer>("IMGUIContainer");
+            m_ImguiContainer.onGUIHandler = DrawPreview;
         }
 
         private void OnDisable()
         {
-            if (m_previewRenderUtility != null)
+            if (m_PreviewRenderUtility != null)
             {
-                m_previewRenderUtility.Cleanup();
-                m_previewRenderUtility = null;
+                m_PreviewRenderUtility.Cleanup();
+                m_PreviewRenderUtility = null;
             }
 
-            if (m_selectedGameObjectInstance != null) DestroyImmediate(m_selectedGameObjectInstance);
+            if (m_SelectedGameObjectInstance != null) DestroyImmediate(m_SelectedGameObjectInstance);
+        }
+
+        private void SelectTileset(ChangeEvent<string> evt)
+        {
+            if (evt.newValue == "New tileset")
+            {
+                m_SelectedTileset = CreateInstance<Tileset>();
+                m_SelectedTileset.tiles.Add(m_EmptyTile);
+                m_SelectedTileset.tiles.Add(m_SolidTile);
+            }
+            else m_SelectedTileset = Resources.Load<Tileset>($"Tilesets/{evt.newValue}");
+            m_SelectedTilesetName = evt.newValue;
+            m_TilesetNameField.value = m_SelectedTilesetName;
+            m_TileSize = m_SelectedTileset.tileSize;
+            m_TileSizeField.value = m_TileSize;
+            m_Tiles = m_SelectedTileset.tiles;
+            m_TileDropdown.choices = m_Tiles
+                .Where(tile => tile.name != "EMPTY" && tile.name != "SOLID")
+                .Select(tile => tile.name)
+                .ToList();
+            m_TileDropdown.choices.Add("New tile");
+            m_TileDropdown.value = m_TileDropdown.choices[0];
+            ChangeTile(m_TileDropdown.value);
+        }
+
+        private void ChangeTilesetName(ChangeEvent<string> evt)
+        {
+            m_SelectedTilesetName = evt.newValue;
+            m_TilesetDropdown.value = m_SelectedTilesetName;
+            m_TilesetNameField.value = m_SelectedTilesetName;
+        }
+
+        private void ChangeTileSize(ChangeEvent<float> evt)
+        {
+            m_TileSize = evt.newValue;
+        }
+
+        private void ChangeTile(ChangeEvent<string> evt)
+        {
+            ChangeTile(evt.newValue);
+        }
+
+        private void ChangeTile(string tileName, bool updateUI = true)
+        {
+            if (tileName == "New tile")
+            {
+                m_SelectedTile = null;
+                m_SelectedTileName = tileName;
+                m_SelectedTileType = "";
+                m_SelectedGameObject = null;
+                m_Rotate90 = false;
+                m_Rotate180 = false;
+                m_Rotate270 = false;
+                m_Position = Vector3.zero;
+                m_Rotation = Vector3.zero;
+                m_Scale = Vector3.one;
+                m_ExcludedNeighboursFront = new List<string>();
+                m_ExcludedNeighboursRight = new List<string>();
+                m_ExcludedNeighboursLeft = new List<string>();
+                m_ExcludedNeighboursBack = new List<string>();
+                m_SocketTypeFront = "";
+                m_SocketTypeRight = "";
+                m_SocketTypeLeft = "";
+                m_SocketTypeBack = "";
+                m_SocketTypeTop = "";
+                m_SocketTypeBottom = "";
+                m_SymetricFront = false;
+                m_SymetricRight = false;
+                m_SymetricLeft = false;
+                m_SymetricBack = false;
+                m_FlippedFront = false;
+                m_FlippedRight = false;
+                m_FlippedLeft = false;
+                m_FlippedBack = false;
+                m_RotationallyInvariantTop = false;
+                m_RotationallyInvariantBottom = false;
+            }
+            else
+            {
+                m_SelectedTile = m_Tiles.FirstOrDefault(tile => tile.name == tileName);
+                if (m_SelectedTile != null)
+                {
+                    m_SelectedTileName = m_SelectedTile.name;
+                    m_SelectedTileType = m_SelectedTile.tileType;
+                    m_SelectedGameObject = m_SelectedTile.gameObject;
+                    m_Rotate90 = m_SelectedTile.rotateRight;
+                    m_Rotate180 = m_SelectedTile.rotate180;
+                    m_Rotate270 = m_SelectedTile.rotateLeft;
+                    m_Position = m_SelectedTile.positionOffset;
+                    m_Rotation = m_SelectedTile.rotation;
+                    m_Scale = m_SelectedTile.scale;
+                    m_ExcludedNeighboursFront = new List<string>(m_SelectedTile.excludedNeighboursUp);
+                    m_ExcludedNeighboursRight = new List<string>(m_SelectedTile.excludedNeighboursRight);
+                    m_ExcludedNeighboursLeft = new List<string>(m_SelectedTile.excludedNeighboursLeft);
+                    m_ExcludedNeighboursBack = new List<string>(m_SelectedTile.excludedNeighboursDown);
+                    m_SocketTypeFront = m_SelectedTile.upSocket.socket_name;
+                    m_SocketTypeRight = m_SelectedTile.rightSocket.socket_name;
+                    m_SocketTypeLeft = m_SelectedTile.leftSocket.socket_name;
+                    m_SocketTypeBack = m_SelectedTile.downSocket.socket_name;
+                    m_SocketTypeTop = m_SelectedTile.aboveSocket.socket_name;
+                    m_SocketTypeBottom = m_SelectedTile.belowSocket.socket_name;
+                    m_SymetricFront = m_SelectedTile.upSocket.isSymmetric;
+                    m_SymetricRight = m_SelectedTile.rightSocket.isSymmetric;
+                    m_SymetricLeft = m_SelectedTile.leftSocket.isSymmetric;
+                    m_SymetricBack = m_SelectedTile.downSocket.isSymmetric;
+                    m_FlippedFront = m_SelectedTile.upSocket.isFlipped;
+                    m_FlippedRight = m_SelectedTile.rightSocket.isFlipped;
+                    m_FlippedLeft = m_SelectedTile.leftSocket.isFlipped;
+                    m_FlippedBack = m_SelectedTile.downSocket.isFlipped;
+                    m_RotationallyInvariantTop = m_SelectedTile.aboveSocket.rotationallyInvariant;
+                    m_RotationallyInvariantBottom = m_SelectedTile.belowSocket.rotationallyInvariant;
+                }
+            }
+
+            if (updateUI)
+            {
+                m_TileNameField.value = m_SelectedTileName;
+                m_TileTypeField.value = m_SelectedTileType;
+                m_SelectedGameObjectField.value = m_SelectedGameObject;
+                m_TileVariation90.value = m_Rotate90;
+                m_TileVariation180.value = m_Rotate180;
+                m_TileVariation270.value = m_Rotate270;
+                m_PositionField.value = m_Position;
+                m_RotationField.value = m_Rotation;
+                m_ScaleField.value = m_Scale;
+
+                // Excluded neighbours TODO (NI PUTA IDEA DE QUE HA HECHO COPILOT AQUÍ)
+                /*
+                for (int i = 0; i < 4; i++)
+                {
+                    if (i == 0) m_ExcludedNeighboursFrontFoldout.text = "Excluded Neighbours Front";
+                    else if (i == 1) m_ExcludedNeighboursRightFoldout.text = "Excluded Neighbours Right";
+                    else if (i == 2) m_ExcludedNeighboursLeftFoldout.text = "Excluded Neighbours Left";
+                    else if (i == 3) m_ExcludedNeighboursBackFoldout.text = "Excluded Neighbours Back";
+
+                    List<string> excludedNeighboursList = i switch
+                    {
+                        0 => m_ExcludedNeighboursFront,
+                        1 => m_ExcludedNeighboursRight,
+                        2 => m_ExcludedNeighboursLeft,
+                        _ => m_ExcludedNeighboursBack
+                    };
+
+                    List<Toggle> excludedTogglesList = i switch
+                    {
+                        0 => m_ExcludedNeighboursFrontToggles,
+                        1 => m_ExcludedNeighboursRightToggles,
+                        2 => m_ExcludedNeighboursLeftToggles,
+                        _ => m_ExcludedNeighboursBackToggles
+                    };
+
+                    for (int j = 0; j < excludedTogglesList.Count; j++)
+                    {
+                        excludedTogglesList[j].value = excludedNeighboursList.Contains(excludedTogglesList[j].text);
+                    }
+                }*/
+            }
+        }
+
+        private void ChangeTileName(ChangeEvent<string> evt)
+        {
+            m_SelectedTileName = evt.newValue;
+            m_TileDropdown.value = m_SelectedTileName;
+        }
+
+        private void ChangeTileType(ChangeEvent<string> evt)
+        {
+            m_SelectedTileType = evt.newValue;
+            m_TileTypeField.value = m_SelectedTileType;
+        }
+
+        private void ChangeGameObject(ChangeEvent<Object> evt)
+        {
+            m_SelectedGameObject = evt.newValue as GameObject;
+            if (m_SelectedGameObject != null)
+            {
+                if (m_SelectedGameObjectInstance != null) DestroyImmediate(m_SelectedGameObjectInstance);
+                m_SelectedGameObjectInstance = Instantiate(m_SelectedGameObject);
+                m_SelectedGameObjectInstance.hideFlags = HideFlags.HideAndDontSave;
+                m_PreviewRenderUtility.AddSingleGO(m_SelectedGameObjectInstance);
+                m_SelectedGameObjectInstanceBounds = GetBounds(m_SelectedGameObjectInstance);
+                m_SocketHelperInstance.transform.position = m_SelectedGameObjectInstanceBounds.center;
+            }
         }
 
         private void DrawPreview()
         {
-            if (m_previewRenderUtility == null || m_selectedGameObjectInstance == null || m_previewContainer == null) return;
+            if (m_PreviewRenderUtility == null || m_SelectedGameObjectInstance == null || m_PreviewContainer == null) return;
 
-            Rect rect = m_imguiContainer.contentRect;
+            Rect rect = m_ImguiContainer.contentRect;
             if (rect.width <= 0 || rect.height <= 0) return;
 
             Event evt = Event.current;
@@ -183,14 +459,14 @@ namespace WFC3DMapGenerator
             }
 
             Quaternion rot = Quaternion.Euler(m_PreviewDir.y, m_PreviewDir.x, 0);
-            Vector3 pos = m_selectedGameObjectInstanceBounds.center + rot * Vector3.back * m_PreviewDistance;
+            Vector3 pos = m_SelectedGameObjectInstanceBounds.center + rot * Vector3.back * m_PreviewDistance;
 
-            m_previewRenderUtility.camera.transform.position = pos;
-            m_previewRenderUtility.camera.transform.rotation = rot;
+            m_PreviewRenderUtility.camera.transform.position = pos;
+            m_PreviewRenderUtility.camera.transform.rotation = rot;
 
-            m_previewRenderUtility.BeginPreview(rect, GUIStyle.none);
-            m_previewRenderUtility.Render(true);
-            Texture resultRender = m_previewRenderUtility.EndPreview();
+            m_PreviewRenderUtility.BeginPreview(rect, GUIStyle.none);
+            m_PreviewRenderUtility.Render(true);
+            Texture resultRender = m_PreviewRenderUtility.EndPreview();
 
             GUI.DrawTexture(rect, resultRender, ScaleMode.ScaleToFit, true);
         }

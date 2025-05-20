@@ -6,24 +6,10 @@ namespace WFC3DMapGenerator
 {
     public class Tile3D : MonoBehaviour
     {
-        public enum Border
-        {
-            GRASS,
-            PATH,
-            WATER,
-            EMPTY,
-            WALL_LATERAL,
-            WALL_TOP,
-            WALL_CORNER_EXT,
-            WALL_CORNER_INT,
-            BORDER,
-            GRASS_BORDER,
-            SOLID
-        }
         [Serializable]
         public struct Socket
         {
-            public Border socket_name;
+            public string socket_name;
             //for horizontal faces
             [Header("For HORIZONTAL faces")]
             public bool horizontalFace;
@@ -56,10 +42,10 @@ namespace WFC3DMapGenerator
         public List<Tile3D> belowNeighbours = new List<Tile3D>();    // Y-
 
         [Header("Excluded neighbours")]
-        public List<string> excludedNeighboursUp = new();
-        public List<string> excludedNeighboursRight = new();
-        public List<string> excludedNeighboursDown = new();
-        public List<string> excludedNeighboursLeft = new();
+        public List<string> excludedNeighboursUp = new List<string>();
+        public List<string> excludedNeighboursRight = new List<string>();
+        public List<string> excludedNeighboursDown = new List<string>();
+        public List<string> excludedNeighboursLeft = new List<string>();
 
         [Tooltip("Para definir la direccion la derecha siempre ser� el eje X (rojo) y arriba ser� el eje Z (azul)")]
         [Header("Sockets")]
