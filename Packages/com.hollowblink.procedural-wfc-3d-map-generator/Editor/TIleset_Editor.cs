@@ -202,6 +202,133 @@ namespace WFC3DMapGenerator
                 m_SelectedGameObjectField.RegisterValueChangedCallback(ChangeGameObject);
             }
 
+            // Tile variations
+            m_TileVariation90 = root.Q<Toggle>("tileVariationToggle90");
+            if (m_TileVariation90 != null)
+            {
+                m_TileVariation90.value = m_Rotate90;
+                m_TileVariation90.RegisterValueChangedCallback(evt => m_Rotate90 = evt.newValue);
+            }
+
+            m_TileVariation180 = root.Q<Toggle>("tileVariationToggle180");
+            if (m_TileVariation180 != null)
+            {
+                m_TileVariation180.value = m_Rotate180;
+                m_TileVariation180.RegisterValueChangedCallback(evt => m_Rotate180 = evt.newValue);
+            }
+
+            m_TileVariation270 = root.Q<Toggle>("tileVariationToggle270");
+            if (m_TileVariation270 != null)
+            {
+                m_TileVariation270.value = m_Rotate270;
+                m_TileVariation270.RegisterValueChangedCallback(evt => m_Rotate270 = evt.newValue);
+            }
+
+            // Transform override
+            m_PositionField = root.Q<Vector3Field>("positionField");
+            if (m_PositionField != null)
+            {
+                m_PositionField.value = m_Position;
+                m_PositionField.RegisterValueChangedCallback(evt => m_Position = evt.newValue);
+            }
+
+            m_RotationField = root.Q<Vector3Field>("rotationField");
+            if (m_RotationField != null)
+            {
+                m_RotationField.value = m_Rotation;
+                m_RotationField.RegisterValueChangedCallback(evt => m_Rotation = evt.newValue);
+            }
+
+            m_ScaleField = root.Q<Vector3Field>("scaleField");
+            if (m_ScaleField != null)
+            {
+                m_ScaleField.value = m_Scale;
+                m_ScaleField.RegisterValueChangedCallback(evt => m_Scale = evt.newValue);
+            }
+
+            // Excluded tile types
+            m_ExcludedNeighboursFrontFoldout = root.Q<Foldout>("excludedNeighboursFront");
+            if (m_ExcludedNeighboursFrontFoldout != null)
+            {
+                m_ExcludedNeighboursFrontToggles = new List<Toggle>();
+                foreach(string tileType in m_SelectedTileset.tileTypes)
+                {
+                    Toggle toggle = new Toggle(tileType);
+                    toggle.value = m_ExcludedNeighboursFront.Contains(tileType);
+                    toggle.RegisterValueChangedCallback(evt =>
+                    {
+                        if (evt.newValue) m_ExcludedNeighboursFront.Add(tileType);
+                        else m_ExcludedNeighboursFront.Remove(tileType);
+                    });
+                    m_ExcludedNeighboursFrontFoldout.Add(toggle);
+                    m_ExcludedNeighboursFrontToggles.Add(toggle);
+                }
+            }
+
+            m_ExcludedNeighboursRightFoldout = root.Q<Foldout>("excludedNeighboursRight");
+            if (m_ExcludedNeighboursRightFoldout != null)
+            {
+                m_ExcludedNeighboursRightToggles = new List<Toggle>();
+                foreach(string tileType in m_SelectedTileset.tileTypes)
+                {
+                    Toggle toggle = new Toggle(tileType);
+                    toggle.value = m_ExcludedNeighboursRight.Contains(tileType);
+                    toggle.RegisterValueChangedCallback(evt =>
+                    {
+                        if (evt.newValue) m_ExcludedNeighboursRight.Add(tileType);
+                        else m_ExcludedNeighboursRight.Remove(tileType);
+                    });
+                    m_ExcludedNeighboursRightFoldout.Add(toggle);
+                    m_ExcludedNeighboursRightToggles.Add(toggle);
+                }
+            }
+
+            m_ExcludedNeighboursLeftFoldout = root.Q<Foldout>("excludedNeighboursLeft");
+            if (m_ExcludedNeighboursLeftFoldout != null)
+            {
+                m_ExcludedNeighboursLeftToggles = new List<Toggle>();
+                foreach(string tileType in m_SelectedTileset.tileTypes)
+                {
+                    Toggle toggle = new Toggle(tileType);
+                    toggle.value = m_ExcludedNeighboursLeft.Contains(tileType);
+                    toggle.RegisterValueChangedCallback(evt =>
+                    {
+                        if (evt.newValue) m_ExcludedNeighboursLeft.Add(tileType);
+                        else m_ExcludedNeighboursLeft.Remove(tileType);
+                    });
+                    m_ExcludedNeighboursLeftFoldout.Add(toggle);
+                    m_ExcludedNeighboursLeftToggles.Add(toggle);
+                }
+            }
+
+            m_ExcludedNeighboursBackFoldout = root.Q<Foldout>("excludedNeighboursBack");
+            if (m_ExcludedNeighboursBackFoldout != null)
+            {
+                m_ExcludedNeighboursBackToggles = new List<Toggle>();
+                foreach(string tileType in m_SelectedTileset.tileTypes)
+                {
+                    Toggle toggle = new Toggle(tileType);
+                    toggle.value = m_ExcludedNeighboursBack.Contains(tileType);
+                    toggle.RegisterValueChangedCallback(evt =>
+                    {
+                        if (evt.newValue) m_ExcludedNeighboursBack.Add(tileType);
+                        else m_ExcludedNeighboursBack.Remove(tileType);
+                    });
+                    m_ExcludedNeighboursBackFoldout.Add(toggle);
+                    m_ExcludedNeighboursBackToggles.Add(toggle);
+                }
+            }
+
+            // Type creation
+            m_SocketTypeNameField = root.Q<TextField>("socketTypeNameField");
+            if (m_SocketTypeNameField != null)
+            {
+                m_SocketTypeNameField.value = m_SocketTypeName;
+                m_SocketTypeNameField.RegisterValueChangedCallback(evt => m_SocketTypeName = evt.newValue);
+            }
+
+            m_CreateSocketTypeButton = root.Q<Button>("createSocketTypeButton");
+
             // Preiew utility
             m_PreviewContainer = root.Q<VisualElement>("render3DContainer");
             m_PreviewRenderUtility = new PreviewRenderUtility();
@@ -218,7 +345,7 @@ namespace WFC3DMapGenerator
             if (m_SelectedGameObject != null) m_SelectedGameObjectInstanceBounds = GetBounds(m_SelectedGameObjectInstance);
             if (m_SelectedGameObject != null) m_SocketHelperInstance.transform.position = m_SelectedGameObjectInstanceBounds.center;
             else m_SocketHelperInstance.transform.position = Vector3.zero;
-            m_SocketHelperInstance.transform.localScale = new Vector3(2.01f, 2.01f, 2.01f); //TODO: let the user decide
+            m_SocketHelperInstance.transform.localScale = new Vector3(m_TileSize + 0.01f, m_TileSize + 0.01f, m_TileSize + 0.01f); //TODO: let the user decide
             m_PreviewRenderUtility.AddSingleGO(m_SocketHelperInstance);
             if (m_SelectedGameObject != null) m_PreviewRenderUtility.AddSingleGO(m_SelectedGameObjectInstance);
 
@@ -296,7 +423,7 @@ namespace WFC3DMapGenerator
                 m_Rotate270 = false;
                 m_Position = Vector3.zero;
                 m_Rotation = Vector3.zero;
-                m_Scale = Vector3.one;
+                m_Scale = Vector3.zero;
                 m_ExcludedNeighboursFront = new List<string>();
                 m_ExcludedNeighboursRight = new List<string>();
                 m_ExcludedNeighboursLeft = new List<string>();
@@ -367,15 +494,8 @@ namespace WFC3DMapGenerator
                 m_RotationField.value = m_Rotation;
                 m_ScaleField.value = m_Scale;
 
-                // Excluded neighbours TODO (NI PUTA IDEA DE QUE HA HECHO COPILOT AQUÍ)
-                /*
                 for (int i = 0; i < 4; i++)
                 {
-                    if (i == 0) m_ExcludedNeighboursFrontFoldout.text = "Excluded Neighbours Front";
-                    else if (i == 1) m_ExcludedNeighboursRightFoldout.text = "Excluded Neighbours Right";
-                    else if (i == 2) m_ExcludedNeighboursLeftFoldout.text = "Excluded Neighbours Left";
-                    else if (i == 3) m_ExcludedNeighboursBackFoldout.text = "Excluded Neighbours Back";
-
                     List<string> excludedNeighboursList = i switch
                     {
                         0 => m_ExcludedNeighboursFront,
@@ -394,9 +514,9 @@ namespace WFC3DMapGenerator
 
                     for (int j = 0; j < excludedTogglesList.Count; j++)
                     {
-                        excludedTogglesList[j].value = excludedNeighboursList.Contains(excludedTogglesList[j].text);
+                        excludedTogglesList[j].value = excludedNeighboursList.Contains(excludedTogglesList[j].label);
                     }
-                }*/
+                }
             }
         }
 

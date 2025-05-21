@@ -31,3 +31,11 @@ MonoBehaviour:
   - {fileID: 5376119154660965731, guid: 31679c91f49e20748b1f096c5ae4caca, type: 3}
   tileSize: 2
   tileCount: 0
+  tileTypes:
+  - corner
+  - cornerInterior
+  - path
+  - path_corner
+  - path_end
+  - wall
+  socketTypes: []
