@@ -45,6 +45,12 @@ namespace WFC3DMapGenerator
             return new Tuple<Cell3DStruct[], int[]>(subGrid.ToArray(), subGridIndices.ToArray());
         }
 
+        /// <summary>
+        /// Converts 3D coordinates to a 1D index based on the grid dimensions.
+        /// </summary>
+        /// <param name="coords"></param> Coordinates to convert.
+        /// <param name="gridDimensions"></param> Dimensions of the grid.
+        /// <returns></returns>
         public static int GetIndexFromCoords(Vector3Int coords, Vector3Int gridDimensions)
         {
             // Clamp to matrix bounds
@@ -58,6 +64,12 @@ namespace WFC3DMapGenerator
             return coords.x + coords.z * gridDimensions.x + coords.y * gridDimensions.x * gridDimensions.z;
         }
 
+        /// <summary>
+        /// Combines a subgrid with the original grid at the specified indices.
+        /// </summary>
+        /// <param name="grid"></param> The original grid to which the subgrid will be combined.
+        /// <param name="subGrid"></param> The subgrid to be combined with the original grid.
+        /// <param name="subGridIndices"></param> Indices of the original grid that correspond to the subgrid.
         public static void CombineGridWithSubgrid(Cell3DStruct[] grid, Cell3DStruct[] subGrid, int[] subGridIndices)
         {
             for (int i = 0; i < subGrid.Length; i++) grid[subGridIndices[i]] = subGrid[i];

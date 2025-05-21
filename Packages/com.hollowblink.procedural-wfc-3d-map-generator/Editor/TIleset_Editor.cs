@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -32,9 +33,11 @@ namespace WFC3DMapGenerator
         [SerializeField] private Vector3Field m_PositionField, m_RotationField, m_ScaleField;
 
         // Excluded tile types
-        [SerializeField] private Foldout m_ExcludedNeighboursFrontFoldout, m_ExcludedNeighboursRightFoldout,
+        [SerializeField]
+        private Foldout m_ExcludedNeighboursFrontFoldout, m_ExcludedNeighboursRightFoldout,
                                          m_ExcludedNeighboursLeftFoldout, m_ExcludedNeighboursBackFoldout;
-        [SerializeField] private List<Toggle> m_ExcludedNeighboursFrontToggles, m_ExcludedNeighboursRightToggles,
+        [SerializeField]
+        private List<Toggle> m_ExcludedNeighboursFrontToggles, m_ExcludedNeighboursRightToggles,
                                               m_ExcludedNeighboursLeftToggles, m_ExcludedNeighboursBackToggles;
 
         // Socket type creation
@@ -90,7 +93,8 @@ namespace WFC3DMapGenerator
         [SerializeField] private Vector3 m_Position, m_Rotation, m_Scale;
 
         // Excluded tile types
-        [SerializeField] private List<string> m_ExcludedNeighboursFront, m_ExcludedNeighboursRight,
+        [SerializeField]
+        private List<string> m_ExcludedNeighboursFront, m_ExcludedNeighboursRight,
                                               m_ExcludedNeighboursLeft, m_ExcludedNeighboursBack;
 
         // Socket type creation
@@ -251,7 +255,7 @@ namespace WFC3DMapGenerator
             if (m_ExcludedNeighboursFrontFoldout != null)
             {
                 m_ExcludedNeighboursFrontToggles = new List<Toggle>();
-                foreach(string tileType in m_SelectedTileset.tileTypes)
+                foreach (string tileType in m_SelectedTileset.tileTypes)
                 {
                     Toggle toggle = new Toggle(tileType);
                     toggle.value = m_ExcludedNeighboursFront.Contains(tileType);
@@ -269,7 +273,7 @@ namespace WFC3DMapGenerator
             if (m_ExcludedNeighboursRightFoldout != null)
             {
                 m_ExcludedNeighboursRightToggles = new List<Toggle>();
-                foreach(string tileType in m_SelectedTileset.tileTypes)
+                foreach (string tileType in m_SelectedTileset.tileTypes)
                 {
                     Toggle toggle = new Toggle(tileType);
                     toggle.value = m_ExcludedNeighboursRight.Contains(tileType);
@@ -287,7 +291,7 @@ namespace WFC3DMapGenerator
             if (m_ExcludedNeighboursLeftFoldout != null)
             {
                 m_ExcludedNeighboursLeftToggles = new List<Toggle>();
-                foreach(string tileType in m_SelectedTileset.tileTypes)
+                foreach (string tileType in m_SelectedTileset.tileTypes)
                 {
                     Toggle toggle = new Toggle(tileType);
                     toggle.value = m_ExcludedNeighboursLeft.Contains(tileType);
@@ -305,7 +309,7 @@ namespace WFC3DMapGenerator
             if (m_ExcludedNeighboursBackFoldout != null)
             {
                 m_ExcludedNeighboursBackToggles = new List<Toggle>();
-                foreach(string tileType in m_SelectedTileset.tileTypes)
+                foreach (string tileType in m_SelectedTileset.tileTypes)
                 {
                     Toggle toggle = new Toggle(tileType);
                     toggle.value = m_ExcludedNeighboursBack.Contains(tileType);
@@ -327,7 +331,190 @@ namespace WFC3DMapGenerator
                 m_SocketTypeNameField.RegisterValueChangedCallback(evt => m_SocketTypeName = evt.newValue);
             }
 
+            m_SocketTypeDropdownField = root.Q<DropdownField>("selectedSocketTypeField");
+            if (m_SocketTypeDropdownField != null)
+            {
+                m_SocketTypes = m_SelectedTileset.socketTypes;
+                m_SocketTypeDropdownField.choices = m_SocketTypes;
+                m_SocketTypeDropdownField.value = m_SocketTypeName;
+                m_SocketTypeDropdownField.RegisterValueChangedCallback(evt => m_SocketTypeName = evt.newValue);
+            }
+
             m_CreateSocketTypeButton = root.Q<Button>("createSocketTypeButton");
+            if (m_CreateSocketTypeButton != null)
+            {
+                m_CreateSocketTypeButton.RegisterCallback<ClickEvent>(evt =>
+                {
+                    if (m_SocketTypes == null) m_SocketTypes = new List<string>();
+                    if (!m_SocketTypes.Contains(m_SocketTypeName)) m_SocketTypes.Add(m_SocketTypeName);
+                    m_SocketTypeDropdownField.choices = m_SocketTypes;
+                    m_SocketTypeDropdownField.value = m_SocketTypeName;
+                });
+            }
+
+            m_DeleteSocketTypeButton = root.Q<Button>("deleteSocketTypeButton");
+            if (m_DeleteSocketTypeButton != null)
+            {
+                m_DeleteSocketTypeButton.RegisterCallback<ClickEvent>(evt =>
+                {
+                    if (m_SocketTypes != null && m_SocketTypes.Contains(m_SocketTypeName))
+                    {
+                        m_SocketTypes.Remove(m_SocketTypeName);
+                        m_SocketTypeDropdownField.choices = m_SocketTypes;
+                        if (m_SocketTypes.Count > 0)
+                        {
+                            m_SocketTypeDropdownField.value = m_SocketTypes[0];
+                            m_SocketTypeNameField.value = m_SocketTypes[0];
+                        }
+                        else
+                        {
+                            m_SocketTypeDropdownField.value = "";
+                            m_SocketTypeNameField.value = "";
+                        }
+                        foreach (Tile3D tile in m_SelectedTileset.tiles)
+                        {
+                            if (tile.upSocket.socket_name == m_SocketTypeName) tile.upSocket.socket_name = "";
+                            if (tile.rightSocket.socket_name == m_SocketTypeName) tile.rightSocket.socket_name = "";
+                            if (tile.downSocket.socket_name == m_SocketTypeName) tile.downSocket.socket_name = "";
+                            if (tile.leftSocket.socket_name == m_SocketTypeName) tile.leftSocket.socket_name = "";
+                            if (tile.aboveSocket.socket_name == m_SocketTypeName) tile.aboveSocket.socket_name = "";
+                            if (tile.belowSocket.socket_name == m_SocketTypeName) tile.belowSocket.socket_name = "";
+                        }
+                        m_SocketTypeName = "";
+                    }
+                });
+            }
+
+            // Socket options front
+            m_SocketTypeDropdownFront = root.Q<DropdownField>("socketTypeDropdownFront");
+            if (m_SocketTypeDropdownFront != null)
+            {
+                m_SocketTypeDropdownFront.choices = m_SocketTypes;
+                m_SocketTypeDropdownFront.value = m_SocketTypeFront;
+                m_SocketTypeDropdownFront.RegisterValueChangedCallback(evt => m_SocketTypeFront = evt.newValue);
+            }
+
+            m_SymetricFrontToggle = root.Q<Toggle>("symetricFrontField");
+            if (m_SymetricFrontToggle != null)
+            {
+                m_SymetricFrontToggle.value = m_SymetricFront;
+                m_SymetricFrontToggle.RegisterValueChangedCallback(evt => m_SymetricFront = evt.newValue);
+            }
+
+            m_FlippedFrontToggle = root.Q<Toggle>("flippedFrontField");
+            if (m_FlippedFrontToggle != null)
+            {
+                m_FlippedFrontToggle.value = m_FlippedFront;
+                m_FlippedFrontToggle.RegisterValueChangedCallback(evt => m_FlippedFront = evt.newValue);
+            }
+
+            // Socket options right
+            m_SocketTypeDropdownRight = root.Q<DropdownField>("socketTypeDropdownRight");
+            if (m_SocketTypeDropdownRight != null)
+            {
+                m_SocketTypeDropdownRight.choices = m_SocketTypes;
+                m_SocketTypeDropdownRight.value = m_SocketTypeRight;
+                m_SocketTypeDropdownRight.RegisterValueChangedCallback(evt => m_SocketTypeRight = evt.newValue);
+            }
+
+            m_SymetricRightToggle = root.Q<Toggle>("symetricRightField");
+            if (m_SymetricRightToggle != null)
+            {
+                m_SymetricRightToggle.value = m_SymetricRight;
+                m_SymetricRightToggle.RegisterValueChangedCallback(evt => m_SymetricRight = evt.newValue);
+            }
+
+            m_FlippedRightToggle = root.Q<Toggle>("flippedRightField");
+            if (m_FlippedRightToggle != null)
+            {
+                m_FlippedRightToggle.value = m_FlippedRight;
+                m_FlippedRightToggle.RegisterValueChangedCallback(evt => m_FlippedRight = evt.newValue);
+            }
+
+            // Socket options left
+            m_SocketTypeDropdownLeft = root.Q<DropdownField>("socketTypeDropdownLeft");
+            if (m_SocketTypeDropdownLeft != null)
+            {
+                m_SocketTypeDropdownLeft.choices = m_SocketTypes;
+                m_SocketTypeDropdownLeft.value = m_SocketTypeLeft;
+                m_SocketTypeDropdownLeft.RegisterValueChangedCallback(evt => m_SocketTypeLeft = evt.newValue);
+            }
+
+            m_SymetricLeftToggle = root.Q<Toggle>("symetricLeftField");
+            if (m_SymetricLeftToggle != null)
+            {
+                m_SymetricLeftToggle.value = m_SymetricLeft;
+                m_SymetricLeftToggle.RegisterValueChangedCallback(evt => m_SymetricLeft = evt.newValue);
+            }
+
+            m_FlippedLeftToggle = root.Q<Toggle>("flippedLeftField");
+            if (m_FlippedLeftToggle != null)
+            {
+                m_FlippedLeftToggle.value = m_FlippedLeft;
+                m_FlippedLeftToggle.RegisterValueChangedCallback(evt => m_FlippedLeft = evt.newValue);
+            }
+
+            // Socket options back
+            m_SocketTypeDropdownBack = root.Q<DropdownField>("socketTypeDropdownBack");
+            if (m_SocketTypeDropdownBack != null)
+            {
+                m_SocketTypeDropdownBack.choices = m_SocketTypes;
+                m_SocketTypeDropdownBack.value = m_SocketTypeBack;
+                m_SocketTypeDropdownBack.RegisterValueChangedCallback(evt => m_SocketTypeBack = evt.newValue);
+            }
+
+            m_SymetricBackToggle = root.Q<Toggle>("symetricBackField");
+            if (m_SymetricBackToggle != null)
+            {
+                m_SymetricBackToggle.value = m_SymetricBack;
+                m_SymetricBackToggle.RegisterValueChangedCallback(evt => m_SymetricBack = evt.newValue);
+            }
+
+            m_FlippedBackToggle = root.Q<Toggle>("flippedBackField");
+            if (m_FlippedBackToggle != null)
+            {
+                m_FlippedBackToggle.value = m_FlippedBack;
+                m_FlippedBackToggle.RegisterValueChangedCallback(evt => m_FlippedBack = evt.newValue);
+            }
+
+            // Socket options top
+            m_SocketTypeDropdownTop = root.Q<DropdownField>("socketTypeDropdownTop");
+            if (m_SocketTypeDropdownTop != null)
+            {
+                m_SocketTypeDropdownTop.choices = m_SocketTypes;
+                m_SocketTypeDropdownTop.value = m_SocketTypeTop;
+                m_SocketTypeDropdownTop.RegisterValueChangedCallback(evt => m_SocketTypeTop = evt.newValue);
+            }
+
+            m_RotationallyInvariantToggleTop = root.Q<Toggle>("rotationalIyInvariantTopField");
+            if (m_RotationallyInvariantToggleTop != null)
+            {
+                m_RotationallyInvariantToggleTop.value = m_RotationallyInvariantTop;
+                m_RotationallyInvariantToggleTop.RegisterValueChangedCallback(evt => m_RotationallyInvariantTop = evt.newValue);
+            }
+
+            // Socket options bottom
+            m_SocketTypeDropdownBottom = root.Q<DropdownField>("socketTypeDropdownBottom");
+            if (m_SocketTypeDropdownBottom != null)
+            {
+                m_SocketTypeDropdownBottom.choices = m_SocketTypes;
+                m_SocketTypeDropdownBottom.value = m_SocketTypeBottom;
+                m_SocketTypeDropdownBottom.RegisterValueChangedCallback(evt => m_SocketTypeBottom = evt.newValue);
+            }
+
+            m_RotationallyInvariantToggleBottom = root.Q<Toggle>("rotationalIyInvariantBottomField");
+            if (m_RotationallyInvariantToggleBottom != null)
+            {
+                m_RotationallyInvariantToggleBottom.value = m_RotationallyInvariantBottom;
+                m_RotationallyInvariantToggleBottom.RegisterValueChangedCallback(evt => m_RotationallyInvariantBottom = evt.newValue);
+            }
+
+            // Save button
+            m_SaveButton = root.Q<Button>("saveButton");
+            if (m_SaveButton != null)
+            {
+                m_SaveButton.RegisterCallback<ClickEvent>(SaveTile);
+            }
 
             // Preiew utility
             m_PreviewContainer = root.Q<VisualElement>("render3DContainer");
@@ -403,13 +590,24 @@ namespace WFC3DMapGenerator
         private void ChangeTileSize(ChangeEvent<float> evt)
         {
             m_TileSize = evt.newValue;
+            if (m_SocketHelperInstance != null) m_SocketHelperInstance.transform.localScale = new Vector3(m_TileSize + 0.01f, m_TileSize + 0.01f, m_TileSize + 0.01f);
         }
 
+        /// <summary>
+        /// Change the selected tile name in the TextField.
+        /// </summary>
+        /// <param name="evt"></param>
         private void ChangeTile(ChangeEvent<string> evt)
         {
             ChangeTile(evt.newValue);
         }
 
+        /// <summary>
+        /// Change the selected tile name in the TextField.
+        /// This is used to set the tile name for the selected tile.
+        /// </summary>
+        /// <param name="tileName"></param> Name of the new tile
+        /// <param name="updateUI"></param> Whether to update the UI or not
         private void ChangeTile(string tileName, bool updateUI = true)
         {
             if (tileName == "New tile")
@@ -520,18 +718,32 @@ namespace WFC3DMapGenerator
             }
         }
 
+        /// <summary>
+        /// Change the selected tile name in the TextField.
+        /// This is used to set the tile name for the selected tile.
+        /// </summary>
+        /// <param name="evt"></param> ChangeEvent with the new tile name
         private void ChangeTileName(ChangeEvent<string> evt)
         {
             m_SelectedTileName = evt.newValue;
             m_TileDropdown.value = m_SelectedTileName;
         }
 
+        /// <summary>
+        /// Change the selected tile type in the TextField.
+        /// This is used to set the tile type for the selected tile.
+        /// </summary>
+        /// <param name="evt"></param>
         private void ChangeTileType(ChangeEvent<string> evt)
         {
             m_SelectedTileType = evt.newValue;
             m_TileTypeField.value = m_SelectedTileType;
         }
 
+        /// <summary>
+        /// Change the selected GameObject in the ObjectField.
+        /// </summary>
+        /// <param name="evt"></param> ChangeEvent with the new GameObject
         private void ChangeGameObject(ChangeEvent<Object> evt)
         {
             m_SelectedGameObject = evt.newValue as GameObject;
@@ -546,6 +758,10 @@ namespace WFC3DMapGenerator
             }
         }
 
+        /// <summary>
+        /// Draw the preview of the selected GameObject in the IMGUIContainer.
+        /// This method is called every frame to update the preview.
+        /// </summary>
         private void DrawPreview()
         {
             if (m_PreviewRenderUtility == null || m_SelectedGameObjectInstance == null || m_PreviewContainer == null) return;
@@ -573,8 +789,8 @@ namespace WFC3DMapGenerator
             }
             else if (evt.type == EventType.ScrollWheel && rect.Contains(evt.mousePosition))
             {
-                m_PreviewDistance += evt.delta.y * 0.2f; // Sensibilidad del zoom
-                m_PreviewDistance = Mathf.Clamp(m_PreviewDistance, 2f, 20f); // Límites del zoom
+                m_PreviewDistance += evt.delta.y * 0.2f;
+                m_PreviewDistance = Mathf.Clamp(m_PreviewDistance, 2f, 20f);
                 evt.Use();
             }
 
@@ -591,6 +807,12 @@ namespace WFC3DMapGenerator
             GUI.DrawTexture(rect, resultRender, ScaleMode.ScaleToFit, true);
         }
 
+        /// <summary>
+        /// Get the bounds of a GameObject and its children.
+        /// This is used to calculate the bounds of the selected game object in the preview.
+        /// </summary>
+        /// <param name="go"></param> GameObject to get the bounds of
+        /// <returns></returns>
         private Bounds GetBounds(GameObject go)
         {
             List<Renderer> renderers = new List<Renderer>();
@@ -602,6 +824,11 @@ namespace WFC3DMapGenerator
             Bounds bounds = renderers[0].bounds;
             foreach (Renderer item in renderers) bounds.Encapsulate(item.bounds);
             return bounds;
+        }
+
+        private void SaveTile(ClickEvent evt)
+        {
+            //TODO
         }
     }
 }

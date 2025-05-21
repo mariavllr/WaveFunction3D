@@ -8,7 +8,7 @@ namespace WFC3DMapGenerator
         [HideInInspector][SerializeField] public List<Tile3D> tiles = new List<Tile3D>();
         [HideInInspector][SerializeField] public int tileSize = 1;
         [HideInInspector][SerializeField] public int tileCount = 0;
-        [SerializeField] public List<string> tileTypes = new List<string>();
+        [HideInInspector][SerializeField] public List<string> tileTypes = new List<string>();
         [HideInInspector][SerializeField] public List<string> socketTypes = new List<string>();
     }
 }
