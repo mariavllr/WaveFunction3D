@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 117a2642f1a883b4292968d8a2edfac4, type: 3}
-  m_Name: Forest 2
+  m_Name: Forest 1
   m_EditorClassIdentifier: 
   tiles:
   - {fileID: 4187426750720118590, guid: 85d911cca2c83ba40b7e12900bb75209, type: 3}
@@ -21,4 +21,3 @@ MonoBehaviour:
   socketTypes:
   - Empty
   - Solid
-  - Grass

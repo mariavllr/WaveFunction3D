@@ -11,8 +11,9 @@ GameObject:
   - component: {fileID: 8264577328322090711}
   - component: {fileID: 5209093655768860146}
   - component: {fileID: 5115020995574220376}
+  - component: {fileID: 2384972068682683504}
   m_Layer: 0
-  m_Name: cornerExterior
+  m_Name: Wall corner exterior
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -87,3 +88,81 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &2384972068682683504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2720622842038209659}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 277a89576ce83074ea0775dfc62e2206, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tileType: 
+  probability: 0
+  rotateRight: 1
+  rotate180: 1
+  rotateLeft: 1
+  rotation: {x: 0, y: 0, z: 0}
+  scale: {x: 0, y: 0, z: 0}
+  positionOffset: {x: 0, y: 0, z: 0}
+  upNeighbours: []
+  rightNeighbours: []
+  downNeighbours: []
+  leftNeighbours: []
+  aboveNeighbours: []
+  belowNeighbours: []
+  excludedNeighboursUp: []
+  excludedNeighboursRight: []
+  excludedNeighboursDown: []
+  excludedNeighboursLeft: []
+  upSocket:
+    socket_name: Wall lateral
+    horizontalFace: 1
+    isSymmetric: 0
+    isFlipped: 0
+    verticalFace: 0
+    rotationIndex: 0
+    rotationallyInvariant: 0
+  rightSocket:
+    socket_name: Grass
+    horizontalFace: 1
+    isSymmetric: 1
+    isFlipped: 0
+    verticalFace: 0
+    rotationIndex: 0
+    rotationallyInvariant: 0
+  leftSocket:
+    socket_name: Wall lateral
+    horizontalFace: 1
+    isSymmetric: 0
+    isFlipped: 1
+    verticalFace: 0
+    rotationIndex: 0
+    rotationallyInvariant: 0
+  downSocket:
+    socket_name: Grass
+    horizontalFace: 1
+    isSymmetric: 1
+    isFlipped: 0
+    verticalFace: 0
+    rotationIndex: 0
+    rotationallyInvariant: 0
+  aboveSocket:
+    socket_name: Wall corner top
+    horizontalFace: 0
+    isSymmetric: 0
+    isFlipped: 0
+    verticalFace: 1
+    rotationIndex: 0
+    rotationallyInvariant: 0
+  belowSocket:
+    socket_name: Solid
+    horizontalFace: 0
+    isSymmetric: 0
+    isFlipped: 0
+    verticalFace: 1
+    rotationIndex: 0
+    rotationallyInvariant: 1

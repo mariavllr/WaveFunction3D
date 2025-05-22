@@ -11,8 +11,9 @@ GameObject:
   - component: {fileID: 8884750428721341639}
   - component: {fileID: 887646232739486843}
   - component: {fileID: 2935639899498015843}
+  - component: {fileID: 2444871425618625499}
   m_Layer: 0
-  m_Name: base_pines
+  m_Name: Pines
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -91,3 +92,81 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &2444871425618625499
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4325327215814404021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 277a89576ce83074ea0775dfc62e2206, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tileType: 
+  probability: 0
+  rotateRight: 1
+  rotate180: 1
+  rotateLeft: 1
+  rotation: {x: 0, y: 0, z: 0}
+  scale: {x: 0, y: 0, z: 0}
+  positionOffset: {x: 0, y: 0, z: 0}
+  upNeighbours: []
+  rightNeighbours: []
+  downNeighbours: []
+  leftNeighbours: []
+  aboveNeighbours: []
+  belowNeighbours: []
+  excludedNeighboursUp: []
+  excludedNeighboursRight: []
+  excludedNeighboursDown: []
+  excludedNeighboursLeft: []
+  upSocket:
+    socket_name: Grass
+    horizontalFace: 1
+    isSymmetric: 1
+    isFlipped: 0
+    verticalFace: 0
+    rotationIndex: 0
+    rotationallyInvariant: 0
+  rightSocket:
+    socket_name: Grass
+    horizontalFace: 1
+    isSymmetric: 1
+    isFlipped: 0
+    verticalFace: 0
+    rotationIndex: 0
+    rotationallyInvariant: 0
+  leftSocket:
+    socket_name: Grass
+    horizontalFace: 1
+    isSymmetric: 1
+    isFlipped: 0
+    verticalFace: 0
+    rotationIndex: 0
+    rotationallyInvariant: 0
+  downSocket:
+    socket_name: Grass
+    horizontalFace: 1
+    isSymmetric: 1
+    isFlipped: 0
+    verticalFace: 0
+    rotationIndex: 0
+    rotationallyInvariant: 0
+  aboveSocket:
+    socket_name: Empty
+    horizontalFace: 0
+    isSymmetric: 0
+    isFlipped: 0
+    verticalFace: 1
+    rotationIndex: 0
+    rotationallyInvariant: 1
+  belowSocket:
+    socket_name: Solid
+    horizontalFace: 0
+    isSymmetric: 0
+    isFlipped: 0
+    verticalFace: 1
+    rotationIndex: 0
+    rotationallyInvariant: 1

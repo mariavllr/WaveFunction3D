@@ -75,7 +75,7 @@ namespace WFC3DMapGenerator
         [SerializeField] private float m_PreviewDistance = 6f;
 
         // Tileset options
-        [SerializeField] private Tileset[] m_Tilesets;
+        [SerializeField] private List<Tileset> m_Tilesets;
         [SerializeField] private Tileset m_SelectedTileset;
         [SerializeField] private string m_SelectedTilesetName;
         [SerializeField] private float m_TileSize;
@@ -546,6 +546,32 @@ namespace WFC3DMapGenerator
         }
 
         /// <summary>
+        /// Called when the user selects the window
+        /// </summary>
+        private void OnFocus()
+        {
+            m_Tilesets = Resources.LoadAll<Tileset>("Tilesets/").ToList();
+            m_TilesetDropdown.choices = m_Tilesets.Select(tileset => tileset.name).ToList();
+            m_TilesetDropdown.choices.Add("New tileset");
+            if (m_SelectedTileset != null) m_TilesetDropdown.value = m_SelectedTileset.name;
+            else m_TilesetDropdown.value = "New tileset";
+            if (AssetDatabase.IsValidFolder($"Assets/Resources/Tiles/{m_SelectedTilesetName}"))
+            {
+                m_SelectedTileset.tiles = Resources.LoadAll<Tile3D>($"Tiles/{m_SelectedTilesetName}/").ToList();
+            }
+            else m_SelectedTileset.tiles = new List<Tile3D>();
+            m_SelectedTileset.tileCount = m_SelectedTileset.tiles.Count;
+            m_Tiles = m_SelectedTileset.tiles;
+            m_TileDropdown.choices = m_Tiles
+                .Where(tile => tile.name != "EMPTY" && tile.name != "SOLID")
+                .Select(tile => tile.name)
+                .ToList();
+            m_TileDropdown.choices.Add("New tile");
+            if (m_SelectedTile != null && m_Tiles.Contains(m_SelectedTile)) m_TileDropdown.value = m_SelectedTile.name;
+            else m_TileDropdown.value = m_TileDropdown.choices[^1];
+        }
+
+        /// <summary>
         /// Draw the preview of the selected tile.
         /// </summary>
         private void OnDisable()
@@ -702,6 +728,12 @@ namespace WFC3DMapGenerator
 
             if (updateUI)
             {
+                m_TileDropdown.value = tileName;
+                m_TileDropdown.choices = m_Tiles
+                    .Where(tile => tile.name != "EMPTY" && tile.name != "SOLID")
+                    .Select(tile => tile.name)
+                    .ToList();
+                m_TileDropdown.choices.Add("New tile");
                 m_TileNameField.value = m_SelectedTileName;
                 m_TileTypeField.value = m_SelectedTileType;
                 m_SelectedGameObjectField.value = m_SelectedGameObject;
@@ -730,9 +762,27 @@ namespace WFC3DMapGenerator
                         _ => m_ExcludedNeighboursBackToggles
                     };
 
-                    for (int j = 0; j < excludedTogglesList.Count; j++)
+                    Foldout excludedFoldout = i switch
                     {
-                        excludedTogglesList[j].value = excludedNeighboursList.Contains(excludedTogglesList[j].label);
+                        0 => m_ExcludedNeighboursFrontFoldout,
+                        1 => m_ExcludedNeighboursRightFoldout,
+                        2 => m_ExcludedNeighboursLeftFoldout,
+                        _ => m_ExcludedNeighboursBackFoldout
+                    };
+
+                    foreach (Toggle toggle in excludedTogglesList) toggle.RemoveFromHierarchy();
+                    excludedTogglesList.Clear();
+                    foreach (string tileType in m_SelectedTileset.tileTypes)
+                    {
+                        Toggle toggle = new Toggle(tileType);
+                        toggle.value = excludedNeighboursList.Contains(tileType);
+                        toggle.RegisterValueChangedCallback(evt =>
+                        {
+                            if (evt.newValue) excludedNeighboursList.Add(tileType);
+                            else excludedNeighboursList.Remove(tileType);
+                        });
+                        excludedTogglesList.Add(toggle);
+                        excludedFoldout.Add(toggle);
                     }
                 }
 
@@ -870,38 +920,75 @@ namespace WFC3DMapGenerator
 
         private void SaveTile(ClickEvent evt)
         {
-            if (m_SelectedTileset == null) return;
+            // Check if the selected tilset is null
+            if (m_SelectedTileset == null || m_TilesetNameField.value == "Tileset name already exists!") return;
+
+            // Check if the selected tileset name is already in use
+            m_Tilesets = Resources.LoadAll<Tileset>("Tilesets/").ToList();
+            if (m_Tilesets.Any(tileset => tileset.name == m_SelectedTilesetName) && m_TilesetDropdown.value != m_SelectedTilesetName)
+            {
+                m_TilesetNameField.value = "Tileset name already exists!";
+                return;
+            }
+
+            // If the user wants a new tileset, create it and its folders, if not rename the existing one and its tiles folder
             if (m_TilesetDropdown.value == "New tileset")
             {
-                List<Tileset> tilesets = Resources.LoadAll<Tileset>("Tilesets/").ToList();
-                if (tilesets.Any(tileset => tileset.name == m_SelectedTilesetName))
-                {
-                    m_TilesetNameField.value = "Tileset name already exists!";
-                    return;
-                }
                 AssetDatabase.CreateAsset(m_SelectedTileset, $"Assets/Resources/Tilesets/{m_SelectedTilesetName}.asset");
+                AssetDatabase.CreateFolder("Assets/Resources/Tiles", m_SelectedTilesetName);
+                m_SelectedTileset = Resources.Load<Tileset>($"Tilesets/{m_SelectedTilesetName}");
+            }
+            else if (m_SelectedTileset.name != m_SelectedTilesetName)
+            {
+                AssetDatabase.MoveAsset($"Assets/Resources/Tiles/{m_SelectedTileset.name}", $"Assets/Resources/Tiles/{m_SelectedTilesetName}");
+                AssetDatabase.RenameAsset($"Assets/Resources/Tilesets/{m_SelectedTileset.name}.asset", m_SelectedTilesetName);
                 m_SelectedTileset = Resources.Load<Tileset>($"Tilesets/{m_SelectedTilesetName}");
             }
 
+            // Save tile size
+            m_SelectedTileset.tileSize = m_TileSize;
+            m_SelectedTileset.socketTypes = m_SocketTypes;
+            m_SelectedTileset.tiles = m_Tiles;
+            m_SelectedTileset.tileCount = m_Tiles.Count;
+            m_SelectedTileset.tileTypes = m_Tiles.Select(tile => tile.tileType).Where(tileType => tileType != "").ToList();
+            // Update the lists
+            m_TilesetDropdown.choices = m_Tilesets
+                .Select(tileset => tileset.name)
+                .ToList();
+            m_TilesetDropdown.choices.Add("New tileset");
+            m_TilesetDropdown.value = m_SelectedTilesetName;
+
+            m_SocketTypes = m_SelectedTileset.socketTypes;
+            m_SocketTypeDropdownField.choices = m_SocketTypes.Where(socketType => socketType != "Empty" && socketType != "Solid").ToList();
+            m_SocketTypeDropdownField.value = "";
+            m_SocketTypeNameField.value = "";
+
+            // Check if the selected prefab is null
             if (m_SelectedGameObject == null)
             {
                 m_SelectedGameObjectField.Focus();
                 return;
             }
+
+            // Check if the selected tile name is already in use
             if (!AssetDatabase.IsValidFolder($"Assets/Resources/Tiles")) AssetDatabase.CreateFolder("Assets/Resources", "Tiles");
             if (m_TileDropdown.value == "New tile")
             {
                 if (AssetDatabase.IsValidFolder($"Assets/Resources/Tiles/{m_SelectedTilesetName}"))
                 {
-                    List<Tileset> tiles = Resources.LoadAll<Tileset>($"Tilesets/{m_SelectedTilesetName}").ToList();
-                    if (tiles.Any(tileset => tileset.name == m_SelectedTileName))
+                    List<Tile3D> tiles = Resources.LoadAll<Tile3D>($"Tilesets/{m_SelectedTilesetName}/").ToList();
+                    if (tiles.Any(tile => tile.name == m_SelectedTileName))
                     {
                         m_TileNameField.value = "Tileset name already exists!";
                         return;
                     }
                 }
+                Tile3D possibleTrash = m_SelectedGameObject.GetComponent<Tile3D>();
+                if (possibleTrash != null) DestroyImmediate(m_SelectedGameObject.GetComponent<Tile3D>());
                 m_SelectedTile = m_SelectedGameObject.AddComponent<Tile3D>();
             }
+
+            // Set all the values of the selected tile
             m_SelectedTile.name = m_SelectedTileName;
             m_SelectedTile.tileType = m_SelectedTileType;
             m_SelectedTile.rotateRight = m_Rotate90;
@@ -939,14 +1026,14 @@ namespace WFC3DMapGenerator
             m_SelectedTile.belowSocket.rotationallyInvariant = m_RotationallyInvariantBottom;
             m_SelectedTile.belowSocket.rotationIndex = 0;
             m_SelectedTile.gameObject.name = m_SelectedTileName;
-            if (!AssetDatabase.IsValidFolder($"Assets/Resources/Tiles/{m_SelectedTilesetName}"))
-            {
-                AssetDatabase.CreateFolder("Assets/Resources/Tiles", m_SelectedTilesetName);
-            }
+
+            // Move the asset to the new folder
             AssetDatabase.MoveAsset(AssetDatabase.GetAssetPath(m_SelectedTile), $"Assets/Resources/Tiles/{m_SelectedTilesetName}/{m_SelectedTileName}.prefab");
             m_SelectedTileset.tiles.Add(m_SelectedTile);
             m_SelectedTileset.tileCount = m_SelectedTileset.tiles.Count;
             ChangeTile(m_SelectedTileName);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
     }
 }
