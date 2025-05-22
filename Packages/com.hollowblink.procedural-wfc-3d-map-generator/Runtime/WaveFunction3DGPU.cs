@@ -14,7 +14,7 @@ namespace WFC3DMapGenerator
         public const int MAX_NEIGHBOURS = 44;
 
         // Map generation parameters
-        private int cellSize;
+        private float cellSize;
         private int dimensionsX, dimensionsZ, dimensionsY;
 
         // Shader used for the generation
@@ -49,7 +49,7 @@ namespace WFC3DMapGenerator
         /// <param name="mapDimensions"></param> Dimensions of the map
         /// <param name="cellSize"></param> Size of each cell
         /// <param name="tiles"></param> Array of tiles to be used
-        public unsafe void Initialize(Vector3Int mapDimensions, int cellSize, Tile3D[] tiles)
+        public unsafe void Initialize(Vector3Int mapDimensions, float cellSize, Tile3D[] tiles)
         {
             dimensionsX = mapDimensions.x;
             dimensionsY = mapDimensions.y;

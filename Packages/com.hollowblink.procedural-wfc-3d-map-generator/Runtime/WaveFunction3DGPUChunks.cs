@@ -20,7 +20,7 @@ namespace WFC3DMapGenerator
         private const int WISH_SUBGRID_SIZE = 12;
 
         // Map generation parameters
-        private int cellSize;
+        private float cellSize;
         private int dimensionsX, dimensionsZ, dimensionsY;
 
         // Shader used for the generation
@@ -60,7 +60,7 @@ namespace WFC3DMapGenerator
         /// <param name="mapDimensions"></param> Dimensions of the map to be generated
         /// <param name="cellSize"></param> Size of each cell in the map (tiles ares boxes so the size is the same for all faces)
         /// <param name="tiles"></param> Array of tiles to be used in the map
-        public unsafe void Initialize(Vector3Int mapDimensions, int cellSize, Tile3D[] tiles)
+        public unsafe void Initialize(Vector3Int mapDimensions, float cellSize, Tile3D[] tiles)
         {
             dimensionsX = mapDimensions.x;
             dimensionsY = mapDimensions.y;

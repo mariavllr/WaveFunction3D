@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Sockets;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -335,7 +334,7 @@ namespace WFC3DMapGenerator
             if (m_SocketTypeDropdownField != null)
             {
                 m_SocketTypes = m_SelectedTileset.socketTypes;
-                m_SocketTypeDropdownField.choices = m_SocketTypes;
+                m_SocketTypeDropdownField.choices = m_SocketTypes.Where(socketType => socketType != "Empty" && socketType != "Solid").ToList();;
                 m_SocketTypeDropdownField.value = m_SocketTypeName;
                 m_SocketTypeDropdownField.RegisterValueChangedCallback(evt => m_SocketTypeName = evt.newValue);
             }
@@ -347,7 +346,7 @@ namespace WFC3DMapGenerator
                 {
                     if (m_SocketTypes == null) m_SocketTypes = new List<string>();
                     if (!m_SocketTypes.Contains(m_SocketTypeName)) m_SocketTypes.Add(m_SocketTypeName);
-                    m_SocketTypeDropdownField.choices = m_SocketTypes;
+                    m_SocketTypeDropdownField.choices = m_SocketTypes.Where(socketType => socketType != "Empty" && socketType != "Solid").ToList();;
                     m_SocketTypeDropdownField.value = m_SocketTypeName;
                 });
             }
@@ -360,8 +359,8 @@ namespace WFC3DMapGenerator
                     if (m_SocketTypes != null && m_SocketTypes.Contains(m_SocketTypeName))
                     {
                         m_SocketTypes.Remove(m_SocketTypeName);
-                        m_SocketTypeDropdownField.choices = m_SocketTypes;
-                        if (m_SocketTypes.Count > 0)
+                        m_SocketTypeDropdownField.choices = m_SocketTypes.Where(socketType => socketType != "Empty" && socketType != "Solid").ToList();;
+                        if (m_SocketTypes.Count > 0 && m_SocketTypes[0] != "Empty" && m_SocketTypes[0] != "Solid")
                         {
                             m_SocketTypeDropdownField.value = m_SocketTypes[0];
                             m_SocketTypeNameField.value = m_SocketTypes[0];
@@ -546,6 +545,9 @@ namespace WFC3DMapGenerator
             m_ImguiContainer.onGUIHandler = DrawPreview;
         }
 
+        /// <summary>
+        /// Draw the preview of the selected tile.
+        /// </summary>
         private void OnDisable()
         {
             if (m_PreviewRenderUtility != null)
@@ -557,6 +559,10 @@ namespace WFC3DMapGenerator
             if (m_SelectedGameObjectInstance != null) DestroyImmediate(m_SelectedGameObjectInstance);
         }
 
+        /// <summary>
+        /// Draw the preview of the selected tile.
+        /// </summary>
+        /// <param name="evt"></param> Change event
         private void SelectTileset(ChangeEvent<string> evt)
         {
             if (evt.newValue == "New tileset")
@@ -564,6 +570,8 @@ namespace WFC3DMapGenerator
                 m_SelectedTileset = CreateInstance<Tileset>();
                 m_SelectedTileset.tiles.Add(m_EmptyTile);
                 m_SelectedTileset.tiles.Add(m_SolidTile);
+                m_SelectedTileset.socketTypes.Add("Empty");
+                m_SelectedTileset.socketTypes.Add("Solid");
             }
             else m_SelectedTileset = Resources.Load<Tileset>($"Tilesets/{evt.newValue}");
             m_SelectedTilesetName = evt.newValue;
@@ -577,19 +585,31 @@ namespace WFC3DMapGenerator
                 .ToList();
             m_TileDropdown.choices.Add("New tile");
             m_TileDropdown.value = m_TileDropdown.choices[0];
+            m_SocketTypes = m_SelectedTileset.socketTypes;
+            m_SocketTypeDropdownField.choices = m_SocketTypes.Where(socketType => socketType != "Empty" && socketType != "Solid").ToList();
+            m_SocketTypeDropdownField.value = "";
+            m_SocketTypeNameField.value = "";
             ChangeTile(m_TileDropdown.value);
         }
 
+        /// <summary>
+        /// Change the selected tile name in the TextField.
+        /// </summary>
+        /// <param name="evt"></param> Change event
         private void ChangeTilesetName(ChangeEvent<string> evt)
         {
             m_SelectedTilesetName = evt.newValue;
-            m_TilesetDropdown.value = m_SelectedTilesetName;
             m_TilesetNameField.value = m_SelectedTilesetName;
         }
 
+        /// <summary>
+        /// Change the selected tile name in the TextField.
+        /// </summary>
+        /// <param name="evt"></param> Change event
         private void ChangeTileSize(ChangeEvent<float> evt)
         {
             m_TileSize = evt.newValue;
+            if(m_SelectedTileset != null) m_SelectedTileset.tileSize = m_TileSize;
             if (m_SocketHelperInstance != null) m_SocketHelperInstance.transform.localScale = new Vector3(m_TileSize + 0.01f, m_TileSize + 0.01f, m_TileSize + 0.01f);
         }
 
@@ -715,6 +735,29 @@ namespace WFC3DMapGenerator
                         excludedTogglesList[j].value = excludedNeighboursList.Contains(excludedTogglesList[j].label);
                     }
                 }
+
+                m_SocketTypeDropdownFront.value = m_SocketTypeFront;
+                m_SocketTypeDropdownFront.choices = m_SocketTypes;
+                m_SocketTypeDropdownRight.value = m_SocketTypeRight;
+                m_SocketTypeDropdownRight.choices = m_SocketTypes;
+                m_SocketTypeDropdownLeft.value = m_SocketTypeLeft;
+                m_SocketTypeDropdownLeft.choices = m_SocketTypes;
+                m_SocketTypeDropdownBack.value = m_SocketTypeBack;
+                m_SocketTypeDropdownBack.choices = m_SocketTypes;
+                m_SocketTypeDropdownTop.value = m_SocketTypeTop;
+                m_SocketTypeDropdownTop.choices = m_SocketTypes;
+                m_SocketTypeDropdownBottom.value = m_SocketTypeBottom;
+                m_SocketTypeDropdownBottom.choices = m_SocketTypes;
+                m_SymetricFrontToggle.value = m_SymetricFront;
+                m_SymetricRightToggle.value = m_SymetricRight;
+                m_SymetricLeftToggle.value = m_SymetricLeft;
+                m_SymetricBackToggle.value = m_SymetricBack;
+                m_FlippedFrontToggle.value = m_FlippedFront;
+                m_FlippedRightToggle.value = m_FlippedRight;
+                m_FlippedLeftToggle.value = m_FlippedLeft;
+                m_FlippedBackToggle.value = m_FlippedBack;
+                m_RotationallyInvariantToggleTop.value = m_RotationallyInvariantTop;
+                m_RotationallyInvariantToggleBottom.value = m_RotationallyInvariantBottom;
             }
         }
 
@@ -726,7 +769,6 @@ namespace WFC3DMapGenerator
         private void ChangeTileName(ChangeEvent<string> evt)
         {
             m_SelectedTileName = evt.newValue;
-            m_TileDropdown.value = m_SelectedTileName;
         }
 
         /// <summary>
@@ -747,9 +789,9 @@ namespace WFC3DMapGenerator
         private void ChangeGameObject(ChangeEvent<Object> evt)
         {
             m_SelectedGameObject = evt.newValue as GameObject;
+            if (m_SelectedGameObjectInstance != null) DestroyImmediate(m_SelectedGameObjectInstance);
             if (m_SelectedGameObject != null)
             {
-                if (m_SelectedGameObjectInstance != null) DestroyImmediate(m_SelectedGameObjectInstance);
                 m_SelectedGameObjectInstance = Instantiate(m_SelectedGameObject);
                 m_SelectedGameObjectInstance.hideFlags = HideFlags.HideAndDontSave;
                 m_PreviewRenderUtility.AddSingleGO(m_SelectedGameObjectInstance);
@@ -828,7 +870,83 @@ namespace WFC3DMapGenerator
 
         private void SaveTile(ClickEvent evt)
         {
-            //TODO
+            if (m_SelectedTileset == null) return;
+            if (m_TilesetDropdown.value == "New tileset")
+            {
+                List<Tileset> tilesets = Resources.LoadAll<Tileset>("Tilesets/").ToList();
+                if (tilesets.Any(tileset => tileset.name == m_SelectedTilesetName))
+                {
+                    m_TilesetNameField.value = "Tileset name already exists!";
+                    return;
+                }
+                AssetDatabase.CreateAsset(m_SelectedTileset, $"Assets/Resources/Tilesets/{m_SelectedTilesetName}.asset");
+                m_SelectedTileset = Resources.Load<Tileset>($"Tilesets/{m_SelectedTilesetName}");
+            }
+
+            if (m_SelectedGameObject == null)
+            {
+                m_SelectedGameObjectField.Focus();
+                return;
+            }
+            if (!AssetDatabase.IsValidFolder($"Assets/Resources/Tiles")) AssetDatabase.CreateFolder("Assets/Resources", "Tiles");
+            if (m_TileDropdown.value == "New tile")
+            {
+                if (AssetDatabase.IsValidFolder($"Assets/Resources/Tiles/{m_SelectedTilesetName}"))
+                {
+                    List<Tileset> tiles = Resources.LoadAll<Tileset>($"Tilesets/{m_SelectedTilesetName}").ToList();
+                    if (tiles.Any(tileset => tileset.name == m_SelectedTileName))
+                    {
+                        m_TileNameField.value = "Tileset name already exists!";
+                        return;
+                    }
+                }
+                m_SelectedTile = m_SelectedGameObject.AddComponent<Tile3D>();
+            }
+            m_SelectedTile.name = m_SelectedTileName;
+            m_SelectedTile.tileType = m_SelectedTileType;
+            m_SelectedTile.rotateRight = m_Rotate90;
+            m_SelectedTile.rotate180 = m_Rotate180;
+            m_SelectedTile.rotateLeft = m_Rotate270;
+            m_SelectedTile.positionOffset = m_Position;
+            m_SelectedTile.rotation = m_Rotation;
+            m_SelectedTile.scale = m_Scale;
+            m_SelectedTile.excludedNeighboursUp = m_ExcludedNeighboursFront;
+            m_SelectedTile.excludedNeighboursRight = m_ExcludedNeighboursRight;
+            m_SelectedTile.excludedNeighboursLeft = m_ExcludedNeighboursLeft;
+            m_SelectedTile.excludedNeighboursDown = m_ExcludedNeighboursBack;
+            m_SelectedTile.upSocket.socket_name = m_SocketTypeFront;
+            m_SelectedTile.upSocket.horizontalFace = true;
+            m_SelectedTile.upSocket.isSymmetric = m_SymetricFront;
+            m_SelectedTile.upSocket.isFlipped = m_FlippedFront;
+            m_SelectedTile.rightSocket.socket_name = m_SocketTypeRight;
+            m_SelectedTile.rightSocket.horizontalFace = true;
+            m_SelectedTile.rightSocket.isSymmetric = m_SymetricRight;
+            m_SelectedTile.rightSocket.isFlipped = m_FlippedRight;
+            m_SelectedTile.downSocket.socket_name = m_SocketTypeBack;
+            m_SelectedTile.downSocket.horizontalFace = true;
+            m_SelectedTile.downSocket.isSymmetric = m_SymetricBack;
+            m_SelectedTile.downSocket.isFlipped = m_FlippedBack;
+            m_SelectedTile.leftSocket.socket_name = m_SocketTypeLeft;
+            m_SelectedTile.leftSocket.horizontalFace = true;
+            m_SelectedTile.leftSocket.isSymmetric = m_SymetricLeft;
+            m_SelectedTile.leftSocket.isFlipped = m_FlippedLeft;
+            m_SelectedTile.aboveSocket.socket_name = m_SocketTypeTop;
+            m_SelectedTile.aboveSocket.verticalFace = true;
+            m_SelectedTile.aboveSocket.rotationallyInvariant = m_RotationallyInvariantTop;
+            m_SelectedTile.aboveSocket.rotationIndex = 0;
+            m_SelectedTile.belowSocket.socket_name = m_SocketTypeBottom;
+            m_SelectedTile.belowSocket.verticalFace = true;
+            m_SelectedTile.belowSocket.rotationallyInvariant = m_RotationallyInvariantBottom;
+            m_SelectedTile.belowSocket.rotationIndex = 0;
+            m_SelectedTile.gameObject.name = m_SelectedTileName;
+            if (!AssetDatabase.IsValidFolder($"Assets/Resources/Tiles/{m_SelectedTilesetName}"))
+            {
+                AssetDatabase.CreateFolder("Assets/Resources/Tiles", m_SelectedTilesetName);
+            }
+            AssetDatabase.MoveAsset(AssetDatabase.GetAssetPath(m_SelectedTile), $"Assets/Resources/Tiles/{m_SelectedTilesetName}/{m_SelectedTileName}.prefab");
+            m_SelectedTileset.tiles.Add(m_SelectedTile);
+            m_SelectedTileset.tileCount = m_SelectedTileset.tiles.Count;
+            ChangeTile(m_SelectedTileName);
         }
     }
 }

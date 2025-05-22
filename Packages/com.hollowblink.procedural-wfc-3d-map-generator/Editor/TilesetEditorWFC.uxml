@@ -29,7 +29,7 @@
                 <ui:Vector3Field label="Rotation:" name="rotationField" />
                 <ui:Vector3Field label="Scale:" name="scaleField" />
             </ui:Foldout>
-            <ui:Foldout text="Excluded Tile Types" name="excludedNeighbours" value="true">
+            <ui:Foldout text="Excluded Tile Types" name="excludedNeighbours" value="false">
                 <ui:Foldout text="Front" name="excludedNeighboursFront" value="false" />
                 <ui:Foldout text="Right" name="excludedNeighboursRight" value="false" />
                 <ui:Foldout text="Left" name="excludedNeighboursLeft" value="false" />
@@ -37,14 +37,14 @@
             </ui:Foldout>
             <ui:Foldout text="Sockets" name="sockets" value="true">
                 <ui:VisualElement name="socketControls" style="flex-grow: 1; flex-direction: row; flex-shrink: 0; flex-wrap: nowrap;">
-                    <ui:TextField placeholder-text="Socket type name" name="socketTypeName" style="flex-grow: 0; min-width: 50%;" />
+                    <ui:TextField placeholder-text="Socket type name" name="socketTypeNameField" style="flex-grow: 0; min-width: 50%;" />
                     <ui:Button text="Create socket type" name="createSocketTypeButton" style="min-width: 50%; flex-direction: row;" />
                 </ui:VisualElement>
                 <ui:VisualElement name="socketControls2" style="flex-grow: 1; flex-direction: row; flex-shrink: 0; flex-wrap: nowrap;">
                     <ui:DropdownField name="selectedSocketTypeField" style="min-width: 50%;" />
                     <ui:Button text="Delete socket ype" name="deleteSocketTypeButton" style="min-width: 50%; flex-direction: row;" />
                 </ui:VisualElement>
-                <ui:Foldout text="Front" name="frontSocket" value="true">
+                <ui:Foldout text="Front" name="frontSocket" value="false">
                     <ui:DropdownField label="Socket type:" name="socketTypeDropdownFront" tooltip="Select the type of this face, meaning that only tile faces of the same type will be able to connect with this one" />
                     <ui:VisualElement name="tileVariationsContainer" style="flex-grow: 0; flex-shrink: 1; flex-direction: row; visibility: visible; align-content: auto; align-self: auto; justify-content: space-between;">
                         <ui:Label text="Rule flags:" tooltip="Mark the corresponding flags for this socket" class="unity-label" style="margin-left: 0; margin-top: 0; margin-right: 0; margin-bottom: 0; padding-top: 1px; padding-right: 0; padding-bottom: 0; padding-left: 5px; align-content: auto; flex-grow: 0; flex-shrink: 0; flex-wrap: wrap; align-self: auto; align-items: auto; min-width: 120px;" />
@@ -54,7 +54,7 @@
                         </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:Foldout>
-                <ui:Foldout text="Right" name="rightSocket" value="true">
+                <ui:Foldout text="Right" name="rightSocket" value="false">
                     <ui:DropdownField label="Socket type:" name="socketTypeDropdownRight" tooltip="Select the type of this face, meaning that only tile faces of the same type will be able to connect with this one" />
                     <ui:VisualElement name="tileVariationsContainer" style="flex-grow: 0; flex-shrink: 1; flex-direction: row; visibility: visible; align-content: auto; align-self: auto; justify-content: space-between;">
                         <ui:Label text="Rule flags:" tooltip="Mark the corresponding flags for this socket" class="unity-label" style="margin-left: 0; margin-top: 0; margin-right: 0; margin-bottom: 0; padding-top: 1px; padding-right: 0; padding-bottom: 0; padding-left: 5px; align-content: auto; flex-grow: 0; flex-shrink: 0; flex-wrap: wrap; align-self: auto; align-items: auto; min-width: 120px;" />
@@ -64,7 +64,7 @@
                         </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:Foldout>
-                <ui:Foldout text="Left" name="leftSocket" value="true">
+                <ui:Foldout text="Left" name="leftSocket" value="false">
                     <ui:DropdownField label="Socket type:" name="socketTypeDropdownLeft" tooltip="Select the type of this face, meaning that only tile faces of the same type will be able to connect with this one" />
                     <ui:VisualElement name="tileVariationsContainer" style="flex-grow: 0; flex-shrink: 1; flex-direction: row; visibility: visible; align-content: auto; align-self: auto; justify-content: space-between;">
                         <ui:Label text="Rule flags:" tooltip="Mark the corresponding flags for this socket" class="unity-label" style="margin-left: 0; margin-top: 0; margin-right: 0; margin-bottom: 0; padding-top: 1px; padding-right: 0; padding-bottom: 0; padding-left: 5px; align-content: auto; flex-grow: 0; flex-shrink: 0; flex-wrap: wrap; align-self: auto; align-items: auto; min-width: 120px;" />
@@ -74,7 +74,7 @@
                         </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:Foldout>
-                <ui:Foldout text="Back" name="backSocket" value="true">
+                <ui:Foldout text="Back" name="backSocket" value="false">
                     <ui:DropdownField label="Socket type:" name="socketTypeDropdownBack" tooltip="Select the type of this face, meaning that only tile faces of the same type will be able to connect with this one" />
                     <ui:VisualElement name="tileVariationsContainer" style="flex-grow: 0; flex-shrink: 1; flex-direction: row; visibility: visible; align-content: auto; align-self: auto; justify-content: space-between;">
                         <ui:Label text="Rule flags:" tooltip="Mark the corresponding flags for this socket" class="unity-label" style="margin-left: 0; margin-top: 0; margin-right: 0; margin-bottom: 0; padding-top: 1px; padding-right: 0; padding-bottom: 0; padding-left: 5px; align-content: auto; flex-grow: 0; flex-shrink: 0; flex-wrap: wrap; align-self: auto; align-items: auto; min-width: 120px;" />
@@ -84,8 +84,8 @@
                         </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:Foldout>
-                <ui:Foldout text="Top" name="topSocket" value="true">
-                    <ui:DropdownField label="Socket type:" name="socketTypeDropdownBack" tooltip="Select the type of this face, meaning that only tile faces of the same type will be able to connect with this one" />
+                <ui:Foldout text="Top" name="topSocket" value="false">
+                    <ui:DropdownField label="Socket type:" name="socketTypeDropdownTop" tooltip="Select the type of this face, meaning that only tile faces of the same type will be able to connect with this one" />
                     <ui:VisualElement name="tileVariationsContainer" style="flex-grow: 0; flex-shrink: 1; flex-direction: row; visibility: visible; align-content: auto; align-self: auto; justify-content: space-between;">
                         <ui:Label text="Rule flags:" tooltip="Mark the corresponding flags for this socket" class="unity-label" style="margin-left: 0; margin-top: 0; margin-right: 0; margin-bottom: 0; padding-top: 1px; padding-right: 0; padding-bottom: 0; padding-left: 5px; align-content: auto; flex-grow: 0; flex-shrink: 0; flex-wrap: wrap; align-self: auto; align-items: auto; min-width: 120px;" />
                         <ui:VisualElement name="rotationalIyInvariantTopField" style="flex-grow: 1; align-items: auto; align-content: auto; flex-wrap: wrap; flex-direction: row; flex-shrink: 1;">
@@ -93,7 +93,7 @@
                         </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:Foldout>
-                <ui:Foldout text="Bottom" name="bottomSocket" value="true">
+                <ui:Foldout text="Bottom" name="bottomSocket" value="false">
                     <ui:DropdownField label="Socket type:" name="socketTypeDropdownBottom" tooltip="Select the type of this face, meaning that only tile faces of the same type will be able to connect with this one" />
                     <ui:VisualElement name="tileVariationsContainer" style="flex-grow: 0; flex-shrink: 1; flex-direction: row; visibility: visible; align-content: auto; align-self: auto; justify-content: space-between;">
                         <ui:Label text="Rule flags:" tooltip="Mark the corresponding flags for this socket" class="unity-label" style="margin-left: 0; margin-top: 0; margin-right: 0; margin-bottom: 0; padding-top: 1px; padding-right: 0; padding-bottom: 0; padding-left: 5px; align-content: auto; flex-grow: 0; flex-shrink: 0; flex-wrap: wrap; align-self: auto; align-items: auto; min-width: 120px;" />
