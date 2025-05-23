@@ -6,8 +6,6 @@ using System;
 using UnityEngine.Rendering;
 using Tile3DStruct = WFC3DMapGenerator.WFCStructs.Tile3DStruct;
 using Cell3DStruct = WFC3DMapGenerator.WFCStructs.Cell3DStruct;
-using GLTF.Schema;
-using System.ComponentModel;
 
 namespace WFC3DMapGenerator
 {
@@ -16,7 +14,7 @@ namespace WFC3DMapGenerator
     {
         // Constants (must not be changed)
         private const int CHUNK_SIZE = 4;
-        private const int MAX_NEIGHBOURS = 44;
+        private const int MAX_NEIGHBOURS = 50;
         private const int WISH_SUBGRID_SIZE = 12;
 
         // Map generation parameters
@@ -216,9 +214,14 @@ namespace WFC3DMapGenerator
                         outputBuffer.SetData(subGrid.Item1);
                         AsyncGPUReadback.Request(outputBuffer, _ => DispatchLayer(++attempts));
                     }
-                    else
+                    else if (actualChunk > 0)
                     {
                         AsyncGPUReadback.Request(stateBuffer, _ => PrepareChunkDispatch(chunkOffsets[--actualChunk], true));
+                    }
+                    else
+                    {
+                        ClearHierarchy();
+                        ReleaseMemory();
                     }
                 }
                 else

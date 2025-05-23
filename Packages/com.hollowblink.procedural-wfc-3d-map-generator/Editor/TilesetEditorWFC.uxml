@@ -15,6 +15,7 @@
             <ui:DropdownField label="Tile:" name="tileDropdown" tooltip="The tile that you are currently editing" />
             <ui:TextField label="Tile name:" placeholder-text="Tile name" name="tileNameField" hide-placeholder-on-focus="false" />
             <ui:TextField label="Tile type:" placeholder-text="Tile type" name="tileTypeField" hide-placeholder-on-focus="false" tooltip="You can set a tile type to identify this tile or a set of tiles so you can set custom exclusion rules appart from the socket rules" />
+            <ui:IntegerField label="Tile probabilty:" value="1" name="tileProbabilityField" />
             <uie:ObjectField label="Tile prefab:" type="UnityEngine.GameObject, UnityEngine.CoreModule" allow-scene-objects="false" name="tilePrefabField" tooltip="Assign the prefab that will be used as a tile" />
             <ui:VisualElement name="tileVariationsContainer" style="flex-grow: 0; flex-shrink: 1; flex-direction: row; visibility: visible; align-content: auto; align-self: auto; justify-content: space-between;">
                 <ui:Label text="Tile variations:" tooltip="Select the tile variations yoy want the tool to create from this base tile" class="unity-label" style="margin-left: 0; margin-top: 0; margin-right: 0; margin-bottom: 0; padding-top: 1px; padding-right: 0; padding-bottom: 0; padding-left: 5px; align-content: auto; flex-grow: 0; flex-shrink: 0; flex-wrap: wrap; align-self: auto; align-items: auto; min-width: 120px;" />
@@ -35,7 +36,7 @@
                 <ui:Foldout text="Left" name="excludedNeighboursLeft" value="false" />
                 <ui:Foldout text="Back" name="excludedNeighboursBack" value="false" />
             </ui:Foldout>
-            <ui:Foldout text="Sockets" name="sockets" value="true">
+            <ui:Foldout text="Sockets" name="sockets" value="false">
                 <ui:VisualElement name="socketControls" style="flex-grow: 1; flex-direction: row; flex-shrink: 0; flex-wrap: nowrap;">
                     <ui:TextField placeholder-text="Socket type name" name="socketTypeNameField" style="flex-grow: 0; min-width: 50%;" />
                     <ui:Button text="Create socket type" name="createSocketTypeButton" style="min-width: 50%; flex-direction: row;" />

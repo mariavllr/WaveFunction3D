@@ -107,19 +107,69 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tileType: 
-  probability: 0
+  probability: 5
   rotateRight: 0
   rotate180: 0
   rotateLeft: 0
   rotation: {x: 0, y: 0, z: 0}
   scale: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
-  upNeighbours: []
-  rightNeighbours: []
-  downNeighbours: []
-  leftNeighbours: []
-  aboveNeighbours: []
-  belowNeighbours: []
+  upNeighbours:
+  - {fileID: 8677689225743667345}
+  - {fileID: 2131863207581240793, guid: 84611822bc3841e4cace36aca88f7743, type: 3}
+  - {fileID: 7156790002695755497, guid: 599bdb9c66f8ecc4aab1f14a7a284239, type: 3}
+  - {fileID: 2444871425618625499, guid: 8061b66296c03324bb115ea24cdf6bf0, type: 3}
+  - {fileID: 2384972068682683504, guid: bf95fd4899ebf0b498e852bb78256cfc, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  rightNeighbours:
+  - {fileID: 8677689225743667345}
+  - {fileID: 2131863207581240793, guid: 84611822bc3841e4cace36aca88f7743, type: 3}
+  - {fileID: 2444871425618625499, guid: 8061b66296c03324bb115ea24cdf6bf0, type: 3}
+  - {fileID: -2430820588287781401, guid: 0cb75bce8c3cc69419df55cd189295bd, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  downNeighbours:
+  - {fileID: 8677689225743667345}
+  - {fileID: 2131863207581240793, guid: 84611822bc3841e4cace36aca88f7743, type: 3}
+  - {fileID: 2444871425618625499, guid: 8061b66296c03324bb115ea24cdf6bf0, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  leftNeighbours:
+  - {fileID: 8677689225743667345}
+  - {fileID: 2131863207581240793, guid: 84611822bc3841e4cace36aca88f7743, type: 3}
+  - {fileID: -7193817638922935004, guid: 3157ba152ee089d448a077caa7cb406a, type: 3}
+  - {fileID: 7156790002695755497, guid: 599bdb9c66f8ecc4aab1f14a7a284239, type: 3}
+  - {fileID: 2444871425618625499, guid: 8061b66296c03324bb115ea24cdf6bf0, type: 3}
+  - {fileID: 2384972068682683504, guid: bf95fd4899ebf0b498e852bb78256cfc, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  aboveNeighbours:
+  - {fileID: 4187426750720118590, guid: 85d911cca2c83ba40b7e12900bb75209, type: 3}
+  belowNeighbours:
+  - {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
   excludedNeighboursUp: []
   excludedNeighboursRight: []
   excludedNeighboursDown: []

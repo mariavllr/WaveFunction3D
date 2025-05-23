@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &2720622842038209659
+--- !u!1 &1230222995824076914
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,47 +8,47 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 8264577328322090711}
-  - component: {fileID: 5209093655768860146}
-  - component: {fileID: 5115020995574220376}
-  - component: {fileID: 2384972068682683504}
+  - component: {fileID: 2698915126548267489}
+  - component: {fileID: 1173859270584850250}
+  - component: {fileID: 124010418812338830}
+  - component: {fileID: 1222247260181770688}
   m_Layer: 0
-  m_Name: Wall corner exterior
+  m_Name: pathCorner
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &8264577328322090711
+--- !u!4 &2698915126548267489
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2720622842038209659}
+  m_GameObject: {fileID: 1230222995824076914}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 6.708474, y: 0, z: 4.402609}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 8.310311, y: 0, z: 3.6909547}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &5209093655768860146
+--- !u!33 &1173859270584850250
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2720622842038209659}
-  m_Mesh: {fileID: 6123237919837940275, guid: 1a4951679bb1d324c85c7aca882cc30b, type: 3}
---- !u!23 &5115020995574220376
+  m_GameObject: {fileID: 1230222995824076914}
+  m_Mesh: {fileID: 4652563786481374203, guid: 6b70038491428a2488c7e8a1c73e1a3f, type: 3}
+--- !u!23 &124010418812338830
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2720622842038209659}
+  m_GameObject: {fileID: 1230222995824076914}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -65,8 +65,9 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: -1255982633427224767, guid: 1a4951679bb1d324c85c7aca882cc30b, type: 3}
-  - {fileID: 2408938254544824348, guid: 1a4951679bb1d324c85c7aca882cc30b, type: 3}
+  - {fileID: 6996176954246918714, guid: 6b70038491428a2488c7e8a1c73e1a3f, type: 3}
+  - {fileID: 4837767881737734183, guid: 6b70038491428a2488c7e8a1c73e1a3f, type: 3}
+  - {fileID: -213811548017332271, guid: 6b70038491428a2488c7e8a1c73e1a3f, type: 3}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -88,74 +89,50 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &2384972068682683504
+--- !u!114 &1222247260181770688
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2720622842038209659}
+  m_GameObject: {fileID: 1230222995824076914}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 277a89576ce83074ea0775dfc62e2206, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tileType: Corner Exterior
-  probability: 5
+  tileType: path_corner
+  probability: 1
   rotateRight: 1
   rotate180: 1
   rotateLeft: 1
   rotation: {x: 0, y: 0, z: 0}
   scale: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
-  upNeighbours:
-  - {fileID: 0}
-  - {fileID: 0}
-  rightNeighbours:
-  - {fileID: 8677689225743667345, guid: 064f9ec7942e64c4ca84da3234271cf2, type: 3}
-  - {fileID: 2131863207581240793, guid: 84611822bc3841e4cace36aca88f7743, type: 3}
-  - {fileID: 2444871425618625499, guid: 8061b66296c03324bb115ea24cdf6bf0, type: 3}
-  - {fileID: -2430820588287781401, guid: 0cb75bce8c3cc69419df55cd189295bd, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  downNeighbours:
-  - {fileID: 8677689225743667345, guid: 064f9ec7942e64c4ca84da3234271cf2, type: 3}
-  - {fileID: 2131863207581240793, guid: 84611822bc3841e4cace36aca88f7743, type: 3}
-  - {fileID: 2444871425618625499, guid: 8061b66296c03324bb115ea24cdf6bf0, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  leftNeighbours:
-  - {fileID: 0}
-  - {fileID: 0}
+  upNeighbours: []
+  rightNeighbours: []
+  downNeighbours: []
+  leftNeighbours: []
   aboveNeighbours: []
-  belowNeighbours:
-  - {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
+  belowNeighbours: []
   excludedNeighboursUp:
-  - Corner Exterior
-  excludedNeighboursRight: []
+  - path_corner
+  excludedNeighboursRight:
+  - path_end
   excludedNeighboursDown:
-  - Corner Exterior
-  excludedNeighboursLeft: []
+  - path_end
+  excludedNeighboursLeft:
+  - path_corner
   upSocket:
-    socket_name: Wall lateral
+    socket_name: 1
     horizontalFace: 1
-    isSymmetric: 0
-    isFlipped: 1
+    isSymmetric: 1
+    isFlipped: 0
     verticalFace: 0
     rotationIndex: 0
     rotationallyInvariant: 0
   rightSocket:
-    socket_name: Grass
+    socket_name: 0
     horizontalFace: 1
     isSymmetric: 1
     isFlipped: 0
@@ -163,15 +140,15 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   leftSocket:
-    socket_name: Wall lateral
+    socket_name: 1
     horizontalFace: 1
-    isSymmetric: 0
+    isSymmetric: 1
     isFlipped: 0
     verticalFace: 0
     rotationIndex: 0
     rotationallyInvariant: 0
   downSocket:
-    socket_name: Grass
+    socket_name: 0
     horizontalFace: 1
     isSymmetric: 1
     isFlipped: 0
@@ -179,15 +156,15 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   aboveSocket:
-    socket_name: Wall corner top exterior
+    socket_name: 3
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0
     verticalFace: 1
     rotationIndex: 0
-    rotationallyInvariant: 0
+    rotationallyInvariant: 1
   belowSocket:
-    socket_name: Solid
+    socket_name: 10
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0

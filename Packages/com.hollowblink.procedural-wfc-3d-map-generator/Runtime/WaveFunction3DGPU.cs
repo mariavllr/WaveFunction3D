@@ -11,7 +11,7 @@ namespace WFC3DMapGenerator
     public class WaveFunction3DGPU : MonoBehaviour
     {
         // Constants (must not be changed)
-        public const int MAX_NEIGHBOURS = 44;
+        public const int MAX_NEIGHBOURS = 50;
 
         // Map generation parameters
         private float cellSize;

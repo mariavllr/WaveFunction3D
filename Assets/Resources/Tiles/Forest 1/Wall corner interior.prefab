@@ -100,24 +100,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 277a89576ce83074ea0775dfc62e2206, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tileType: 
-  probability: 0
+  tileType: Wall corner interior
+  probability: 5
   rotateRight: 1
   rotate180: 1
   rotateLeft: 1
   rotation: {x: 0, y: 0, z: 0}
   scale: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
-  upNeighbours: []
-  rightNeighbours: []
-  downNeighbours: []
-  leftNeighbours: []
-  aboveNeighbours: []
-  belowNeighbours: []
-  excludedNeighboursUp: []
-  excludedNeighboursRight: []
-  excludedNeighboursDown: []
-  excludedNeighboursLeft: []
+  upNeighbours:
+  - {fileID: -2430820588287781401, guid: 0cb75bce8c3cc69419df55cd189295bd, type: 3}
+  - {fileID: 0}
+  rightNeighbours:
+  - {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
+  downNeighbours:
+  - {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
+  - {fileID: 0}
+  leftNeighbours:
+  - {fileID: 0}
+  aboveNeighbours:
+  - {fileID: 7156790002695755497, guid: 599bdb9c66f8ecc4aab1f14a7a284239, type: 3}
+  belowNeighbours:
+  - {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
+  excludedNeighboursUp:
+  - Wall corner interior
+  excludedNeighboursRight:
+  - Wall
+  - Wall corner interior
+  excludedNeighboursDown:
+  - Wall corner interior
+  excludedNeighboursLeft:
+  - Wall
+  - Wall corner interior
   upSocket:
     socket_name: Wall lateral
     horizontalFace: 1
@@ -135,7 +149,7 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   leftSocket:
-    socket_name: 
+    socket_name: Wall lateral
     horizontalFace: 1
     isSymmetric: 0
     isFlipped: 1

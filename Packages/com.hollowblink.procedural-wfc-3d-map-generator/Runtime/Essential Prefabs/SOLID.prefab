@@ -52,18 +52,24 @@ MonoBehaviour:
   rotation: {x: 0, y: 0, z: 0}
   scale: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
-  upNeighbours: []
-  rightNeighbours: []
-  downNeighbours: []
-  leftNeighbours: []
-  aboveNeighbours: []
-  belowNeighbours: []
+  upNeighbours:
+  - {fileID: 2591377062762197173}
+  rightNeighbours:
+  - {fileID: 2591377062762197173}
+  downNeighbours:
+  - {fileID: 2591377062762197173}
+  leftNeighbours:
+  - {fileID: 2591377062762197173}
+  aboveNeighbours:
+  - {fileID: 2591377062762197173}
+  belowNeighbours:
+  - {fileID: 2591377062762197173}
   excludedNeighboursUp: []
   excludedNeighboursRight: []
   excludedNeighboursDown: []
   excludedNeighboursLeft: []
   upSocket:
-    socket_name: 10
+    socket_name: Solid
     horizontalFace: 1
     isSymmetric: 1
     isFlipped: 0
@@ -71,7 +77,7 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   rightSocket:
-    socket_name: 10
+    socket_name: Solid
     horizontalFace: 1
     isSymmetric: 1
     isFlipped: 0
@@ -79,7 +85,7 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   leftSocket:
-    socket_name: 10
+    socket_name: Solid
     horizontalFace: 1
     isSymmetric: 1
     isFlipped: 0
@@ -87,7 +93,7 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   downSocket:
-    socket_name: 10
+    socket_name: Solid
     horizontalFace: 1
     isSymmetric: 1
     isFlipped: 0
@@ -95,7 +101,7 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   aboveSocket:
-    socket_name: 10
+    socket_name: Solid
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0
@@ -103,7 +109,7 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 1
   belowSocket:
-    socket_name: 10
+    socket_name: Solid
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0

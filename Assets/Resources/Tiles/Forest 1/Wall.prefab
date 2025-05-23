@@ -100,22 +100,44 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 277a89576ce83074ea0775dfc62e2206, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tileType: 
-  probability: 0
+  tileType: Wall
+  probability: 5
   rotateRight: 1
   rotate180: 1
   rotateLeft: 1
   rotation: {x: 0, y: 0, z: 0}
   scale: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
-  upNeighbours: []
-  rightNeighbours: []
-  downNeighbours: []
-  leftNeighbours: []
-  aboveNeighbours: []
-  belowNeighbours: []
+  upNeighbours:
+  - {fileID: -2430820588287781401}
+  - {fileID: 0}
+  rightNeighbours:
+  - {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
+  - {fileID: 0}
+  downNeighbours:
+  - {fileID: -2430820588287781401}
+  - {fileID: -9160977582497695736, guid: 3e167fe51665a9b4886ab3d238a98bfc, type: 3}
+  - {fileID: 0}
+  leftNeighbours:
+  - {fileID: 8677689225743667345, guid: 064f9ec7942e64c4ca84da3234271cf2, type: 3}
+  - {fileID: 2131863207581240793, guid: 84611822bc3841e4cace36aca88f7743, type: 3}
+  - {fileID: -7193817638922935004, guid: 3157ba152ee089d448a077caa7cb406a, type: 3}
+  - {fileID: 7156790002695755497, guid: 599bdb9c66f8ecc4aab1f14a7a284239, type: 3}
+  - {fileID: 2444871425618625499, guid: 8061b66296c03324bb115ea24cdf6bf0, type: 3}
+  - {fileID: 2384972068682683504, guid: bf95fd4899ebf0b498e852bb78256cfc, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  aboveNeighbours:
+  - {fileID: -7193817638922935004, guid: 3157ba152ee089d448a077caa7cb406a, type: 3}
+  belowNeighbours:
+  - {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
   excludedNeighboursUp: []
-  excludedNeighboursRight: []
+  excludedNeighboursRight:
+  - Wall
   excludedNeighboursDown: []
   excludedNeighboursLeft: []
   upSocket:

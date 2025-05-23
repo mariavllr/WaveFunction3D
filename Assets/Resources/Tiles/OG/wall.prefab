@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &2720622842038209659
+--- !u!1 &7707197784261450776
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,47 +8,47 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 8264577328322090711}
-  - component: {fileID: 5209093655768860146}
-  - component: {fileID: 5115020995574220376}
-  - component: {fileID: 2384972068682683504}
+  - component: {fileID: 5578183395487624847}
+  - component: {fileID: 2670067868351041585}
+  - component: {fileID: 7194276276871339787}
+  - component: {fileID: 5376119154660965731}
   m_Layer: 0
-  m_Name: Wall corner exterior
+  m_Name: wall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &8264577328322090711
+--- !u!4 &5578183395487624847
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2720622842038209659}
+  m_GameObject: {fileID: 7707197784261450776}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 6.708474, y: 0, z: 4.402609}
+  m_LocalPosition: {x: 17.64759, y: 0.00000047683716, z: 7.405785}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &5209093655768860146
+--- !u!33 &2670067868351041585
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2720622842038209659}
-  m_Mesh: {fileID: 6123237919837940275, guid: 1a4951679bb1d324c85c7aca882cc30b, type: 3}
---- !u!23 &5115020995574220376
+  m_GameObject: {fileID: 7707197784261450776}
+  m_Mesh: {fileID: -6281424698479989189, guid: 94a5d60501cda5f4d8fd4e5a2ece23ea, type: 3}
+--- !u!23 &7194276276871339787
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2720622842038209659}
+  m_GameObject: {fileID: 7707197784261450776}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -65,8 +65,8 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: -1255982633427224767, guid: 1a4951679bb1d324c85c7aca882cc30b, type: 3}
-  - {fileID: 2408938254544824348, guid: 1a4951679bb1d324c85c7aca882cc30b, type: 3}
+  - {fileID: -1255982633427224767, guid: 94a5d60501cda5f4d8fd4e5a2ece23ea, type: 3}
+  - {fileID: 2408938254544824348, guid: 94a5d60501cda5f4d8fd4e5a2ece23ea, type: 3}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -88,20 +88,20 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &2384972068682683504
+--- !u!114 &5376119154660965731
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2720622842038209659}
+  m_GameObject: {fileID: 7707197784261450776}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 277a89576ce83074ea0775dfc62e2206, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tileType: Corner Exterior
-  probability: 5
+  tileType: wall
+  probability: 20
   rotateRight: 1
   rotate180: 1
   rotateLeft: 1
@@ -109,53 +109,59 @@ MonoBehaviour:
   scale: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
   upNeighbours:
+  - {fileID: 5376119154660965731}
   - {fileID: 0}
   - {fileID: 0}
   rightNeighbours:
-  - {fileID: 8677689225743667345, guid: 064f9ec7942e64c4ca84da3234271cf2, type: 3}
-  - {fileID: 2131863207581240793, guid: 84611822bc3841e4cace36aca88f7743, type: 3}
-  - {fileID: 2444871425618625499, guid: 8061b66296c03324bb115ea24cdf6bf0, type: 3}
-  - {fileID: -2430820588287781401, guid: 0cb75bce8c3cc69419df55cd189295bd, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
   - {fileID: 0}
   - {fileID: 0}
   downNeighbours:
-  - {fileID: 8677689225743667345, guid: 064f9ec7942e64c4ca84da3234271cf2, type: 3}
-  - {fileID: 2131863207581240793, guid: 84611822bc3841e4cace36aca88f7743, type: 3}
-  - {fileID: 2444871425618625499, guid: 8061b66296c03324bb115ea24cdf6bf0, type: 3}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: -4314144731049386129, guid: 6157d498f9548594fb42a9cf28c72c87, type: 3}
+  - {fileID: 5376119154660965731}
   - {fileID: 0}
   leftNeighbours:
+  - {fileID: 2082116450420902282, guid: a8bf4002b334270479ba2c7d377a3400, type: 3}
+  - {fileID: -2698591520516281, guid: b75c34e2b03186b43b94c7206d6c82e1, type: 3}
+  - {fileID: 5135411757924644250, guid: fef88250b9353b9448a2b78df40bb401, type: 3}
+  - {fileID: 8913561890965976763, guid: b1c99955d607acd48bb3bad64824eef5, type: 3}
+  - {fileID: 1474986422897661062, guid: c9222b913e9d2014c92ccc8982e58155, type: 3}
+  - {fileID: -1767916875816933646, guid: d9b5b27ceda4fcf46880f010aafd9716, type: 3}
+  - {fileID: 1222247260181770688, guid: ac302a9ad5d205c46bba52f306328474, type: 3}
+  - {fileID: -4010797267157076088, guid: 8abbf266539ef62498dc1955e9fd5cb2, type: 3}
+  - {fileID: 8831606223975869083, guid: 5ccf4983f52ee2f48818911292619aed, type: 3}
+  - {fileID: 1999385850999562556, guid: 6f455aaca45aaeb43bdab4f4555e437f, type: 3}
   - {fileID: 0}
   - {fileID: 0}
-  aboveNeighbours: []
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  aboveNeighbours:
+  - {fileID: -2698591520516281, guid: b75c34e2b03186b43b94c7206d6c82e1, type: 3}
   belowNeighbours:
   - {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
-  excludedNeighboursUp:
-  - Corner Exterior
-  excludedNeighboursRight: []
-  excludedNeighboursDown:
-  - Corner Exterior
+  excludedNeighboursUp: []
+  excludedNeighboursRight:
+  - wall
+  excludedNeighboursDown: []
   excludedNeighboursLeft: []
   upSocket:
-    socket_name: Wall lateral
+    socket_name: 4
     horizontalFace: 1
     isSymmetric: 0
-    isFlipped: 1
+    isFlipped: 0
     verticalFace: 0
     rotationIndex: 0
     rotationallyInvariant: 0
   rightSocket:
-    socket_name: Grass
+    socket_name: 10
     horizontalFace: 1
     isSymmetric: 1
     isFlipped: 0
@@ -163,23 +169,23 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   leftSocket:
-    socket_name: Wall lateral
-    horizontalFace: 1
-    isSymmetric: 0
-    isFlipped: 0
-    verticalFace: 0
-    rotationIndex: 0
-    rotationallyInvariant: 0
-  downSocket:
-    socket_name: Grass
+    socket_name: 0
     horizontalFace: 1
     isSymmetric: 1
     isFlipped: 0
     verticalFace: 0
     rotationIndex: 0
     rotationallyInvariant: 0
+  downSocket:
+    socket_name: 4
+    horizontalFace: 1
+    isSymmetric: 0
+    isFlipped: 1
+    verticalFace: 0
+    rotationIndex: 0
+    rotationallyInvariant: 0
   aboveSocket:
-    socket_name: Wall corner top exterior
+    socket_name: 5
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0
@@ -187,7 +193,7 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   belowSocket:
-    socket_name: Solid
+    socket_name: 10
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0

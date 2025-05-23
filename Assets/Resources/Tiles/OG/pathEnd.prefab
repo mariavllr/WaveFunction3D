@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &5831479776787883922
+--- !u!1 &768321031863270629
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,47 +8,47 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 4068620435022597143}
-  - component: {fileID: 1667616868865513909}
-  - component: {fileID: 9183860253329244595}
-  - component: {fileID: 6805975285803357166}
+  - component: {fileID: 1625705178561120999}
+  - component: {fileID: 6608610671905215267}
+  - component: {fileID: 1076804473427149309}
+  - component: {fileID: -4010797267157076088}
   m_Layer: 0
-  m_Name: Wall border corner
+  m_Name: pathEnd
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &4068620435022597143
+--- !u!4 &1625705178561120999
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5831479776787883922}
+  m_GameObject: {fileID: 768321031863270629}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 8.577051, y: 0, z: 8.421996}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &1667616868865513909
+--- !u!33 &6608610671905215267
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5831479776787883922}
-  m_Mesh: {fileID: 2534832559369351965, guid: 4bb3966d9af244d4aa18c59e3a000037, type: 3}
---- !u!23 &9183860253329244595
+  m_GameObject: {fileID: 768321031863270629}
+  m_Mesh: {fileID: -2277524956325440118, guid: b7a35dcf7798c3748b3d9e50b884e7d0, type: 3}
+--- !u!23 &1076804473427149309
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5831479776787883922}
+  m_GameObject: {fileID: 768321031863270629}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -65,8 +65,9 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2408938254544824348, guid: 4bb3966d9af244d4aa18c59e3a000037, type: 3}
-  - {fileID: -1255982633427224767, guid: 4bb3966d9af244d4aa18c59e3a000037, type: 3}
+  - {fileID: -4216225960938604118, guid: b7a35dcf7798c3748b3d9e50b884e7d0, type: 3}
+  - {fileID: 4387567157736089908, guid: b7a35dcf7798c3748b3d9e50b884e7d0, type: 3}
+  - {fileID: 4703120534166782869, guid: b7a35dcf7798c3748b3d9e50b884e7d0, type: 3}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -88,20 +89,20 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &6805975285803357166
+--- !u!114 &-4010797267157076088
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5831479776787883922}
+  m_GameObject: {fileID: 768321031863270629}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 277a89576ce83074ea0775dfc62e2206, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tileType: 
-  probability: 0
+  tileType: path_end
+  probability: 1
   rotateRight: 1
   rotate180: 1
   rotateLeft: 1
@@ -119,15 +120,15 @@ MonoBehaviour:
   excludedNeighboursDown: []
   excludedNeighboursLeft: []
   upSocket:
-    socket_name: Grass border
+    socket_name: 1
     horizontalFace: 1
-    isSymmetric: 0
-    isFlipped: 1
+    isSymmetric: 1
+    isFlipped: 0
     verticalFace: 0
     rotationIndex: 0
     rotationallyInvariant: 0
   rightSocket:
-    socket_name: Empty
+    socket_name: 0
     horizontalFace: 1
     isSymmetric: 1
     isFlipped: 0
@@ -135,15 +136,15 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   leftSocket:
-    socket_name: Grass border
+    socket_name: 0
     horizontalFace: 1
-    isSymmetric: 0
+    isSymmetric: 1
     isFlipped: 0
     verticalFace: 0
     rotationIndex: 0
     rotationallyInvariant: 0
   downSocket:
-    socket_name: Empty
+    socket_name: 0
     horizontalFace: 1
     isSymmetric: 1
     isFlipped: 0
@@ -151,7 +152,7 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   aboveSocket:
-    socket_name: Empty
+    socket_name: 3
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0
@@ -159,10 +160,10 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 1
   belowSocket:
-    socket_name: Wall corner top
+    socket_name: 10
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0
     verticalFace: 1
     rotationIndex: 0
-    rotationallyInvariant: 0
+    rotationallyInvariant: 1

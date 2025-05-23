@@ -25,6 +25,7 @@ namespace WFC3DMapGenerator
         [SerializeField] private DropdownField m_TileDropdown;
         [SerializeField] private TextField m_TileNameField;
         [SerializeField] private TextField m_TileTypeField;
+        [SerializeField] private IntegerField m_TileProbabilityField;
         [SerializeField] private ObjectField m_SelectedGameObjectField;
         [SerializeField] private Toggle m_TileVariation90, m_TileVariation180, m_TileVariation270;
 
@@ -85,6 +86,7 @@ namespace WFC3DMapGenerator
         [SerializeField] private Tile3D m_SelectedTile;
         [SerializeField] private string m_SelectedTileName;
         [SerializeField] private string m_SelectedTileType;
+        [SerializeField] private int m_SelectedTileProbability;
         [SerializeField] private GameObject m_SelectedGameObject;
         [SerializeField] private bool m_Rotate90, m_Rotate180, m_Rotate270;
 
@@ -194,6 +196,18 @@ namespace WFC3DMapGenerator
             {
                 m_TileTypeField.value = m_SelectedTileType;
                 m_TileTypeField.RegisterValueChangedCallback(ChangeTileType);
+            }
+
+            // Tile probability field
+            m_TileProbabilityField = root.Q<IntegerField>("tileProbabilityField");
+            if (m_TileProbabilityField != null)
+            {
+                m_TileProbabilityField.value = m_SelectedTileProbability;
+                m_TileProbabilityField.RegisterValueChangedCallback(evt =>
+                {
+                    m_SelectedTileProbability = evt.newValue;
+                    m_SelectedTile.probability = m_SelectedTileProbability;
+                });
             }
 
             // Object field
@@ -560,6 +574,8 @@ namespace WFC3DMapGenerator
                 m_SelectedTileset.tiles = Resources.LoadAll<Tile3D>($"Tiles/{m_SelectedTilesetName}/").ToList();
             }
             else m_SelectedTileset.tiles = new List<Tile3D>();
+            m_SelectedTileset.tiles.Add(m_EmptyTile);
+            m_SelectedTileset.tiles.Add(m_SolidTile);
             m_SelectedTileset.tileCount = m_SelectedTileset.tiles.Count;
             m_Tiles = m_SelectedTileset.tiles;
             m_TileDropdown.choices = m_Tiles
@@ -661,6 +677,7 @@ namespace WFC3DMapGenerator
                 m_SelectedTile = null;
                 m_SelectedTileName = tileName;
                 m_SelectedTileType = "";
+                m_SelectedTileProbability = 1;
                 m_SelectedGameObject = null;
                 m_Rotate90 = false;
                 m_Rotate180 = false;
@@ -696,6 +713,7 @@ namespace WFC3DMapGenerator
                 {
                     m_SelectedTileName = m_SelectedTile.name;
                     m_SelectedTileType = m_SelectedTile.tileType;
+                    m_SelectedTileProbability = m_SelectedTile.probability;
                     m_SelectedGameObject = m_SelectedTile.gameObject;
                     m_Rotate90 = m_SelectedTile.rotateRight;
                     m_Rotate180 = m_SelectedTile.rotate180;
@@ -736,6 +754,7 @@ namespace WFC3DMapGenerator
                 m_TileDropdown.choices.Add("New tile");
                 m_TileNameField.value = m_SelectedTileName;
                 m_TileTypeField.value = m_SelectedTileType;
+                m_TileProbabilityField.value = m_SelectedTileProbability;
                 m_SelectedGameObjectField.value = m_SelectedGameObject;
                 m_TileVariation90.value = m_Rotate90;
                 m_TileVariation180.value = m_Rotate180;
@@ -945,7 +964,7 @@ namespace WFC3DMapGenerator
                 m_SelectedTileset = Resources.Load<Tileset>($"Tilesets/{m_SelectedTilesetName}");
             }
 
-            // Save tile size
+            // Save the tileset
             m_SelectedTileset.tileSize = m_TileSize;
             m_SelectedTileset.socketTypes = m_SocketTypes;
             m_SelectedTileset.tiles = m_Tiles;
@@ -991,6 +1010,7 @@ namespace WFC3DMapGenerator
             // Set all the values of the selected tile
             m_SelectedTile.name = m_SelectedTileName;
             m_SelectedTile.tileType = m_SelectedTileType;
+            m_SelectedTile.probability = m_SelectedTileProbability;
             m_SelectedTile.rotateRight = m_Rotate90;
             m_SelectedTile.rotate180 = m_Rotate180;
             m_SelectedTile.rotateLeft = m_Rotate270;
@@ -1029,9 +1049,14 @@ namespace WFC3DMapGenerator
 
             // Move the asset to the new folder
             AssetDatabase.MoveAsset(AssetDatabase.GetAssetPath(m_SelectedTile), $"Assets/Resources/Tiles/{m_SelectedTilesetName}/{m_SelectedTileName}.prefab");
-            m_SelectedTileset.tiles.Add(m_SelectedTile);
+            if(!m_SelectedTileset.tiles.Contains(m_SelectedTile)) m_SelectedTileset.tiles.Add(m_SelectedTile);
+            if(!m_SelectedTileset.tiles.Contains(m_EmptyTile)) m_SelectedTileset.tiles.Add(m_EmptyTile);
+            if(!m_SelectedTileset.tiles.Contains(m_SolidTile)) m_SelectedTileset.tiles.Add(m_SolidTile);
             m_SelectedTileset.tileCount = m_SelectedTileset.tiles.Count;
+            m_SelectedTileset.tileTypes = m_SelectedTileset.tiles.Select(tile => tile.tileType).Where(tileType => tileType != "").Distinct().ToList();
             ChangeTile(m_SelectedTileName);
+            EditorUtility.SetDirty(m_SelectedTileset);
+            EditorUtility.SetDirty(m_SelectedTile);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }

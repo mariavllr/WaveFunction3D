@@ -11,9 +11,9 @@ GameObject:
   - component: {fileID: 8884750428721341639}
   - component: {fileID: 887646232739486843}
   - component: {fileID: 2935639899498015843}
-  - component: {fileID: 2444871425618625499}
+  - component: {fileID: 2082116450420902282}
   m_Layer: 0
-  m_Name: Pines
+  m_Name: base_pines
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -92,7 +92,7 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &2444871425618625499
+--- !u!114 &2082116450420902282
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -113,11 +113,17 @@ MonoBehaviour:
   scale: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
   upNeighbours:
-  - {fileID: 8677689225743667345, guid: 064f9ec7942e64c4ca84da3234271cf2, type: 3}
-  - {fileID: 2131863207581240793, guid: 84611822bc3841e4cace36aca88f7743, type: 3}
-  - {fileID: 7156790002695755497, guid: 599bdb9c66f8ecc4aab1f14a7a284239, type: 3}
-  - {fileID: 2444871425618625499}
-  - {fileID: 2384972068682683504, guid: bf95fd4899ebf0b498e852bb78256cfc, type: 3}
+  - {fileID: 2082116450420902282}
+  - {fileID: 8913561890965976763, guid: b1c99955d607acd48bb3bad64824eef5, type: 3}
+  - {fileID: 1474986422897661062, guid: c9222b913e9d2014c92ccc8982e58155, type: 3}
+  - {fileID: 1222247260181770688, guid: ac302a9ad5d205c46bba52f306328474, type: 3}
+  - {fileID: -4010797267157076088, guid: 8abbf266539ef62498dc1955e9fd5cb2, type: 3}
+  - {fileID: 8831606223975869083, guid: 5ccf4983f52ee2f48818911292619aed, type: 3}
+  - {fileID: 1999385850999562556, guid: 6f455aaca45aaeb43bdab4f4555e437f, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
@@ -126,10 +132,16 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   rightNeighbours:
-  - {fileID: 8677689225743667345, guid: 064f9ec7942e64c4ca84da3234271cf2, type: 3}
-  - {fileID: 2131863207581240793, guid: 84611822bc3841e4cace36aca88f7743, type: 3}
-  - {fileID: 2444871425618625499}
-  - {fileID: -2430820588287781401, guid: 0cb75bce8c3cc69419df55cd189295bd, type: 3}
+  - {fileID: 2082116450420902282}
+  - {fileID: -1767916875816933646, guid: d9b5b27ceda4fcf46880f010aafd9716, type: 3}
+  - {fileID: -4010797267157076088, guid: 8abbf266539ef62498dc1955e9fd5cb2, type: 3}
+  - {fileID: 8831606223975869083, guid: 5ccf4983f52ee2f48818911292619aed, type: 3}
+  - {fileID: 1999385850999562556, guid: 6f455aaca45aaeb43bdab4f4555e437f, type: 3}
+  - {fileID: 5376119154660965731, guid: 7016443fd25a69a4b8ee2f50e5c1edba, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
@@ -139,9 +151,15 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   downNeighbours:
-  - {fileID: 8677689225743667345, guid: 064f9ec7942e64c4ca84da3234271cf2, type: 3}
-  - {fileID: 2131863207581240793, guid: 84611822bc3841e4cace36aca88f7743, type: 3}
-  - {fileID: 2444871425618625499}
+  - {fileID: 2082116450420902282}
+  - {fileID: 8831606223975869083, guid: 5ccf4983f52ee2f48818911292619aed, type: 3}
+  - {fileID: 1999385850999562556, guid: 6f455aaca45aaeb43bdab4f4555e437f, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
@@ -152,28 +170,32 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   leftNeighbours:
-  - {fileID: 8677689225743667345, guid: 064f9ec7942e64c4ca84da3234271cf2, type: 3}
-  - {fileID: 2131863207581240793, guid: 84611822bc3841e4cace36aca88f7743, type: 3}
-  - {fileID: -7193817638922935004, guid: 3157ba152ee089d448a077caa7cb406a, type: 3}
-  - {fileID: 7156790002695755497, guid: 599bdb9c66f8ecc4aab1f14a7a284239, type: 3}
-  - {fileID: 2444871425618625499}
-  - {fileID: 2384972068682683504, guid: bf95fd4899ebf0b498e852bb78256cfc, type: 3}
+  - {fileID: 2082116450420902282}
+  - {fileID: -2698591520516281, guid: b75c34e2b03186b43b94c7206d6c82e1, type: 3}
+  - {fileID: 8913561890965976763, guid: b1c99955d607acd48bb3bad64824eef5, type: 3}
+  - {fileID: 1474986422897661062, guid: c9222b913e9d2014c92ccc8982e58155, type: 3}
+  - {fileID: -1767916875816933646, guid: d9b5b27ceda4fcf46880f010aafd9716, type: 3}
+  - {fileID: 1222247260181770688, guid: ac302a9ad5d205c46bba52f306328474, type: 3}
+  - {fileID: -4010797267157076088, guid: 8abbf266539ef62498dc1955e9fd5cb2, type: 3}
+  - {fileID: 8831606223975869083, guid: 5ccf4983f52ee2f48818911292619aed, type: 3}
+  - {fileID: 1999385850999562556, guid: 6f455aaca45aaeb43bdab4f4555e437f, type: 3}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
-  aboveNeighbours:
-  - {fileID: 4187426750720118590, guid: 85d911cca2c83ba40b7e12900bb75209, type: 3}
-  belowNeighbours:
-  - {fileID: 2591377062762197173, guid: 23d3dc7cbca008f48ab4740bd402b911, type: 3}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  aboveNeighbours: []
+  belowNeighbours: []
   excludedNeighboursUp: []
   excludedNeighboursRight: []
   excludedNeighboursDown: []
   excludedNeighboursLeft: []
   upSocket:
-    socket_name: Grass
+    socket_name: 0
     horizontalFace: 1
     isSymmetric: 1
     isFlipped: 0
@@ -181,7 +203,7 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   rightSocket:
-    socket_name: Grass
+    socket_name: 0
     horizontalFace: 1
     isSymmetric: 1
     isFlipped: 0
@@ -189,7 +211,7 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   leftSocket:
-    socket_name: Grass
+    socket_name: 0
     horizontalFace: 1
     isSymmetric: 1
     isFlipped: 0
@@ -197,7 +219,7 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   downSocket:
-    socket_name: Grass
+    socket_name: 0
     horizontalFace: 1
     isSymmetric: 1
     isFlipped: 0
@@ -205,7 +227,7 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 0
   aboveSocket:
-    socket_name: Empty
+    socket_name: 3
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0
@@ -213,7 +235,7 @@ MonoBehaviour:
     rotationIndex: 0
     rotationallyInvariant: 1
   belowSocket:
-    socket_name: Solid
+    socket_name: 10
     horizontalFace: 0
     isSymmetric: 0
     isFlipped: 0
