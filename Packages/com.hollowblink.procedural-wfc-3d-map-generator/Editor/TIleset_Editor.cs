@@ -1055,8 +1055,8 @@ namespace WFC3DMapGenerator
             m_SelectedTileset.tileCount = m_SelectedTileset.tiles.Count;
             m_SelectedTileset.tileTypes = m_SelectedTileset.tiles.Select(tile => tile.tileType).Where(tileType => tileType != "").Distinct().ToList();
             ChangeTile(m_SelectedTileName);
-            EditorUtility.SetDirty(m_SelectedTileset);
-            EditorUtility.SetDirty(m_SelectedTile);
+            if(m_SelectedTileset != null) EditorUtility.SetDirty(m_SelectedTileset);
+            if(m_SelectedTile != null) EditorUtility.SetDirty(m_SelectedTile);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }

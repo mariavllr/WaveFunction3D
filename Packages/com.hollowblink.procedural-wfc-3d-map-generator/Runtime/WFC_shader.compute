@@ -7,7 +7,7 @@
 | so the maximum number of neighbours is defined as a constant.                 |
 |-------------------------------------------------------------------------------|
 */
-#define MAX_NEIGHBOURS 44
+#define MAX_NEIGHBOURS 50
 #define X_EXTENSION 4
 #define Y_EXTENSION 1
 #define Z_EXTENSION 4
