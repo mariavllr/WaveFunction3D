@@ -4,7 +4,7 @@ namespace WFC3DMapGenerator
 {
     public class WFCStructs
     {
-        public const int MAX_NEIGHBOURS = 44;
+        public const int MAX_NEIGHBOURS = 50;
         public unsafe struct Tile3DStruct
         {
             /*
